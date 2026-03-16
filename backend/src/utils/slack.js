@@ -42,6 +42,10 @@ export const slack = {
 
   // ── Developer channel ────────────────────────────────────────────────────
 
+  /** Phase 10 — implementation plan posted, awaiting dev review */
+  planReadyForReview: ({ issueKey, summary, jiraUrl }) =>
+    sendDev(`📋  Implementation plan ready for review — [${issueKey}] ${summary}\n${jiraUrl}\nPlease review and approve, modify, or reject the plan before coding begins.`),
+
   /** Phase 10 — task moved to In Progress */
   taskStarted: ({ issueKey, summary, branch }) =>
     sendDev(`▶️  [${issueKey}] started — ${summary}\nBranch: ${branch}`),
