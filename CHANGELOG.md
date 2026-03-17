@@ -17,3 +17,4 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - 9 Epics and 69 tasks created in Jira (CC-1 to CC-78)
 - Backend project structure: Node.js/Express with ESM, folder scaffold, ESLint, Prettier, nodemon (CC-10)
 - Slack dual-channel notification system with outbound webhooks and bot-token response reading (Phase 22)
+- Frontend project structure: React 19 + Vite + TypeScript, Tailwind CSS v4, React Router v7, Vitest, folder scaffold (CC-11)
