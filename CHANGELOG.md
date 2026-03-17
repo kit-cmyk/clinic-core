@@ -15,3 +15,5 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 ### Added
 - Initial project setup: README, CHANGELOG, TESTING, .env.example
 - 9 Epics and 69 tasks created in Jira (CC-1 to CC-78)
+- Backend project structure: Node.js/Express with ESM, folder scaffold, ESLint, Prettier, nodemon (CC-10)
+- Slack dual-channel notification system with outbound webhooks and bot-token response reading (Phase 22)

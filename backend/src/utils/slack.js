@@ -9,11 +9,20 @@
  *   sendDev()  → SLACK_WEBHOOK_DEV
  *   sendPO()   → SLACK_WEBHOOK_PO
  *   sendBoth() → both channels
+ *
+ * Reading responses:
+ *   slack.readDev()  → recent messages from SLACK_DEV_CHANNEL_ID
+ *   slack.readPO()   → recent messages from SLACK_PO_CHANNEL_ID
+ *   slack.pollForApproval() → scans channel for approve/reject signals for a ticket
+ *   Requires: SLACK_BOT_TOKEN with channels:history + channels:read scopes
  */
 
-const WEBHOOK_DEV = process.env.SLACK_WEBHOOK_DEV;
-const WEBHOOK_PO  = process.env.SLACK_WEBHOOK_PO;
-const ONCALL      = process.env.SLACK_ONCALL || '@oncall';
+const WEBHOOK_DEV  = process.env.SLACK_WEBHOOK_DEV;
+const WEBHOOK_PO   = process.env.SLACK_WEBHOOK_PO;
+const ONCALL       = process.env.SLACK_ONCALL || '@oncall';
+const BOT_TOKEN    = process.env.SLACK_BOT_TOKEN;
+const CHANNEL_DEV  = process.env.SLACK_DEV_CHANNEL_ID;
+const CHANNEL_PO   = process.env.SLACK_PO_CHANNEL_ID;
 
 async function sendTo(webhookUrl, label, text) {
   if (!webhookUrl || webhookUrl.includes('YOUR/WEBHOOK')) {
@@ -35,6 +44,45 @@ async function sendTo(webhookUrl, label, text) {
 const sendDev  = (text) => sendTo(WEBHOOK_DEV, 'dev', text);
 const sendPO   = (text) => sendTo(WEBHOOK_PO,  'po',  text);
 const sendBoth = (text) => Promise.all([sendDev(text), sendPO(text)]);
+
+// ── Read helpers ────────────────────────────────────────────────────────────
+
+async function readChannel(channelId, label, limit = 20) {
+  if (!BOT_TOKEN || BOT_TOKEN.includes('YOUR')) {
+    console.log(`[Slack:${label}:read — bot token not configured]`);
+    return [];
+  }
+  if (!channelId || channelId.includes('YOUR')) {
+    console.log(`[Slack:${label}:read — channel ID not configured]`);
+    return [];
+  }
+  try {
+    const url = `https://slack.com/api/conversations.history?channel=${channelId}&limit=${limit}`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${BOT_TOKEN}` },
+    });
+    const data = await res.json();
+    if (!data.ok) {
+      console.error(`[Slack:${label}:read] API error: ${data.error}`);
+      return [];
+    }
+    return data.messages || [];
+  } catch (err) {
+    console.error(`[Slack:${label}:read] Error:`, err.message);
+    return [];
+  }
+}
+
+// ── Approval signal detection ───────────────────────────────────────────────
+
+const APPROVE_PATTERNS = [/\bapprove[d]?\b/i, /\blgtm\b/i, /\bship it\b/i, /✅/, /👍/];
+const REJECT_PATTERNS  = [/\breject[ed]?\b/i, /\bchanges? needed\b/i, /\bblocked?\b/i, /❌/, /🚫/];
+
+function detectSignal(text) {
+  if (APPROVE_PATTERNS.some(p => p.test(text))) return 'approved';
+  if (REJECT_PATTERNS.some(p => p.test(text)))  return 'rejected';
+  return null;
+}
 
 // ── Notification Templates (Phase 22) ──────────────────────────────────────
 
@@ -89,5 +137,54 @@ export const slack = {
     const msg = `🐛  Bug triaged — [${bugKey}] ${summary}\nSeverity: ${severity}\nAssigned to: ${epicName} | ${jiraUrl}`;
     const isCritical = ['Critical', 'High'].includes(severity);
     return isCritical ? sendBoth(msg) : sendPO(msg);
+  },
+
+  // ── Response Reading ──────────────────────────────────────────────────────
+
+  /**
+   * Read recent messages from the dev channel.
+   * Returns array of { ts, user, text } objects, newest first.
+   * Requires SLACK_BOT_TOKEN + SLACK_DEV_CHANNEL_ID.
+   */
+  readDev: async (limit = 20) => {
+    const msgs = await readChannel(CHANNEL_DEV, 'dev', limit);
+    return msgs.map(m => ({ ts: m.ts, user: m.user, text: m.text || '' }));
+  },
+
+  /**
+   * Read recent messages from the PO channel.
+   * Returns array of { ts, user, text } objects, newest first.
+   * Requires SLACK_BOT_TOKEN + SLACK_PO_CHANNEL_ID.
+   */
+  readPO: async (limit = 20) => {
+    const msgs = await readChannel(CHANNEL_PO, 'po', limit);
+    return msgs.map(m => ({ ts: m.ts, user: m.user, text: m.text || '' }));
+  },
+
+  /**
+   * Scan a channel for approve/reject signals mentioning a specific issue key.
+   * Returns { signal: 'approved'|'rejected'|null, message, ts, user }
+   *
+   * Usage:
+   *   await slack.pollForApproval({ issueKey: 'CC-10', channel: 'dev' })
+   *   await slack.pollForApproval({ issueKey: 'v1.2.0', channel: 'po' })
+   *
+   * Scans the last `limit` messages (default 50). Returns the most recent
+   * relevant message found, or { signal: null } if none detected.
+   */
+  pollForApproval: async ({ issueKey, channel = 'dev', limit = 50 }) => {
+    const channelId = channel === 'po' ? CHANNEL_PO : CHANNEL_DEV;
+    const label     = channel === 'po' ? 'po' : 'dev';
+    const msgs      = await readChannel(channelId, label, limit);
+
+    for (const m of msgs) {
+      const text = m.text || '';
+      if (!text.includes(issueKey)) continue;
+      const signal = detectSignal(text);
+      if (signal) {
+        return { signal, message: text, ts: m.ts, user: m.user };
+      }
+    }
+    return { signal: null, message: null, ts: null, user: null };
   },
 };
