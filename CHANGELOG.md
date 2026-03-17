@@ -24,3 +24,6 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - Login page: email/password form with validation and loading state, stub auth ready for CC-18 (CC-11)
 - Dashboard page: stat cards (appointments, patients, lab, billing) and today's appointments list with status badges (CC-11)
 - 4 passing unit/integration tests covering login form validation and 404 routing (CC-11)
+- PostgreSQL multi-tenant schema via Prisma 5: tenants, subscription_tiers, users, organizations, branches, staff_assignments, invitations — all tenant-scoped tables carry indexed tenant_id FK (CC-12)
+- Seed script: 4 subscription tiers (FREE/BASIC/PRO/ENTERPRISE) with storage limits and pricing (CC-12)
+- Prisma client singleton at backend/src/models/prisma.js with dev hot-reload safety (CC-12)
