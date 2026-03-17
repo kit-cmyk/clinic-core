@@ -25,6 +25,7 @@ import { ResultPublishPage } from '@/pages/lab/ResultPublishPage'
 import { ReviewQueuePage } from '@/pages/ReviewQueuePage'
 import { PatientChartPage } from '@/pages/PatientChartPage'
 import { AppointmentsPage } from '@/pages/AppointmentsPage'
+import { CheckInPage } from '@/pages/CheckInPage'
 
 const router = createBrowserRouter([
   // Public auth routes — redirect to /dashboard if already authenticated
@@ -94,6 +95,7 @@ const router = createBrowserRouter([
           { path: '/lab/publish', element: <ResultPublishPage /> },
           { path: '/review-queue', element: <ReviewQueuePage /> },
           { path: '/patients/:patientId/chart', element: <PatientChartPage /> },
+          { path: '/check-in', element: <CheckInPage /> },
         ],
       },
     ],
