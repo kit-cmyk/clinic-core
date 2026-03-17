@@ -22,6 +22,7 @@ import { PortalResultsPage } from '@/pages/patient/PortalResultsPage'
 import { PortalPrescriptionsPage } from '@/pages/patient/PortalPrescriptionsPage'
 import { PortalUploadPage } from '@/pages/patient/PortalUploadPage'
 import { ResultPublishPage } from '@/pages/lab/ResultPublishPage'
+import { ReviewQueuePage } from '@/pages/ReviewQueuePage'
 
 const router = createBrowserRouter([
   // Public auth routes — redirect to /dashboard if already authenticated
@@ -89,6 +90,7 @@ const router = createBrowserRouter([
           { path: '/branches', element: <BranchesPage /> },
           { path: '/staff', element: <StaffPage /> },
           { path: '/lab/publish', element: <ResultPublishPage /> },
+          { path: '/review-queue', element: <ReviewQueuePage /> },
         ],
       },
     ],
