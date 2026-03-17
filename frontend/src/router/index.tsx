@@ -15,6 +15,11 @@ import { BranchesPage } from '@/pages/BranchesPage'
 import { StaffPage } from '@/pages/StaffPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import PatientRegisterPage from '@/pages/patient/PatientRegisterPage'
+import { PatientPortalLayout } from '@/pages/patient/PatientPortalLayout'
+import { PortalDashboardPage } from '@/pages/patient/PortalDashboardPage'
+import { PortalAppointmentsPage } from '@/pages/patient/PortalAppointmentsPage'
+import { PortalResultsPage } from '@/pages/patient/PortalResultsPage'
+import { PortalPrescriptionsPage } from '@/pages/patient/PortalPrescriptionsPage'
 
 const router = createBrowserRouter([
   // Public auth routes — redirect to /dashboard if already authenticated
@@ -41,6 +46,16 @@ const router = createBrowserRouter([
   {
     path: '/patient/register',
     element: <PatientRegisterPage />,
+  },
+  {
+    path: '/portal',
+    element: <PatientPortalLayout />,
+    children: [
+      { index: true, element: <PortalDashboardPage /> },
+      { path: 'appointments', element: <PortalAppointmentsPage /> },
+      { path: 'results', element: <PortalResultsPage /> },
+      { path: 'prescriptions', element: <PortalPrescriptionsPage /> },
+    ],
   },
   {
     path: '/invite/accept',
