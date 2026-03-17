@@ -24,6 +24,7 @@ import { PortalUploadPage } from '@/pages/patient/PortalUploadPage'
 import { ResultPublishPage } from '@/pages/lab/ResultPublishPage'
 import { ReviewQueuePage } from '@/pages/ReviewQueuePage'
 import { PatientChartPage } from '@/pages/PatientChartPage'
+import { AppointmentsPage } from '@/pages/AppointmentsPage'
 
 const router = createBrowserRouter([
   // Public auth routes — redirect to /dashboard if already authenticated
@@ -79,7 +80,7 @@ const router = createBrowserRouter([
         children: [
           { index: true, element: <Navigate to="/dashboard" replace /> },
           { path: '/dashboard', element: <DashboardPage /> },
-          { path: '/appointments', element: <ComingSoon label="Appointments" /> },
+          { path: '/appointments', element: <AppointmentsPage /> },
           { path: '/patients', element: <ComingSoon label="Patients" /> },
           { path: '/lab', element: <ComingSoon label="Lab Records" /> },
           { path: '/billing', element: <ComingSoon label="Billing" /> },
