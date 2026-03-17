@@ -20,6 +20,7 @@ import { PortalDashboardPage } from '@/pages/patient/PortalDashboardPage'
 import { PortalAppointmentsPage } from '@/pages/patient/PortalAppointmentsPage'
 import { PortalResultsPage } from '@/pages/patient/PortalResultsPage'
 import { PortalPrescriptionsPage } from '@/pages/patient/PortalPrescriptionsPage'
+import { PortalUploadPage } from '@/pages/patient/PortalUploadPage'
 
 const router = createBrowserRouter([
   // Public auth routes — redirect to /dashboard if already authenticated
@@ -55,6 +56,7 @@ const router = createBrowserRouter([
       { path: 'appointments', element: <PortalAppointmentsPage /> },
       { path: 'results', element: <PortalResultsPage /> },
       { path: 'prescriptions', element: <PortalPrescriptionsPage /> },
+      { path: 'upload', element: <PortalUploadPage /> },
     ],
   },
   {
