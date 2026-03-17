@@ -10,6 +10,7 @@ import RegisterPage from '@/pages/RegisterPage'
 import InviteAcceptPage from '@/pages/InviteAcceptPage'
 import { PlansPage } from '@/pages/admin/PlansPage'
 import { TenantsPage } from '@/pages/admin/TenantsPage'
+import { OnboardingPage } from '@/pages/OnboardingPage'
 
 const router = createBrowserRouter([
   // Public auth routes — redirect to /dashboard if already authenticated
@@ -58,6 +59,7 @@ const router = createBrowserRouter([
           { path: '/settings', element: <ComingSoon label="Settings" /> },
           { path: '/admin/plans', element: <PlansPage /> },
           { path: '/admin/tenants', element: <TenantsPage /> },
+          { path: '/onboarding', element: <OnboardingPage /> },
         ],
       },
     ],
