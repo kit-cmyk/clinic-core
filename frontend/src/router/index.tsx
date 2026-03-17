@@ -12,6 +12,7 @@ import { PlansPage } from '@/pages/admin/PlansPage'
 import { TenantsPage } from '@/pages/admin/TenantsPage'
 import { OnboardingPage } from '@/pages/OnboardingPage'
 import { BranchesPage } from '@/pages/BranchesPage'
+import { StaffPage } from '@/pages/StaffPage'
 
 const router = createBrowserRouter([
   // Public auth routes — redirect to /dashboard if already authenticated
@@ -62,6 +63,7 @@ const router = createBrowserRouter([
           { path: '/admin/tenants', element: <TenantsPage /> },
           { path: '/onboarding', element: <OnboardingPage /> },
           { path: '/branches', element: <BranchesPage /> },
+          { path: '/staff', element: <StaffPage /> },
         ],
       },
     ],
