@@ -7,6 +7,7 @@ import { LoginPage } from '@/pages/LoginPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import RegisterPage from '@/pages/RegisterPage'
+import InviteAcceptPage from '@/pages/InviteAcceptPage'
 
 const router = createBrowserRouter([
   // Public auth routes — redirect to /dashboard if already authenticated
@@ -28,6 +29,14 @@ const router = createBrowserRouter([
           <RegisterPage />
         </AuthLayout>
       </PublicRoute>
+    ),
+  },
+  {
+    path: '/invite/accept',
+    element: (
+      <AuthLayout>
+        <InviteAcceptPage />
+      </AuthLayout>
     ),
   },
   // Protected app routes — redirect to /login if not authenticated

@@ -8,6 +8,7 @@ interface AuthState {
   isLoading: boolean
   error: string | null
   login: (email: string, password: string) => Promise<void>
+  acceptInvite: (token: string, password: string) => Promise<void>
   logout: () => void
   clearError: () => void
 }
@@ -49,6 +50,26 @@ export const useAuthStore = create<AuthState>((set) => ({
     sessionStorage.setItem('cc_token', MOCK_JWT)
     sessionStorage.setItem('cc_user', JSON.stringify(mockUser))
 
+    set({ user: mockUser, token: MOCK_JWT, isAuthenticated: true, isLoading: false })
+  },
+
+  // Stub — replace body with real Supabase invite acceptance at CC-22:
+  // const { data, error } = await supabase.auth.verifyOtp({ token_hash: token, type: 'invite' })
+  acceptInvite: async (_token: string, _password: string) => {
+    set({ isLoading: true, error: null })
+    await new Promise((r) => setTimeout(r, 700))
+
+    const mockUser: User = {
+      id: 'mock-invite-user-1',
+      email: 'newstaff@clinic.com',
+      name: 'New Staff Member',
+      role: 'professional',
+      tenantId: 'demo-tenant-1',
+      branchId: 'demo-branch-1',
+    }
+
+    sessionStorage.setItem('cc_token', MOCK_JWT)
+    sessionStorage.setItem('cc_user', JSON.stringify(mockUser))
     set({ user: mockUser, token: MOCK_JWT, isAuthenticated: true, isLoading: false })
   },
 
