@@ -23,6 +23,7 @@ import { PortalPrescriptionsPage } from '@/pages/patient/PortalPrescriptionsPage
 import { PortalUploadPage } from '@/pages/patient/PortalUploadPage'
 import { ResultPublishPage } from '@/pages/lab/ResultPublishPage'
 import { ReviewQueuePage } from '@/pages/ReviewQueuePage'
+import { PatientChartPage } from '@/pages/PatientChartPage'
 
 const router = createBrowserRouter([
   // Public auth routes — redirect to /dashboard if already authenticated
@@ -91,6 +92,7 @@ const router = createBrowserRouter([
           { path: '/staff', element: <StaffPage /> },
           { path: '/lab/publish', element: <ResultPublishPage /> },
           { path: '/review-queue', element: <ReviewQueuePage /> },
+          { path: '/patients/:patientId/chart', element: <PatientChartPage /> },
         ],
       },
     ],
