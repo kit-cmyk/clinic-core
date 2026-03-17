@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
+import { useSyncStatus } from '@/hooks/useSyncStatus'
+import { SyncStatusBadge } from '@/components/SyncStatusBadge'
 import {
   LayoutDashboard,
   Users,
@@ -174,6 +176,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { isOnline } = useNetworkStatus()
+  const sync = useSyncStatus()
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -202,7 +205,15 @@ export function AppLayout() {
             <Menu className="h-4 w-4" />
           </Button>
           <span className="ml-3 font-semibold text-foreground">ClinicCore</span>
+          <div className="ml-auto">
+            <SyncStatusBadge sync={sync} />
+          </div>
         </header>
+
+        {/* Desktop header row for sync badge */}
+        <div className="hidden lg:flex h-10 items-center justify-end border-b border-border px-6 bg-background">
+          <SyncStatusBadge sync={sync} />
+        </div>
 
         <main className="flex-1 overflow-y-auto p-6">
           <Outlet />
