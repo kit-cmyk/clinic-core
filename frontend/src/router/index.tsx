@@ -13,6 +13,7 @@ import { TenantsPage } from '@/pages/admin/TenantsPage'
 import { OnboardingPage } from '@/pages/OnboardingPage'
 import { BranchesPage } from '@/pages/BranchesPage'
 import { StaffPage } from '@/pages/StaffPage'
+import { SettingsPage } from '@/pages/SettingsPage'
 
 const router = createBrowserRouter([
   // Public auth routes — redirect to /dashboard if already authenticated
@@ -58,7 +59,7 @@ const router = createBrowserRouter([
           { path: '/lab', element: <ComingSoon label="Lab Records" /> },
           { path: '/billing', element: <ComingSoon label="Billing" /> },
           { path: '/organizations', element: <ComingSoon label="Organizations" /> },
-          { path: '/settings', element: <ComingSoon label="Settings" /> },
+          { path: '/settings', element: <SettingsPage /> },
           { path: '/admin/plans', element: <PlansPage /> },
           { path: '/admin/tenants', element: <TenantsPage /> },
           { path: '/onboarding', element: <OnboardingPage /> },
