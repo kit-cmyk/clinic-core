@@ -1,0 +1,191 @@
+// ClinicCore 2.0 — Prisma Schema
+// Multi-tenant: every tenant-scoped table carries tenant_id as an indexed FK.
+// Architecture decision: tenant isolation via tenant_id column (not schema-per-tenant).
+// See: CC Session Memory — Architecture Decisions #1
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  SUPER_ADMIN
+  ORG_ADMIN
+  DOCTOR
+  NURSE
+  SECRETARY
+  PATIENT
+}
+
+enum SubscriptionPlan {
+  FREE
+  BASIC
+  PRO
+  ENTERPRISE
+}
+
+// ── Subscription Tiers ───────────────────────────────────────────────────────
+// Global — not tenant-scoped. Managed by Super Admin (CC-26).
+
+model SubscriptionTier {
+  id                String           @id @default(cuid())
+  plan              SubscriptionPlan @unique
+  name              String
+  maxBranches       Int              // -1 = unlimited
+  maxStaff          Int              // -1 = unlimited
+  storageLimitBytes BigInt
+  monthlyPriceUsd   Decimal          @db.Decimal(10, 2)
+  createdAt         DateTime         @default(now())
+
+  tenants Tenant[]
+
+  @@map("subscription_tiers")
+}
+
+// ── Tenants ──────────────────────────────────────────────────────────────────
+// The top-level isolation unit. One tenant = one subscribing clinic/org.
+// tenant_id on all child tables references this.
+
+model Tenant {
+  id                 String            @id @default(uuid())
+  name               String
+  slug               String            @unique
+  plan               SubscriptionPlan  @default(FREE)
+  subscriptionTierId String?
+  subscriptionTier   SubscriptionTier? @relation(fields: [subscriptionTierId], references: [id])
+  storageLimitBytes  BigInt            @default(1073741824) // 1 GB default
+  isActive           Boolean           @default(true)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  users            User[]
+  organizations    Organization[]
+  branches         Branch[]
+  staffAssignments StaffAssignment[]
+  invitations      Invitation[]
+
+  @@map("tenants")
+}
+
+// ── Users ────────────────────────────────────────────────────────────────────
+// All user types (staff + patients). Identity managed by Supabase Auth;
+// supabaseUserId links this record to the Supabase user.
+
+model User {
+  id             String   @id @default(uuid())
+  tenantId       String
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supabaseUserId String   @unique
+  email          String?
+  phone          String?  // used for SMS-registered patients
+  role           Role     @default(PATIENT)
+  firstName      String
+  lastName       String
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  staffAssignments StaffAssignment[]
+  sentInvitations  Invitation[]      @relation("InvitedBy")
+
+  @@index([tenantId])
+  @@index([supabaseUserId])
+  @@map("users")
+}
+
+// ── Organizations ────────────────────────────────────────────────────────────
+// Clinic profile. One per tenant initially; structure supports future multi-org.
+
+model Organization {
+  id                       String   @id @default(uuid())
+  tenantId                 String
+  tenant                   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name                     String
+  address                  String?
+  phone                    String?
+  email                    String?
+  logoUrl                  String?
+  patientSelfUploadEnabled Boolean  @default(true)
+  brandColor               String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  branches Branch[]
+
+  @@index([tenantId])
+  @@map("organizations")
+}
+
+// ── Branches ─────────────────────────────────────────────────────────────────
+// Physical clinic locations under an organization.
+
+model Branch {
+  id             String       @id @default(uuid())
+  tenantId       String
+  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  address        String?
+  phone          String?
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  staffAssignments StaffAssignment[]
+  invitations      Invitation[]
+
+  @@index([tenantId])
+  @@index([organizationId])
+  @@map("branches")
+}
+
+// ── Staff Assignments ────────────────────────────────────────────────────────
+// Maps staff users to branches (many-to-many). A user may work at multiple branches.
+
+model StaffAssignment {
+  id        String   @id @default(uuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branchId  String
+  branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, branchId])
+  @@index([tenantId])
+  @@index([userId])
+  @@index([branchId])
+  @@map("staff_assignments")
+}
+
+// ── Invitations ───────────────────────────────────────────────────────────────
+// Pending email invitations for staff. Token is single-use and expires.
+
+model Invitation {
+  id          String    @id @default(uuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  email       String
+  role        Role
+  branchId    String?
+  branch      Branch?   @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  invitedById String
+  invitedBy   User      @relation("InvitedBy", fields: [invitedById], references: [id])
+  token       String    @unique @default(uuid())
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([token])
+  @@map("invitations")
+}
