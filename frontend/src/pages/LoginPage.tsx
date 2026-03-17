@@ -1,32 +1,33 @@
-import { useState, type FormEvent } from 'react'
+import { type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useAuthStore } from '@/store/auth'
 
 export function LoginPage() {
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { login, isLoading, error, clearError } = useAuthStore()
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setError(null)
+    clearError()
+    const form = e.currentTarget
+    const email = (form.elements.namedItem('email') as HTMLInputElement).value.trim()
+    const password = (form.elements.namedItem('password') as HTMLInputElement).value
 
     if (!email || !password) {
-      setError('Please enter your email and password.')
+      useAuthStore.setState({ error: 'Please enter your email and password.' })
       return
     }
 
-    setIsLoading(true)
-    // Stub — replace with real Supabase auth (CC-18)
-    await new Promise((r) => setTimeout(r, 800))
-    setIsLoading(false)
-    navigate('/dashboard')
+    await login(email, password)
+    // Only navigate if login succeeded (no error set)
+    if (!useAuthStore.getState().error) {
+      navigate('/dashboard', { replace: true })
+    }
   }
 
   return (
@@ -41,11 +42,10 @@ export function LoginPage() {
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
+              name="email"
               type="email"
               placeholder="you@clinic.com"
               autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
               disabled={isLoading}
             />
           </div>
@@ -63,17 +63,18 @@ export function LoginPage() {
             </div>
             <Input
               id="password"
+              name="password"
               type="password"
               placeholder="••••••••"
               autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
               disabled={isLoading}
             />
           </div>
 
           {error && (
-            <p className="text-sm text-destructive">{error}</p>
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
           )}
 
           <Button type="submit" className="w-full" disabled={isLoading}>
