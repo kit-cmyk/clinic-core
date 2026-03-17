@@ -8,6 +8,7 @@ import { DashboardPage } from '@/pages/DashboardPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import RegisterPage from '@/pages/RegisterPage'
 import InviteAcceptPage from '@/pages/InviteAcceptPage'
+import { PlansPage } from '@/pages/admin/PlansPage'
 
 const router = createBrowserRouter([
   // Public auth routes — redirect to /dashboard if already authenticated
@@ -54,6 +55,7 @@ const router = createBrowserRouter([
           { path: '/billing', element: <ComingSoon label="Billing" /> },
           { path: '/organizations', element: <ComingSoon label="Organizations" /> },
           { path: '/settings', element: <ComingSoon label="Settings" /> },
+          { path: '/admin/plans', element: <PlansPage /> },
         ],
       },
     ],
