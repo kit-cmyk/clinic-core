@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import {
   LayoutDashboard,
   Users,
@@ -172,12 +173,24 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
 
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { isOnline } = useNetworkStatus()
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Offline banner */}
+        {!isOnline && (
+          <div
+            role="alert"
+            className="flex items-center justify-center gap-2 bg-destructive/10 border-b border-destructive/30 px-4 py-2 text-sm text-destructive"
+          >
+            <span className="inline-block h-2 w-2 rounded-full bg-destructive" />
+            You are offline — changes will sync when reconnected
+          </div>
+        )}
+
         {/* Topbar — mobile only */}
         <header className="flex h-14 items-center border-b border-border px-4 lg:hidden bg-background">
           <Button
