@@ -1,33 +1,52 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AppLayout } from '@/layouts/AppLayout'
 import { AuthLayout } from '@/layouts/AuthLayout'
+import { ProtectedRoute } from '@/components/ProtectedRoute'
+import { PublicRoute } from '@/components/PublicRoute'
 import { LoginPage } from '@/pages/LoginPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import RegisterPage from '@/pages/RegisterPage'
 
 const router = createBrowserRouter([
-  // Auth routes — centered card layout
+  // Public auth routes — redirect to /dashboard if already authenticated
   {
-    element: <AuthLayout><LoginPage /></AuthLayout>,
     path: '/login',
+    element: (
+      <PublicRoute>
+        <AuthLayout>
+          <LoginPage />
+        </AuthLayout>
+      </PublicRoute>
+    ),
   },
   {
-    element: <AuthLayout><RegisterPage /></AuthLayout>,
     path: '/register',
+    element: (
+      <PublicRoute>
+        <AuthLayout>
+          <RegisterPage />
+        </AuthLayout>
+      </PublicRoute>
+    ),
   },
-  // App routes — sidebar layout
+  // Protected app routes — redirect to /login if not authenticated
   {
-    element: <AppLayout />,
+    element: <ProtectedRoute />,
     children: [
-      { index: true, element: <Navigate to="/dashboard" replace /> },
-      { path: '/dashboard', element: <DashboardPage /> },
-      { path: '/appointments', element: <ComingSoon label="Appointments" /> },
-      { path: '/patients', element: <ComingSoon label="Patients" /> },
-      { path: '/lab', element: <ComingSoon label="Lab Records" /> },
-      { path: '/billing', element: <ComingSoon label="Billing" /> },
-      { path: '/organizations', element: <ComingSoon label="Organizations" /> },
-      { path: '/settings', element: <ComingSoon label="Settings" /> },
+      {
+        element: <AppLayout />,
+        children: [
+          { index: true, element: <Navigate to="/dashboard" replace /> },
+          { path: '/dashboard', element: <DashboardPage /> },
+          { path: '/appointments', element: <ComingSoon label="Appointments" /> },
+          { path: '/patients', element: <ComingSoon label="Patients" /> },
+          { path: '/lab', element: <ComingSoon label="Lab Records" /> },
+          { path: '/billing', element: <ComingSoon label="Billing" /> },
+          { path: '/organizations', element: <ComingSoon label="Organizations" /> },
+          { path: '/settings', element: <ComingSoon label="Settings" /> },
+        ],
+      },
     ],
   },
   { path: '*', element: <NotFoundPage /> },

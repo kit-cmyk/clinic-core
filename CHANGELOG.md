@@ -27,5 +27,3 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 - PostgreSQL multi-tenant schema via Prisma 5: tenants, subscription_tiers, users, organizations, branches, staff_assignments, invitations — all tenant-scoped tables carry indexed tenant_id FK (CC-12)
 - Seed script: 4 subscription tiers (FREE/BASIC/PRO/ENTERPRISE) with storage limits and pricing (CC-12)
 - Prisma client singleton at backend/src/models/prisma.js with dev hot-reload safety (CC-12)
-- Tenant isolation middleware: requireAuth (JWT verification + Prisma user lookup, attaches req.tenantId and req.user) and requireRole factory guard (CC-13)
-- jsonwebtoken dependency for JWT verification; DI pattern makes middleware testable without ESM module mocking (CC-13)
