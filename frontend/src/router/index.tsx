@@ -14,6 +14,7 @@ import { OnboardingPage } from '@/pages/OnboardingPage'
 import { BranchesPage } from '@/pages/BranchesPage'
 import { StaffPage } from '@/pages/StaffPage'
 import { SettingsPage } from '@/pages/SettingsPage'
+import PatientRegisterPage from '@/pages/patient/PatientRegisterPage'
 
 const router = createBrowserRouter([
   // Public auth routes — redirect to /dashboard if already authenticated
@@ -36,6 +37,10 @@ const router = createBrowserRouter([
         </AuthLayout>
       </PublicRoute>
     ),
+  },
+  {
+    path: '/patient/register',
+    element: <PatientRegisterPage />,
   },
   {
     path: '/invite/accept',
