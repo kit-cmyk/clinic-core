@@ -26,19 +26,19 @@ afterEach(() => { vi.restoreAllMocks(); sessionStorage.clear(); resetStore() })
 describe('EMR View (PatientChartPage — CC-57)', () => {
   it('Visits tab shows visit timeline', async () => {
     render(<RouterProvider router={buildRouter()} />)
-    await user.click(screen.getByRole('button', { name: /^visits$/i }))
+    await user.click(screen.getByRole('button', { name: /^appointments$/i }))
     await waitFor(() => {
-      expect(screen.getByText('Dr. Sarah Kim')).toBeInTheDocument()
+      expect(screen.getAllByText('Dr. Sarah Kim')[0]).toBeInTheDocument()
       expect(screen.getByText('Dr. James Park')).toBeInTheDocument()
     })
   })
 
   it('Clicking a visit expands its notes', async () => {
     render(<RouterProvider router={buildRouter()} />)
-    await user.click(screen.getByRole('button', { name: /^visits$/i }))
-    await waitFor(() => expect(screen.getByText('Dr. Sarah Kim')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /^appointments$/i }))
+    await waitFor(() => expect(screen.getAllByText('Dr. Sarah Kim')[0]).toBeInTheDocument())
     // Click the first visit card to expand
-    await user.click(screen.getByText('2026-03-10 — Consultation'))
+    await user.click(screen.getByText('Consultation'))
     await waitFor(() => {
       expect(screen.getByText(/patient presented with mild fever/i)).toBeInTheDocument()
     })

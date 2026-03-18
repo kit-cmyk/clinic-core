@@ -26,6 +26,13 @@ import { ReviewQueuePage } from '@/pages/ReviewQueuePage'
 import { PatientChartPage } from '@/pages/PatientChartPage'
 import { AppointmentsPage } from '@/pages/AppointmentsPage'
 import { CheckInPage } from '@/pages/CheckInPage'
+import { ProfessionalsPage } from '@/pages/ProfessionalsPage'
+import { ClinicHoursPage } from '@/pages/ClinicHoursPage'
+import { UserManagementPage } from '@/pages/UserManagementPage'
+import { InvoicesPage } from '@/pages/InvoicesPage'
+import { PortalInvoicesPage } from '@/pages/patient/PortalInvoicesPage'
+import { PatientManagementPage } from '@/pages/PatientManagementPage'
+import { AppointmentVisitPage } from '@/pages/AppointmentVisitPage'
 
 const router = createBrowserRouter([
   // Public auth routes — redirect to /dashboard if already authenticated
@@ -62,6 +69,7 @@ const router = createBrowserRouter([
       { path: 'results', element: <PortalResultsPage /> },
       { path: 'prescriptions', element: <PortalPrescriptionsPage /> },
       { path: 'upload', element: <PortalUploadPage /> },
+      { path: 'invoices', element: <PortalInvoicesPage /> },
     ],
   },
   {
@@ -82,9 +90,13 @@ const router = createBrowserRouter([
           { index: true, element: <Navigate to="/dashboard" replace /> },
           { path: '/dashboard', element: <DashboardPage /> },
           { path: '/appointments', element: <AppointmentsPage /> },
-          { path: '/patients', element: <ComingSoon label="Patients" /> },
+          { path: '/patients', element: <PatientManagementPage /> },
+          { path: '/appointments/:appointmentId/visit', element: <AppointmentVisitPage /> },
+          { path: '/professionals', element: <ProfessionalsPage /> },
+          { path: '/clinic-hours', element: <ClinicHoursPage /> },
+          { path: '/users', element: <Navigate to="/settings" replace /> },
           { path: '/lab', element: <ComingSoon label="Lab Records" /> },
-          { path: '/billing', element: <ComingSoon label="Billing" /> },
+          { path: '/billing', element: <InvoicesPage /> },
           { path: '/organizations', element: <ComingSoon label="Organizations" /> },
           { path: '/settings', element: <SettingsPage /> },
           { path: '/admin/plans', element: <PlansPage /> },

@@ -5,9 +5,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 
-type Tab = 'Overview' | 'Visits' | 'Prescriptions' | 'Lab Results' | 'Uploaded Records'
+type Tab = 'Overview' | 'Appointments' | 'Prescriptions' | 'Lab Results' | 'Uploaded Records'
 
-const TABS: Tab[] = ['Overview', 'Visits', 'Prescriptions', 'Lab Results', 'Uploaded Records']
+const TABS: Tab[] = ['Overview', 'Appointments', 'Prescriptions', 'Lab Results', 'Uploaded Records']
 
 // Stub mock patient data — replace at real API integration
 const MOCK_PATIENTS: Record<string, { name: string; dob: string; gender: string; bloodType: string; allergies: string[] }> = {
@@ -15,10 +15,21 @@ const MOCK_PATIENTS: Record<string, { name: string; dob: string; gender: string;
   p1: { name: 'Jane Smith', dob: '1975-09-23', gender: 'Female', bloodType: 'A-', allergies: ['Sulfa drugs'] },
 }
 
-const MOCK_VISITS = [
-  { id: 'v1', date: '2026-03-10', doctor: 'Dr. Sarah Kim', type: 'Consultation', notes: 'Patient presented with mild fever. Prescribed rest and fluids.' },
-  { id: 'v2', date: '2026-02-15', doctor: 'Dr. James Park', type: 'Follow-up', notes: 'Recovery progressing well. No further medication needed.' },
+// All historical appointments for this patient — across multiple professionals
+const MOCK_APPOINTMENTS = [
+  { id: 'a1', date: '2026-03-18', time: '08:30', professional: 'Dr. Sarah Kim',  role: 'Doctor', type: 'Follow-up',    status: 'Booked',     notes: 'Reviewing medication response.' },
+  { id: 'a2', date: '2026-03-10', time: '10:00', professional: 'Dr. Sarah Kim',  role: 'Doctor', type: 'Consultation', status: 'Completed',  notes: 'Patient presented with mild fever. Prescribed rest and fluids.' },
+  { id: 'a3', date: '2026-02-15', time: '09:30', professional: 'Dr. James Park', role: 'Doctor', type: 'Follow-up',    status: 'Completed',  notes: 'Recovery progressing well. No further medication needed.' },
+  { id: 'a4', date: '2026-01-22', time: '11:00', professional: 'Nurse Ana Santos', role: 'Nurse', type: 'Lab Review',  status: 'Completed',  notes: 'CBC results reviewed. Values within normal range.' },
+  { id: 'a5', date: '2025-12-05', time: '14:00', professional: 'Dr. Liu Wei',    role: 'Doctor', type: 'New Patient', status: 'Completed',  notes: 'Initial intake. Allergies noted: Penicillin, Aspirin.' },
 ]
+
+const APPT_STATUS_COLOR: Record<string, string> = {
+  Booked:    'bg-blue-100 text-blue-800',
+  Completed: 'bg-gray-100 text-gray-700',
+  Cancelled: 'bg-red-100 text-red-700',
+  'No Show': 'bg-yellow-100 text-yellow-800',
+}
 
 const MOCK_PRESCRIPTIONS = [
   { id: 'rx1', medication: 'Amoxicillin', dosage: '500mg', frequency: 'Twice daily', status: 'Active' as const },
@@ -42,7 +53,7 @@ export function PatientChartPage() {
   const { patientId } = useParams<{ patientId: string }>()
   const patient = MOCK_PATIENTS[patientId ?? 'default'] ?? MOCK_PATIENTS.default
   const [activeTab, setActiveTab] = useState<Tab>('Overview')
-  const [expandedVisitId, setExpandedVisitId] = useState<string | null>(null)
+  const [expandedApptId, setExpandedApptId] = useState<string | null>(null)
   const [verifyId, setVerifyId] = useState<string | null>(null)
   const [verifyCategory, setVerifyCategory] = useState('')
   const [verifyClinicalNotes, setVerifyClinicalNotes] = useState('')
@@ -122,34 +133,63 @@ export function PatientChartPage() {
               )}
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader><CardTitle>Active Prescriptions</CardTitle></CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{prescriptions.filter((r) => r.status === 'Active').length}</p>
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-2 gap-4">
+            <Card>
+              <CardHeader><CardTitle>Active Prescriptions</CardTitle></CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold">{prescriptions.filter((r) => r.status === 'Active').length}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle>Total Appointments</CardTitle></CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold">{MOCK_APPOINTMENTS.length}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  across {new Set(MOCK_APPOINTMENTS.map(a => a.professional)).size} professionals
+                </p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
 
-      {/* Visits tab */}
-      {activeTab === 'Visits' && (
+      {/* Appointments tab — full history across all professionals */}
+      {activeTab === 'Appointments' && (
         <div className="space-y-3">
-          {MOCK_VISITS.map((visit) => (
-            <Card key={visit.id}>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Appointment History</h2>
+            <Badge variant="secondary">{MOCK_APPOINTMENTS.length} records</Badge>
+          </div>
+          {MOCK_APPOINTMENTS.map((appt) => (
+            <Card key={appt.id}>
               <CardContent className="p-4">
                 <div
                   className="flex items-center justify-between cursor-pointer"
-                  onClick={() => setExpandedVisitId(expandedVisitId === visit.id ? null : visit.id)}
+                  onClick={() => setExpandedApptId(expandedApptId === appt.id ? null : appt.id)}
                 >
-                  <div>
-                    <p className="font-medium">{visit.date} — {visit.type}</p>
-                    <p className="text-sm text-muted-foreground">{visit.doctor}</p>
+                  <div className="flex items-start gap-4">
+                    <div className="text-center min-w-[3.5rem]">
+                      <p className="text-xs text-muted-foreground">{appt.date.slice(0, 7)}</p>
+                      <p className="text-sm font-semibold">{appt.date.slice(8)}</p>
+                      <p className="text-xs text-muted-foreground font-mono">{appt.time}</p>
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">{appt.type}</p>
+                      <p className="text-sm text-muted-foreground">{appt.professional}</p>
+                      <p className="text-xs text-muted-foreground">{appt.role}</p>
+                    </div>
                   </div>
-                  <span className="text-xs text-muted-foreground">{expandedVisitId === visit.id ? '▲' : '▼'}</span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${APPT_STATUS_COLOR[appt.status] ?? ''}`}>
+                      {appt.status}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{expandedApptId === appt.id ? '▲' : '▼'}</span>
+                  </div>
                 </div>
-                {expandedVisitId === visit.id && (
+                {expandedApptId === appt.id && appt.notes && (
                   <div className="mt-3 border-t pt-3">
-                    <p className="text-sm text-foreground">{visit.notes}</p>
+                    <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wide font-medium">Clinical Notes</p>
+                    <p className="text-sm text-foreground">{appt.notes}</p>
                   </div>
                 )}
               </CardContent>

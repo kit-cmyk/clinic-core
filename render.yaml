@@ -1,0 +1,74 @@
+# ClinicCore 2.0 — Render Infrastructure as Code
+# Database, auth, and storage are managed by Supabase — Render hosts services only.
+# Deploy: connect your GitHub repo in the Render dashboard, then click "New > Blueprint"
+# Secrets marked `sync: false` must be set manually in each service's Environment tab.
+
+services:
+  # ── Backend API ─────────────────────────────────────────────────────────────
+  - type: web
+    name: cliniccore-api
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: backend
+    buildCommand: npm ci && npx prisma generate
+    startCommand: npx prisma migrate deploy && node src/server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Supabase PostgreSQL — Database
+      # DATABASE_URL: Transaction pooler URL from Supabase dashboard → Settings → Database → Connection string (Transaction mode, port 6543)
+      - key: DATABASE_URL
+        sync: false
+      # DIRECT_URL: Direct connection URL from Supabase dashboard → Settings → Database → Connection string (Direct, port 5432)
+      # Required by `prisma migrate deploy` — NOT used at runtime
+      - key: DIRECT_URL
+        sync: false
+      # FRONTEND_URL — set to your cliniccore-app Render static site URL after first deploy
+      - key: FRONTEND_URL
+        sync: false
+      # Supabase Auth
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      # Supabase Storage
+      - key: SUPABASE_STORAGE_BUCKET
+        value: cliniccore-files
+      # SMS / Twilio (set when SMS OTP is enabled)
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE_NUMBER
+        sync: false
+
+  # ── Frontend SPA ─────────────────────────────────────────────────────────────
+  - type: web
+    name: cliniccore-app
+    runtime: static
+    plan: free
+    region: singapore
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      # VITE_ vars are inlined at build time — set these in the Render dashboard
+      # before triggering a deploy, or the frontend will fail to connect to Supabase.
+      - key: VITE_API_URL
+        sync: false  # set to https://cliniccore-api.onrender.com
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+      - key: VITE_SUPABASE_STORAGE_BUCKET
+        value: cliniccore-files

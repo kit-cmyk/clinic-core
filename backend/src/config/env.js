@@ -23,11 +23,8 @@ export const env = {
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
   JWT_SECRET:                process.env.JWT_SECRET                || '',
 
-  // AWS
-  AWS_ACCESS_KEY_ID:     process.env.AWS_ACCESS_KEY_ID     || '',
-  AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY || '',
-  AWS_REGION:            process.env.AWS_REGION            || 'ap-southeast-1',
-  AWS_S3_BUCKET:         process.env.AWS_S3_BUCKET         || '',
+  // Supabase Storage (file uploads — replaces AWS S3)
+  SUPABASE_STORAGE_BUCKET: process.env.SUPABASE_STORAGE_BUCKET || 'cliniccore-files',
 
   // SMS
   TWILIO_ACCOUNT_SID:  process.env.TWILIO_ACCOUNT_SID  || '',
