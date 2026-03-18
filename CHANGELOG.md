@@ -13,6 +13,7 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 ## [Unreleased]
 
 ### Added
+- RBAC permission system: PERMISSION_SCOPES (PLATFORM/ORGANIZATION/CLINICAL) + full PERMISSIONS matrix (resource:action → roles[]); requirePermission() middleware factory; fails closed on unknown keys; 53 tests (CC-20)
 - Supabase Auth endpoints: POST /api/v1/auth/signup, /login, /logout, /refresh; injectable factory pattern for full unit testability; rollback on Prisma failure; 18 tests (CC-18)
 - Dashboard Book Appointment widget: BookAppointmentSheet component with patient combobox (inline create), professional select, date/time/type/duration fields, success confirmation; pre-fills when clicking from Professionals Today card (CC-102)
 - Dashboard Professionals Today widget: lists all professionals with Available/Off today badge, per-day appointment count, click-to-book integration; driven by PROF_SCHEDULES weekday data (CC-103)
