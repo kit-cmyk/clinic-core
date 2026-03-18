@@ -40,10 +40,18 @@ describe('BranchesPage', () => {
     })
   })
 
-  it('shows deactivate confirmation when Deactivate clicked', async () => {
+  it('shows deactivate confirmation when Deactivate clicked via dropdown', async () => {
     render(<MemoryRouter><BranchesPage /></MemoryRouter>)
-    const deactivateButtons = screen.getAllByRole('button', { name: /deactivate/i })
-    await user.click(deactivateButtons[0])
+    // Open the first ellipsis dropdown
+    const moreButtons = screen.getAllByRole('button', { name: '' })
+    const ellipsisBtn = moreButtons.find(b => b.querySelector('svg'))
+    expect(ellipsisBtn).toBeTruthy()
+    await user.click(ellipsisBtn!)
+    // Click Deactivate in the dropdown
+    await waitFor(() => {
+      expect(screen.getByRole('menuitem', { name: /deactivate/i })).toBeInTheDocument()
+    })
+    await user.click(screen.getByRole('menuitem', { name: /deactivate/i }))
     await waitFor(() => {
       expect(screen.getByText(/are you sure/i)).toBeInTheDocument()
     })

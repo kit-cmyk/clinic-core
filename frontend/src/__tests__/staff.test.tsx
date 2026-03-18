@@ -42,10 +42,17 @@ describe('StaffPage', () => {
     })
   })
 
-  it('deactivate updates the row status', async () => {
+  it('deactivate via dropdown updates the row status', async () => {
     render(<MemoryRouter><StaffPage /></MemoryRouter>)
-    const deactivateButtons = screen.getAllByRole('button', { name: /deactivate/i })
-    await user.click(deactivateButtons[0])
+    // Open the first ellipsis dropdown (active staff member)
+    const triggers = screen.getAllByRole('button', { name: '' })
+    const ellipsisBtn = triggers.find(b => b.querySelector('svg'))
+    expect(ellipsisBtn).toBeTruthy()
+    await user.click(ellipsisBtn!)
+    await waitFor(() => {
+      expect(screen.getByRole('menuitem', { name: /deactivate/i })).toBeInTheDocument()
+    })
+    await user.click(screen.getByRole('menuitem', { name: /deactivate/i }))
     await waitFor(() => {
       const deactivatedBadges = screen.getAllByText('Deactivated')
       expect(deactivatedBadges.length).toBeGreaterThan(0)

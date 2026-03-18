@@ -8,8 +8,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")   // Transaction pooler — used at runtime (port 6543)
+  directUrl = env("DIRECT_URL")     // Direct connection — used by `prisma migrate` (port 5432)
 }
 
 // ── Enums ────────────────────────────────────────────────────────────────────
@@ -21,6 +22,20 @@ enum Role {
   NURSE
   SECRETARY
   PATIENT
+}
+
+enum AppointmentStatus {
+  BOOKED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum LabResultStatus {
+  PENDING
+  AVAILABLE
+  FLAGGED
 }
 
 enum SubscriptionPlan {
@@ -64,11 +79,21 @@ model Tenant {
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
 
-  users            User[]
-  organizations    Organization[]
-  branches         Branch[]
-  staffAssignments StaffAssignment[]
-  invitations      Invitation[]
+  users                User[]
+  organizations        Organization[]
+  branches             Branch[]
+  staffAssignments     StaffAssignment[]
+  invitations          Invitation[]
+  patients             Patient[]
+  appointments         Appointment[]
+  labResults           LabResult[]
+  professionals        Professional[]
+  professionalSchedules ProfessionalSchedule[]
+  timeOffs             TimeOff[]
+  clinicHours          ClinicHours[]
+  specialClosures      SpecialClosure[]
+  invoices             Invoice[]
+  invoiceLineItems     InvoiceLineItem[]
 
   @@map("tenants")
 }
@@ -91,8 +116,12 @@ model User {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  staffAssignments StaffAssignment[]
-  sentInvitations  Invitation[]      @relation("InvitedBy")
+  staffAssignments           StaffAssignment[]
+  sentInvitations            Invitation[]      @relation("InvitedBy")
+  patient                    Patient?
+  appointmentsAsProfessional Appointment[]     @relation("AppointmentProfessional")
+  orderedLabResults          LabResult[]       @relation("LabResultOrderedBy")
+  professional               Professional?
 
   @@index([tenantId])
   @@index([supabaseUserId])
@@ -138,8 +167,12 @@ model Branch {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
-  staffAssignments StaffAssignment[]
-  invitations      Invitation[]
+  staffAssignments      StaffAssignment[]
+  invitations           Invitation[]
+  appointments          Appointment[]
+  professionalSchedules ProfessionalSchedule[]
+  clinicHours           ClinicHours[]
+  specialClosures       SpecialClosure[]
 
   @@index([tenantId])
   @@index([organizationId])
@@ -188,4 +221,249 @@ model Invitation {
   @@index([tenantId])
   @@index([token])
   @@map("invitations")
+}
+
+// ── Patients ──────────────────────────────────────────────────────────────────
+// Standalone patient profile. May be linked to a portal User account (PATIENT role).
+// Allows registering walk-in patients who never use the portal.
+
+model Patient {
+  id        String    @id @default(uuid())
+  tenantId  String
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId    String?   @unique // linked portal account (optional)
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  firstName String
+  lastName  String
+  dob       DateTime?
+  gender    String?
+  bloodType String?
+  phone     String?
+  email     String?
+  allergies String[]  @default([])
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  appointments Appointment[]
+  labResults   LabResult[]
+  invoices     Invoice[]
+
+  @@index([tenantId])
+  @@map("patients")
+}
+
+// ── Appointments ──────────────────────────────────────────────────────────────
+// A patient appointment with a professional at a branch.
+// One patient may have many appointments across different professionals.
+
+model Appointment {
+  id             String            @id @default(uuid())
+  tenantId       String
+  tenant         Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patientId      String
+  patient        Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  professionalId String
+  professional   User              @relation("AppointmentProfessional", fields: [professionalId], references: [id])
+  branchId       String
+  branch         Branch            @relation(fields: [branchId], references: [id])
+  scheduledAt    DateTime
+  durationMins   Int               @default(30)
+  type           String
+  status         AppointmentStatus @default(BOOKED)
+  notes          String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  labResults LabResult[]
+  invoices   Invoice[]
+
+  @@index([tenantId])
+  @@index([patientId])
+  @@index([professionalId])
+  @@index([scheduledAt])
+  @@map("appointments")
+}
+
+// ── Lab Results ───────────────────────────────────────────────────────────────
+// A lab result is always linked to a patient.
+// Optionally linked to the appointment that generated it.
+
+model LabResult {
+  id            String          @id @default(uuid())
+  tenantId      String
+  tenant        Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patientId     String
+  patient       Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  appointmentId String?
+  appointment   Appointment?    @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  orderedById   String?
+  orderedBy     User?           @relation("LabResultOrderedBy", fields: [orderedById], references: [id], onDelete: SetNull)
+  testName      String
+  result        String?
+  resultFileUrl String?
+  status        LabResultStatus @default(PENDING)
+  publishedAt   DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([tenantId])
+  @@index([patientId])
+  @@index([appointmentId])
+  @@map("lab_results")
+}
+
+// ── Professionals ─────────────────────────────────────────────────────────────
+// Extended profile for staff who take appointments (doctors, nurses, etc.)
+
+model Professional {
+  id               String   @id @default(uuid())
+  tenantId         String
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialization   String
+  bio              String?
+  slotDurationMins Int      @default(30)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  schedules ProfessionalSchedule[]
+  timeOffs  TimeOff[]
+
+  @@index([tenantId])
+  @@map("professionals")
+}
+
+// ── Professional Schedules ────────────────────────────────────────────────────
+// Weekly availability per professional per branch.
+// weekday: 0 = Monday … 6 = Sunday
+
+model ProfessionalSchedule {
+  id             String       @id @default(uuid())
+  tenantId       String
+  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  branchId       String
+  branch         Branch       @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  weekday        Int          // 0 = Monday … 6 = Sunday
+  startTime      String       // 'HH:mm'
+  endTime        String       // 'HH:mm'
+
+  @@unique([professionalId, branchId, weekday])
+  @@index([tenantId])
+  @@index([professionalId])
+  @@map("professional_schedules")
+}
+
+// ── Time Off ──────────────────────────────────────────────────────────────────
+// Leave / time-off periods for a professional.
+
+model TimeOff {
+  id             String       @id @default(uuid())
+  tenantId       String
+  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  startDate      DateTime
+  endDate        DateTime
+  reason         String?
+  createdAt      DateTime     @default(now())
+
+  @@index([tenantId])
+  @@index([professionalId])
+  @@map("time_offs")
+}
+
+// ── Clinic Hours ──────────────────────────────────────────────────────────────
+// Operating hours per branch per weekday.
+// weekday: 0 = Monday … 6 = Sunday
+
+model ClinicHours {
+  id        String   @id @default(uuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branchId  String
+  branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  weekday   Int      // 0 = Monday … 6 = Sunday
+  openTime  String   // 'HH:mm'
+  closeTime String   // 'HH:mm'
+  isClosed  Boolean  @default(false)
+
+  @@unique([branchId, weekday])
+  @@index([tenantId])
+  @@map("clinic_hours")
+}
+
+// ── Special Closures ──────────────────────────────────────────────────────────
+// One-off closures: holidays, emergency shutdowns, etc.
+
+model SpecialClosure {
+  id        String   @id @default(uuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branchId  String
+  branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  date      DateTime
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([branchId])
+  @@map("special_closures")
+}
+
+// ── Invoices ──────────────────────────────────────────────────────────────────
+// One invoice per patient visit. Status lifecycle: DRAFT → SENT → PAID (or OVERDUE).
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+}
+
+model Invoice {
+  id               String        @id @default(uuid())
+  tenantId         String
+  tenant           Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patientId        String
+  patient          Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  appointmentId    String?
+  appointment      Appointment?  @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  invoiceNumber    String
+  status           InvoiceStatus @default(DRAFT)
+  totalAmountCents Int           @default(0)
+  issuedAt         DateTime      @default(now())
+  dueAt            DateTime
+  paidAt           DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  lineItems InvoiceLineItem[]
+
+  @@index([tenantId])
+  @@index([patientId])
+  @@index([appointmentId])
+  @@map("invoices")
+}
+
+// ── Invoice Line Items ────────────────────────────────────────────────────────
+
+model InvoiceLineItem {
+  id             String   @id @default(uuid())
+  tenantId       String
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invoiceId      String
+  invoice        Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description    String
+  quantity       Int      @default(1)
+  unitPriceCents Int
+  totalCents     Int
+
+  @@index([tenantId])
+  @@index([invoiceId])
+  @@map("invoice_line_items")
 }
