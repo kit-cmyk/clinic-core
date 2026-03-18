@@ -1,9 +1,24 @@
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter,
+} from '@/components/ui/sheet'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { MoreHorizontal } from 'lucide-react'
 
 interface StaffMember {
   name: string
@@ -63,7 +78,7 @@ const MOCK_BRANCHES: Branch[] = [
   },
 ]
 
-interface AddForm {
+interface BranchForm {
   name: string
   address: string
   city: string
@@ -71,36 +86,51 @@ interface AddForm {
   timezone: string
 }
 
-const emptyAddForm: AddForm = { name: '', address: '', city: '', phone: '', timezone: 'UTC' }
+const emptyForm: BranchForm = { name: '', address: '', city: '', phone: '', timezone: 'UTC' }
 
 export function BranchesPage() {
   const [branches, setBranches] = useState<Branch[]>(MOCK_BRANCHES)
-  const [showAdd, setShowAdd] = useState(false)
-  const [addForm, setAddForm] = useState<AddForm>(emptyAddForm)
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [editBranch, setEditBranch] = useState<Branch | null>(null)
+  const [form, setForm] = useState<BranchForm>(emptyForm)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [deactivateConfirmId, setDeactivateConfirmId] = useState<string | null>(null)
 
-  const handleAdd = () => {
-    const newBranch: Branch = {
-      id: Date.now().toString(),
-      name: addForm.name,
-      address: addForm.address,
-      city: addForm.city,
-      phone: addForm.phone,
-      status: 'Active',
-      staffCount: 0,
-      staff: [],
+  const openAdd = () => {
+    setEditBranch(null)
+    setForm(emptyForm)
+    setSheetOpen(true)
+  }
+
+  const openEdit = (branch: Branch) => {
+    setEditBranch(branch)
+    setForm({ name: branch.name, address: branch.address, city: branch.city, phone: branch.phone, timezone: 'UTC' })
+    setSheetOpen(true)
+  }
+
+  const handleSave = () => {
+    if (!form.name.trim()) return
+    if (editBranch) {
+      setBranches(prev => prev.map(b => b.id === editBranch.id ? { ...b, ...form } : b))
+    } else {
+      setBranches(prev => [...prev, {
+        id: Date.now().toString(),
+        name: form.name,
+        address: form.address,
+        city: form.city,
+        phone: form.phone,
+        status: 'Active',
+        staffCount: 0,
+        staff: [],
+      }])
     }
-    setBranches((prev) => [...prev, newBranch])
-    setAddForm(emptyAddForm)
-    setShowAdd(false)
+    setSheetOpen(false)
+    setForm(emptyForm)
   }
 
   const handleToggleStatus = (id: string) => {
-    setBranches((prev) =>
-      prev.map((b) =>
-        b.id === id ? { ...b, status: b.status === 'Active' ? 'Inactive' : 'Active' } : b,
-      ),
+    setBranches(prev =>
+      prev.map(b => b.id === id ? { ...b, status: b.status === 'Active' ? 'Inactive' : 'Active' } : b),
     )
     setDeactivateConfirmId(null)
   }
@@ -109,7 +139,7 @@ export function BranchesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">Branches</h1>
-        <Button onClick={() => setShowAdd(true)}>Add Branch</Button>
+        <Button onClick={openAdd}>Add Branch</Button>
       </div>
 
       {/* Branch cards */}
@@ -121,9 +151,7 @@ export function BranchesPage() {
                 <div>
                   <button
                     className="font-semibold text-foreground hover:underline text-left"
-                    onClick={() =>
-                      setExpandedId(expandedId === branch.id ? null : branch.id)
-                    }
+                    onClick={() => setExpandedId(expandedId === branch.id ? null : branch.id)}
                   >
                     {branch.name}
                   </button>
@@ -137,37 +165,38 @@ export function BranchesPage() {
                   <Badge variant={branch.status === 'Active' ? 'default' : 'secondary'}>
                     {branch.status}
                   </Badge>
-                  <Button size="sm" variant="outline">Edit</Button>
                   {deactivateConfirmId === branch.id ? (
                     <span className="flex gap-1 items-center text-xs">
                       <span>Are you sure?</span>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleToggleStatus(branch.id)}
-                      >
+                      <Button size="sm" variant="destructive" onClick={() => handleToggleStatus(branch.id)}>
                         Confirm
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setDeactivateConfirmId(null)}
-                      >
+                      <Button size="sm" variant="outline" onClick={() => setDeactivateConfirmId(null)}>
                         Cancel
                       </Button>
                     </span>
                   ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        branch.status === 'Active'
-                          ? setDeactivateConfirmId(branch.id)
-                          : handleToggleStatus(branch.id)
-                      }
-                    >
-                      {branch.status === 'Active' ? 'Deactivate' : 'Reactivate'}
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openEdit(branch)}>Edit</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() =>
+                            branch.status === 'Active'
+                              ? setDeactivateConfirmId(branch.id)
+                              : handleToggleStatus(branch.id)
+                          }
+                          className={branch.status === 'Active' ? 'text-destructive focus:text-destructive' : ''}
+                        >
+                          {branch.status === 'Active' ? 'Deactivate' : 'Reactivate'}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   )}
                 </div>
               </div>
@@ -195,69 +224,65 @@ export function BranchesPage() {
         ))}
       </div>
 
-      {/* Add Branch form */}
-      {showAdd && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Add Branch</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <Label htmlFor="add-name">Branch Name</Label>
-                <Input
-                  id="add-name"
-                  value={addForm.name}
-                  onChange={(e) => setAddForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="Branch name"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="add-phone">Phone</Label>
-                <Input
-                  id="add-phone"
-                  value={addForm.phone}
-                  onChange={(e) => setAddForm((f) => ({ ...f, phone: e.target.value }))}
-                  placeholder="+1 555 000 0000"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="add-address">Address</Label>
-                <Input
-                  id="add-address"
-                  value={addForm.address}
-                  onChange={(e) => setAddForm((f) => ({ ...f, address: e.target.value }))}
-                  placeholder="123 Main St"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="add-city">City</Label>
-                <Input
-                  id="add-city"
-                  value={addForm.city}
-                  onChange={(e) => setAddForm((f) => ({ ...f, city: e.target.value }))}
-                  placeholder="New York"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="add-timezone">Timezone</Label>
-                <Input
-                  id="add-timezone"
-                  value={addForm.timezone}
-                  onChange={(e) => setAddForm((f) => ({ ...f, timezone: e.target.value }))}
-                  placeholder="UTC"
-                />
-              </div>
+      {/* Add / Edit Sheet */}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>{editBranch ? 'Edit Branch' : 'Add Branch'}</SheetTitle>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto px-4 space-y-4">
+            <div className="space-y-1">
+              <Label htmlFor="s-name">Branch Name</Label>
+              <Input
+                id="s-name"
+                value={form.name}
+                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                placeholder="Branch name"
+              />
             </div>
-            <div className="flex gap-2">
-              <Button onClick={handleAdd}>Save</Button>
-              <Button variant="outline" onClick={() => { setShowAdd(false); setAddForm(emptyAddForm) }}>
-                Cancel
-              </Button>
+            <div className="space-y-1">
+              <Label htmlFor="s-phone">Phone</Label>
+              <Input
+                id="s-phone"
+                value={form.phone}
+                onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+                placeholder="+1 555 000 0000"
+              />
             </div>
-          </CardContent>
-        </Card>
-      )}
+            <div className="space-y-1">
+              <Label htmlFor="s-address">Address</Label>
+              <Input
+                id="s-address"
+                value={form.address}
+                onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
+                placeholder="123 Main St"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="s-city">City</Label>
+              <Input
+                id="s-city"
+                value={form.city}
+                onChange={e => setForm(f => ({ ...f, city: e.target.value }))}
+                placeholder="New York"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="s-timezone">Timezone</Label>
+              <Input
+                id="s-timezone"
+                value={form.timezone}
+                onChange={e => setForm(f => ({ ...f, timezone: e.target.value }))}
+                placeholder="UTC"
+              />
+            </div>
+          </div>
+          <SheetFooter>
+            <Button onClick={handleSave}>{editBranch ? 'Save Changes' : 'Add Branch'}</Button>
+            <Button variant="outline" onClick={() => setSheetOpen(false)}>Cancel</Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

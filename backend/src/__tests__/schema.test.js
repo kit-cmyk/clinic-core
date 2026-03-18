@@ -25,21 +25,25 @@ describe('schema.prisma — SubscriptionPlan enum', () => {
 
 describe('schema.prisma — tenant isolation', () => {
   it('tenant-scoped tables are mapped correctly', () => {
-    const tenantScopedTables = ['users', 'organizations', 'branches', 'staff_assignments', 'invitations'];
+    const tenantScopedTables = [
+      'users', 'organizations', 'branches', 'staff_assignments', 'invitations',
+      'patients', 'appointments', 'lab_results', 'professionals',
+      'professional_schedules', 'time_offs', 'clinic_hours',
+      'special_closures', 'invoices', 'invoice_line_items',
+    ];
     for (const table of tenantScopedTables) {
       expect(schema).toContain(`@@map("${table}")`);
     }
   });
 
   it('has tenantId field on every tenant-scoped model', () => {
-    // Each tenant-scoped model has exactly one tenantId String field
     const matches = schema.match(/tenantId\s+String\b/g) || [];
-    expect(matches.length).toBe(5); // users, organizations, branches, staff_assignments, invitations
+    expect(matches.length).toBe(15);
   });
 
   it('indexes tenantId on every tenant-scoped model', () => {
     const indexes = schema.match(/@@index\(\[tenantId\]\)/g) || [];
-    expect(indexes.length).toBe(5);
+    expect(indexes.length).toBe(15);
   });
 });
 

@@ -51,8 +51,8 @@ describe('PatientChartPage', () => {
 
   it('Other tabs render without errors', async () => {
     render(<RouterProvider router={buildRouter()} />)
-    await user.click(screen.getByRole('button', { name: /^visits$/i }))
-    await waitFor(() => expect(screen.getByText('Dr. Sarah Kim')).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /^appointments$/i }))
+    await waitFor(() => expect(screen.getAllByText('Dr. Sarah Kim')[0]).toBeInTheDocument())
     await user.click(screen.getByRole('button', { name: /^lab results$/i }))
     await waitFor(() => expect(screen.getByText('Complete Blood Count')).toBeInTheDocument())
   })
