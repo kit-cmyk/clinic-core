@@ -23,9 +23,9 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', env: env.NODE_ENV });
 });
 
-// ── API routes (mounted as features are built) ────────────────────────────
-// import authRoutes from './routes/auth.js';
-// app.use('/api/v1/auth', authRoutes);
+// ── API routes ────────────────────────────────────────────────────────────
+import authRoutes from './routes/auth.js';
+app.use('/api/v1/auth', authRoutes);
 
 // ── 404 handler ───────────────────────────────────────────────────────────
 app.use((_req, res) => {
