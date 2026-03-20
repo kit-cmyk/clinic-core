@@ -13,6 +13,9 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 ## [Unreleased]
 
 ### Added
+- Subscription Plan CRUD API: GET/POST /api/v1/plans + PUT/DELETE /api/v1/plans/:id; SUPER_ADMIN writes, any auth user reads; isActive soft-delete; BigInt/Decimal serialisation; 8 Jest tests (CC-26)
+- SMS Patient Registration: POST /api/v1/patients/invite (E.164 validation, 48h token, Twilio SMS via injectable factory); POST /api/v1/patients/register/:token (used/expired 410, creates Supabase user + Prisma Patient); PatientInvite Prisma model; 9 Jest tests (CC-24)
+- Auth & RBAC test suite: rewrote requireAuth middleware tests to use injectable supabaseAdmin mock; all 6-role requireRole coverage; tenant isolation tests migrated to injectable mock pattern; 212 tests passing, 0 failures (CC-25)
 - Super Admin Platform Overview dashboard: live KPI cards (active tenants, MRR, storage, pending sign-ups), tenant growth chart, plan distribution, platform alerts (announcements + maintenance), sortable tenant health table; replaces all mock data with real API calls; refresh button with cache-bust; loading skeleton + error state (CC-129)
 - Global Master Data API: GET/POST/PATCH /api/v1/master/specialties, /appointment-types, /service-categories; SUPER_ADMIN writes, any auth user reads; Prisma models Specialty, AppointmentType, ServiceCategory; 8 Jest tests (CC-121)
 - Tenant Sign-Up Request API: POST /api/v1/tenant-requests (public), GET (list/detail), POST approve/reject with required reason; TenantRequest Prisma model + TenantRequestStatus enum; 9 Jest tests (CC-119)
