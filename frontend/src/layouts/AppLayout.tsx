@@ -86,7 +86,7 @@ function Breadcrumbs() {
   return (
     <nav
       aria-label="Breadcrumb"
-      className="flex items-center gap-1.5 px-6 py-2 text-xs border-b border-border bg-background shrink-0"
+      className="flex items-center gap-1.5 px-6 py-2 text-xs bg-background shrink-0"
     >
       {crumbs.map((crumb, i) => (
         <span key={crumb.to} className="flex items-center gap-1.5">
@@ -355,7 +355,7 @@ function Sidebar({
         )}
 
         {/* Collapse toggle — desktop only */}
-        <div className="hidden lg:flex justify-center p-2 border-t border-sidebar-border">
+        <div className="hidden lg:flex justify-center p-2">
           <Button
             variant="ghost"
             size="icon"
@@ -425,7 +425,7 @@ export function AppLayout() {
         </header>
 
         {/* Desktop header row for sync badge */}
-        <div className="hidden lg:flex h-10 items-center justify-end border-b border-border px-6 bg-background">
+        <div className="hidden lg:flex h-14 items-center justify-end border-b border-border px-6 bg-background">
           <SyncStatusBadge sync={sync} />
         </div>
 
