@@ -8,6 +8,9 @@ interface PublicRouteProps {
 
 export function PublicRoute({ children }: PublicRouteProps) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const isInitialized   = useAuthStore((s) => s.isInitialized)
+
+  if (!isInitialized) return null
 
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />

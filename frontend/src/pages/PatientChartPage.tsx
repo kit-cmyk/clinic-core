@@ -4,16 +4,11 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
+import { MOCK_PATIENTS as SHARED_PATIENTS } from '@/components/patients/PatientForm'
 
-type Tab = 'Overview' | 'Appointments' | 'Prescriptions' | 'Lab Results' | 'Uploaded Records'
+type Tab = 'Overview' | 'Appointments' | 'Prescriptions' | 'Lab Results' | 'Uploaded Records' | 'Internal Notes'
 
-const TABS: Tab[] = ['Overview', 'Appointments', 'Prescriptions', 'Lab Results', 'Uploaded Records']
-
-// Stub mock patient data — replace at real API integration
-const MOCK_PATIENTS: Record<string, { name: string; dob: string; gender: string; bloodType: string; allergies: string[] }> = {
-  default: { name: 'John Doe', dob: '1980-05-12', gender: 'Male', bloodType: 'O+', allergies: ['Penicillin', 'Aspirin'] },
-  p1: { name: 'Jane Smith', dob: '1975-09-23', gender: 'Female', bloodType: 'A-', allergies: ['Sulfa drugs'] },
-}
+const TABS: Tab[] = ['Overview', 'Appointments', 'Prescriptions', 'Lab Results', 'Uploaded Records', 'Internal Notes']
 
 // All historical appointments for this patient — across multiple professionals
 const MOCK_APPOINTMENTS = [
@@ -51,13 +46,15 @@ const MOCK_VISIT_LIST = ['Visit 2026-03-10 — Consultation', 'Visit 2026-02-15 
 
 export function PatientChartPage() {
   const { patientId } = useParams<{ patientId: string }>()
-  const patient = MOCK_PATIENTS[patientId ?? 'default'] ?? MOCK_PATIENTS.default
+  const patient = SHARED_PATIENTS.find(p => p.id === patientId) ?? SHARED_PATIENTS[0]
   const [activeTab, setActiveTab] = useState<Tab>('Overview')
   const [expandedApptId, setExpandedApptId] = useState<string | null>(null)
   const [verifyId, setVerifyId] = useState<string | null>(null)
   const [verifyCategory, setVerifyCategory] = useState('')
   const [verifyClinicalNotes, setVerifyClinicalNotes] = useState('')
   const [verifyVisit, setVerifyVisit] = useState('')
+
+  const [internalNotes, setInternalNotes] = useState('')
 
   // Prescriptions tab state (CC-59 will enhance)
   const [prescriptions, setPrescriptions] = useState(MOCK_PRESCRIPTIONS)
@@ -87,7 +84,7 @@ export function PatientChartPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-foreground">
-        Patient Chart — {patient.name}
+        Patient Chart — {patient.fullName}
       </h1>
 
       {/* Tabs */}
@@ -112,11 +109,14 @@ export function PatientChartPage() {
         <div className="space-y-4">
           <Card>
             <CardHeader><CardTitle>Demographics</CardTitle></CardHeader>
-            <CardContent className="grid grid-cols-2 gap-3 text-sm">
-              <div><p className="text-muted-foreground">Name</p><p className="font-medium">{patient.name}</p></div>
-              <div><p className="text-muted-foreground">Date of Birth</p><p className="font-medium">{patient.dob}</p></div>
-              <div><p className="text-muted-foreground">Gender</p><p className="font-medium">{patient.gender}</p></div>
-              <div><p className="text-muted-foreground">Blood Type</p><p className="font-medium">{patient.bloodType}</p></div>
+            <CardContent className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+              <div><p className="text-muted-foreground text-xs">Name</p><p className="font-medium">{patient.fullName}</p></div>
+              <div><p className="text-muted-foreground text-xs">Date of Birth</p><p className="font-medium">{patient.dob ?? '—'}</p></div>
+              <div><p className="text-muted-foreground text-xs">Sex</p><p className="font-medium">{patient.gender ?? '—'}</p></div>
+              <div><p className="text-muted-foreground text-xs">Blood Type</p><p className="font-medium">{patient.bloodType ?? '—'}</p></div>
+              <div><p className="text-muted-foreground text-xs">Phone</p><p className="font-medium">{patient.phone ?? '—'}</p></div>
+              <div><p className="text-muted-foreground text-xs">Email</p><p className="font-medium">{patient.email ?? '—'}</p></div>
+              <div className="col-span-2"><p className="text-muted-foreground text-xs">Address</p><p className="font-medium">{patient.address ?? '—'}</p></div>
             </CardContent>
           </Card>
           <Card>
@@ -133,6 +133,22 @@ export function PatientChartPage() {
               )}
             </CardContent>
           </Card>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Card>
+              <CardHeader><CardTitle className="text-sm">Known Conditions</CardTitle></CardHeader>
+              <CardContent><p className="text-sm">{patient.knownConditions || 'None recorded'}</p></CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle className="text-sm">Previous Prescriptions</CardTitle></CardHeader>
+              <CardContent><p className="text-sm">{patient.previousPrescriptions || 'None recorded'}</p></CardContent>
+            </Card>
+          </div>
+          {patient.medicalHistory && (
+            <Card>
+              <CardHeader><CardTitle className="text-sm">Medical History</CardTitle></CardHeader>
+              <CardContent><p className="text-sm">{patient.medicalHistory}</p></CardContent>
+            </Card>
+          )}
           <div className="grid grid-cols-2 gap-4">
             <Card>
               <CardHeader><CardTitle>Active Prescriptions</CardTitle></CardHeader>
@@ -362,6 +378,24 @@ export function PatientChartPage() {
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+
+      {/* Internal Notes tab */}
+      {activeTab === 'Internal Notes' && (
+        <div className="space-y-3 max-w-2xl">
+          <p className="text-xs text-muted-foreground">
+            Staff-only notes for this patient. <strong>Not visible to the patient.</strong>
+          </p>
+          <textarea
+            className="border rounded-md px-3 py-2 text-sm bg-background w-full resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+            rows={12}
+            value={internalNotes}
+            onChange={(e) => setInternalNotes(e.target.value)}
+            placeholder="Behavioural notes, care preferences, handover reminders, staff-only observations…"
+            aria-label="Internal notes"
+          />
+          <p className="text-xs text-muted-foreground">Changes are saved automatically while you work.</p>
         </div>
       )}
     </div>

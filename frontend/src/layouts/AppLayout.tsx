@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate, useLocation, Link } from 'react-router-dom'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useSyncStatus } from '@/hooks/useSyncStatus'
 import { SyncStatusBadge } from '@/components/SyncStatusBadge'
@@ -24,7 +24,84 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { useAuth } from '@/hooks/useAuth'
+import { OnboardingChecklist } from '@/components/OnboardingChecklist'
 import type { Role } from '@/types'
+
+// ── Breadcrumbs ────────────────────────────────────────────────────────────────
+
+const BREADCRUMB_LABELS: Record<string, string> = {
+  dashboard:      'Dashboard',
+  appointments:   'Appointments',
+  visit:          'Visit',
+  patients:       'Patients',
+  chart:          'Chart',
+  professionals:  'Professionals',
+  'clinic-hours': 'Clinic Hours',
+  lab:            'Lab Records',
+  publish:        'Publish Result',
+  billing:        'Billing',
+  organizations:  'Organizations',
+  settings:       'Settings',
+  admin:          'Admin',
+  plans:          'Plans',
+  tenants:        'Tenants',
+  'master-data':  'Master Data',
+  'sign-ups':     'Sign-Ups',
+  onboarding:     'Onboarding',
+  branches:       'Branches',
+  staff:          'Staff',
+  'review-queue': 'Review Queue',
+  'check-in':     'Check-In',
+}
+
+// Paths that have actual routes (safe to render as links)
+const ROUTED_PATHS = new Set([
+  '/dashboard', '/appointments', '/patients', '/professionals',
+  '/clinic-hours', '/lab', '/billing', '/organizations', '/settings',
+  '/admin/plans', '/admin/tenants', '/admin/master-data', '/admin/sign-ups', '/onboarding', '/branches', '/staff',
+  '/lab/publish', '/review-queue', '/check-in',
+])
+
+function Breadcrumbs() {
+  const location = useLocation()
+  const crumbs: { label: string; to: string }[] = []
+  let path = ''
+
+  for (const seg of location.pathname.split('/').filter(Boolean)) {
+    path += `/${seg}`
+    const label = BREADCRUMB_LABELS[seg]
+    if (label) crumbs.push({ label, to: path })
+  }
+
+  if (crumbs.length === 0) return null
+
+  return (
+    <nav
+      aria-label="Breadcrumb"
+      className="flex items-center gap-1.5 px-6 py-2 text-xs border-b border-border bg-background shrink-0"
+    >
+      {crumbs.map((crumb, i) => (
+        <span key={crumb.to} className="flex items-center gap-1.5">
+          {i > 0 && <ChevronRight className="h-3 w-3 text-muted-foreground/40" />}
+          {i === crumbs.length - 1 || !ROUTED_PATHS.has(crumb.to) ? (
+            <span className={cn(
+              i === crumbs.length - 1 ? 'text-foreground font-medium' : 'text-muted-foreground'
+            )}>
+              {crumb.label}
+            </span>
+          ) : (
+            <Link
+              to={crumb.to}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {crumb.label}
+            </Link>
+          )}
+        </span>
+      ))}
+    </nav>
+  )
+}
 
 interface NavItem {
   label: string
@@ -300,10 +377,14 @@ export function AppLayout() {
           <SyncStatusBadge sync={sync} />
         </div>
 
+        <Breadcrumbs />
+
         <main className="flex-1 overflow-y-auto p-6">
           <Outlet />
         </main>
       </div>
+
+      <OnboardingChecklist />
     </div>
   )
 }

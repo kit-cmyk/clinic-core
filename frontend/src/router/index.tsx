@@ -10,6 +10,8 @@ import RegisterPage from '@/pages/RegisterPage'
 import InviteAcceptPage from '@/pages/InviteAcceptPage'
 import { PlansPage } from '@/pages/admin/PlansPage'
 import { TenantsPage } from '@/pages/admin/TenantsPage'
+import { MasterDataPage } from '@/pages/admin/MasterDataPage'
+import { SignUpsPage } from '@/pages/admin/SignUpsPage'
 import { OnboardingPage } from '@/pages/OnboardingPage'
 import { BranchesPage } from '@/pages/BranchesPage'
 import { StaffPage } from '@/pages/StaffPage'
@@ -50,9 +52,7 @@ const router = createBrowserRouter([
     path: '/register',
     element: (
       <PublicRoute>
-        <AuthLayout>
-          <RegisterPage />
-        </AuthLayout>
+        <RegisterPage />
       </PublicRoute>
     ),
   },
@@ -101,6 +101,8 @@ const router = createBrowserRouter([
           { path: '/settings', element: <SettingsPage /> },
           { path: '/admin/plans', element: <PlansPage /> },
           { path: '/admin/tenants', element: <TenantsPage /> },
+          { path: '/admin/master-data', element: <MasterDataPage /> },
+          { path: '/admin/sign-ups', element: <SignUpsPage /> },
           { path: '/onboarding', element: <OnboardingPage /> },
           { path: '/branches', element: <BranchesPage /> },
           { path: '/staff', element: <StaffPage /> },

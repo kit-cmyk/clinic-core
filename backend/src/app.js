@@ -9,8 +9,14 @@ const app = express();
 app.use(helmet());
 
 // ── CORS ──────────────────────────────────────────────────────────────────
+// In development accept any localhost origin (Vite picks a free port).
+// In production restrict to FRONTEND_URL.
+const corsOrigin = env.isDev()
+  ? (origin, cb) => cb(null, !origin || /^http:\/\/localhost(:\d+)?$/.test(origin))
+  : env.FRONTEND_URL;
+
 app.use(cors({
-  origin: env.FRONTEND_URL,
+  origin: corsOrigin,
   credentials: true,
 }));
 
@@ -25,7 +31,9 @@ app.get('/health', (_req, res) => {
 
 // ── API routes ────────────────────────────────────────────────────────────
 import authRoutes from './routes/auth.js';
+import meRoutes from './routes/me.js';
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/me', meRoutes);
 
 // ── 404 handler ───────────────────────────────────────────────────────────
 app.use((_req, res) => {

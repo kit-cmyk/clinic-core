@@ -45,6 +45,7 @@ function resetStore() {
     token: null,
     isAuthenticated: false,
     isLoading: false,
+    isInitialized: true,   // mark as initialized so routes render immediately
     error: null,
   })
 }
@@ -125,12 +126,10 @@ describe('PublicRoute', () => {
 })
 
 describe('Auth store — logout', () => {
-  it('clears isAuthenticated and sessionStorage on logout', () => {
-    sessionStorage.setItem('cc_token', 'tok')
+  it('clears isAuthenticated and token on logout', () => {
     useAuthStore.setState({ isAuthenticated: true, token: 'tok', user: null })
     useAuthStore.getState().logout()
     expect(useAuthStore.getState().isAuthenticated).toBe(false)
     expect(useAuthStore.getState().token).toBeNull()
-    expect(sessionStorage.getItem('cc_token')).toBeNull()
   })
 })

@@ -467,8 +467,8 @@ type ApptEditForm = NewApptForm & { status: ApptStatus }
 export function AppointmentsPage() {
   const { user }   = useAuthStore()
   const navigate   = useNavigate()
-  const canBook    = user?.role === 'receptionist' || user?.role === 'branch_manager' || !user
-  const isProfessional = user?.role === 'doctor' || user?.role === 'nurse'
+  const canBook    = user?.role === 'receptionist' || user?.role === 'branch_manager' || user?.role === 'org_admin' || !user
+  const isProfessional = user?.role === 'doctor' || user?.role === 'nurse' || user?.role === 'org_admin'
 
   const [view,          setView]          = useState<ViewMode>('Day')
   const [currentDate,   setCurrentDate]   = useState<Date>(TODAY)

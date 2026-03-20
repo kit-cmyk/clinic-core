@@ -137,6 +137,92 @@ export function createAuthRouter({
     return res.status(204).send();
   });
 
+  // ── POST /auth/register-org ──────────────────────────────────────────────────
+  // Creates a new organization account: Supabase user + Tenant + Organization +
+  // ORG_ADMIN User row in one transaction. Returns JWT tokens on success.
+  router.post('/register-org', async (req, res, next) => {
+    const { email, password, firstName, lastName, clinicName, clinicAddress } = req.body;
+
+    if (!email || !password || !firstName || !lastName || !clinicName) {
+      return res.status(400).json({
+        error: 'bad_request',
+        message: 'email, password, firstName, lastName, and clinicName are required',
+      });
+    }
+
+    const adminClient = adminClientFactory();
+    const anonClient = anonClientFactory();
+
+    // 1. Create Supabase auth user (email auto-confirmed for org sign-up)
+    const { data: authData, error: signUpError } = await adminClient.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+    });
+
+    if (signUpError) {
+      if (
+        signUpError.message?.toLowerCase().includes('already been registered') ||
+        signUpError.status === 422
+      ) {
+        return res.status(409).json({ error: 'conflict', message: 'Email already in use' });
+      }
+      return next(signUpError);
+    }
+
+    // 2. Create Tenant + Organization + ORG_ADMIN User in a single transaction
+    try {
+      const slug =
+        clinicName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') +
+        '-' +
+        Date.now();
+
+      await prismaClient.$transaction(async (tx) => {
+        const tenant = await tx.tenant.create({
+          data: { name: clinicName, slug },
+        });
+
+        await tx.organization.create({
+          data: {
+            tenantId: tenant.id,
+            name: clinicName,
+            address: clinicAddress ?? null,
+          },
+        });
+
+        await tx.user.create({
+          data: {
+            supabaseUserId: authData.user.id,
+            email,
+            tenantId: tenant.id,
+            role: 'ORG_ADMIN',
+            firstName,
+            lastName,
+            isActive: true,
+          },
+        });
+      });
+    } catch (err) {
+      // Rollback: remove orphaned Supabase user so the email stays available
+      await adminClient.auth.admin.deleteUser(authData.user.id).catch(() => {});
+      return next(err);
+    }
+
+    // 3. Sign in to return JWT tokens for the newly created account
+    const { data: session, error: signInError } = await anonClient.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (signInError) return next(signInError);
+
+    return res.status(201).json({
+      access_token: session.session.access_token,
+      refresh_token: session.session.refresh_token,
+      user: { id: authData.user.id, email },
+    });
+  });
+
   // ── POST /auth/refresh ───────────────────────────────────────────────────────
   router.post('/refresh', async (req, res, next) => {
     const { refresh_token } = req.body;

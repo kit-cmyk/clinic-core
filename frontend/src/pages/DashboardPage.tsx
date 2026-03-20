@@ -1,5 +1,5 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
-import { CalendarDays, Users, FlaskConical, Receipt, Stethoscope } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import { CalendarDays, Users, FlaskConical, Receipt, Stethoscope, Plus } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -16,27 +16,33 @@ import { useAuth } from '@/hooks/useAuth'
 import { PatientForm, MOCK_PATIENTS } from '@/components/patients/PatientForm'
 import type { Patient } from '@/types'
 
-// ── Shared mock data (mirrors AppointmentsPage until API integration) ──────────
+// ── Shared mock data ───────────────────────────────────────────────────────────
 
 const PROFESSIONALS = [
-  { id: 'p1', name: 'Dr. Sarah Kim',    specialization: 'General Medicine', colorIdx: 0 },
-  { id: 'p2', name: 'Dr. James Park',   specialization: 'Cardiology',        colorIdx: 1 },
-  { id: 'p3', name: 'Dr. Liu Wei',      specialization: 'Pediatrics',        colorIdx: 2 },
-  { id: 'p4', name: 'Nurse Ana Santos', specialization: 'General Nursing',   colorIdx: 3 },
-  { id: 'p5', name: 'Dr. Priya Nair',   specialization: 'Dermatology',       colorIdx: 4 },
+  { id: 'p1', name: 'Dr. Sarah Kim',    specialization: 'General Medicine', colorIdx: 0, slotMins: 30 },
+  { id: 'p2', name: 'Dr. James Park',   specialization: 'Cardiology',        colorIdx: 1, slotMins: 45 },
+  { id: 'p3', name: 'Dr. Liu Wei',      specialization: 'Pediatrics',        colorIdx: 2, slotMins: 30 },
+  { id: 'p4', name: 'Nurse Ana Santos', specialization: 'General Nursing',   colorIdx: 3, slotMins: 20 },
+  { id: 'p5', name: 'Dr. Priya Nair',   specialization: 'Dermatology',       colorIdx: 4, slotMins: 30 },
 ]
 
-// weekday schedules: 0=Mon … 6=Sun (mirrors ProfessionalsPage MOCK_SCHEDULES)
-const PROF_SCHEDULES: { professionalId: string; weekday: number }[] = [
-  { professionalId: 'p1', weekday: 0 }, { professionalId: 'p1', weekday: 1 },
-  { professionalId: 'p1', weekday: 2 }, { professionalId: 'p1', weekday: 3 },
-  { professionalId: 'p1', weekday: 4 },
-  { professionalId: 'p2', weekday: 0 }, { professionalId: 'p2', weekday: 2 },
-  { professionalId: 'p2', weekday: 4 },
-  { professionalId: 'p3', weekday: 1 }, { professionalId: 'p3', weekday: 3 },
-  { professionalId: 'p4', weekday: 0 }, { professionalId: 'p4', weekday: 2 },
-  { professionalId: 'p4', weekday: 4 },
-  { professionalId: 'p5', weekday: 1 }, { professionalId: 'p5', weekday: 3 },
+// Weekday schedule per professional: 0=Mon … 6=Sun
+const PROF_SCHEDULES = [
+  { professionalId: 'p1', weekday: 0, startTime: '08:00', endTime: '17:00' },
+  { professionalId: 'p1', weekday: 1, startTime: '08:00', endTime: '17:00' },
+  { professionalId: 'p1', weekday: 2, startTime: '08:00', endTime: '17:00' },
+  { professionalId: 'p1', weekday: 3, startTime: '08:00', endTime: '17:00' },
+  { professionalId: 'p1', weekday: 4, startTime: '08:00', endTime: '13:00' },
+  { professionalId: 'p2', weekday: 0, startTime: '09:00', endTime: '17:00' },
+  { professionalId: 'p2', weekday: 2, startTime: '09:00', endTime: '17:00' },
+  { professionalId: 'p2', weekday: 4, startTime: '09:00', endTime: '17:00' },
+  { professionalId: 'p3', weekday: 1, startTime: '08:00', endTime: '17:00' },
+  { professionalId: 'p3', weekday: 3, startTime: '08:00', endTime: '17:00' },
+  { professionalId: 'p4', weekday: 0, startTime: '07:00', endTime: '15:00' },
+  { professionalId: 'p4', weekday: 2, startTime: '07:00', endTime: '15:00' },
+  { professionalId: 'p4', weekday: 4, startTime: '07:00', endTime: '15:00' },
+  { professionalId: 'p5', weekday: 1, startTime: '10:00', endTime: '18:00' },
+  { professionalId: 'p5', weekday: 3, startTime: '10:00', endTime: '18:00' },
 ]
 
 const TODAY_APPTS = [
@@ -55,9 +61,24 @@ function fmt(d: Date) {
 }
 
 // Mon=0, Sun=6
-function todayWeekday() {
-  const d = new Date().getDay()
+function toWeekday(date: Date): number {
+  const d = date.getDay()
   return d === 0 ? 6 : d - 1
+}
+
+function generateSlots(startTime: string, endTime: string, slotMins: number): string[] {
+  const [sh, sm] = startTime.split(':').map(Number)
+  const [eh, em] = endTime.split(':').map(Number)
+  let cur = sh * 60 + sm
+  const end = eh * 60 + em
+  const slots: string[] = []
+  while (cur + slotMins <= end) {
+    const h = Math.floor(cur / 60)
+    const m = cur % 60
+    slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
+    cur += slotMins
+  }
+  return slots
 }
 
 // ── Stat cards ────────────────────────────────────────────────────────────────
@@ -71,26 +92,90 @@ const STAT_CARDS = [
 
 // ── Book Appointment Sheet ─────────────────────────────────────────────────────
 
-interface BookApptForm { patientId: string; patientName: string; professionalId: string; date: string; startTime: string; durationMins: number; type: string }
+interface BookApptForm {
+  patientId: string
+  patientName: string
+  professionalId: string
+  date: string
+  startTime: string
+  durationMins: number
+  type: string
+}
 
-function BookAppointmentSheet({ open, onClose, prefillProfId }: { open: boolean; onClose: () => void; prefillProfId?: string }) {
-  const [patients,         setPatients]         = useState<Patient[]>(MOCK_PATIENTS)
-  const [patientSearch,    setPatientSearch]     = useState('')
-  const [patientDropOpen,  setPatientDropOpen]   = useState(false)
-  const [showPatientForm,  setShowPatientForm]   = useState(false)
-  const [success,          setSuccess]           = useState(false)
+function BookAppointmentSheet({
+  open,
+  onClose,
+  prefillProfId,
+}: {
+  open: boolean
+  onClose: () => void
+  prefillProfId?: string
+}) {
+  const [patients,        setPatients]        = useState<Patient[]>(MOCK_PATIENTS)
+  const [patientSearch,   setPatientSearch]   = useState('')
+  const [patientDropOpen, setPatientDropOpen] = useState(false)
+  const [showPatientForm, setShowPatientForm] = useState(false)
+  const [success,         setSuccess]         = useState(false)
+
   const [form, setForm] = useState<BookApptForm>({
-    patientId: '', patientName: '', professionalId: prefillProfId ?? PROFESSIONALS[0].id,
-    date: fmt(new Date()), startTime: '08:00', durationMins: 30, type: APPOINTMENT_TYPES[0],
+    patientId: '',
+    patientName: '',
+    professionalId: prefillProfId ?? PROFESSIONALS[0].id,
+    date: fmt(new Date()),
+    startTime: '',
+    durationMins: PROFESSIONALS[0].slotMins,
+    type: APPOINTMENT_TYPES[0],
   })
 
+  // Derived: weekday of selected date (Mon=0)
+  const dateWeekday = useMemo(() => {
+    if (!form.date) return -1
+    return toWeekday(new Date(form.date + 'T00:00:00'))
+  }, [form.date])
+
+  // Derived: prof object for selected professionalId
+  const selectedProf = PROFESSIONALS.find(p => p.id === form.professionalId)
+
+  // Derived: available slots for the selected professional + date
+  const availableSlots = useMemo(() => {
+    if (!selectedProf) return []
+    const sched = PROF_SCHEDULES.find(
+      s => s.professionalId === selectedProf.id && s.weekday === dateWeekday
+    )
+    if (!sched) return []
+    return generateSlots(sched.startTime, sched.endTime, selectedProf.slotMins)
+  }, [selectedProf, dateWeekday])
+
+  // Reset form when sheet opens
   useEffect(() => {
-    if (open) {
-      setForm(f => ({ ...f, professionalId: prefillProfId ?? PROFESSIONALS[0].id, patientId: '', patientName: '' }))
-      setPatientSearch('')
-      setSuccess(false)
-    }
+    if (!open) return
+    const profId = prefillProfId ?? PROFESSIONALS[0].id
+    const prof = PROFESSIONALS.find(p => p.id === profId)
+    const today = fmt(new Date())
+    const wd = toWeekday(new Date())
+    const sched = PROF_SCHEDULES.find(s => s.professionalId === profId && s.weekday === wd)
+    const slots = sched && prof ? generateSlots(sched.startTime, sched.endTime, prof.slotMins) : []
+    setForm({
+      patientId: '',
+      patientName: '',
+      professionalId: profId,
+      date: today,
+      startTime: slots[0] ?? '',
+      durationMins: prof?.slotMins ?? 30,
+      type: APPOINTMENT_TYPES[0],
+    })
+    setPatientSearch('')
+    setSuccess(false)
   }, [open, prefillProfId])
+
+  // Update startTime when slots change
+  useEffect(() => {
+    if (availableSlots.length > 0 && !availableSlots.includes(form.startTime)) {
+      setForm(f => ({ ...f, startTime: availableSlots[0] }))
+    } else if (availableSlots.length === 0) {
+      setForm(f => ({ ...f, startTime: '' }))
+    }
+  }, [availableSlots]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const suggestions = useMemo(() => {
     const q = patientSearch.toLowerCase().trim()
@@ -103,10 +188,34 @@ function BookAppointmentSheet({ open, onClose, prefillProfId }: { open: boolean;
     setPatientDropOpen(false)
   }
 
-  const handleNewPatient = (p: Patient) => { setPatients(prev => [...prev, p]); selectPatient(p); setShowPatientForm(false) }
+  const handleNewPatient = (p: Patient) => {
+    setPatients(prev => [...prev, p])
+    selectPatient(p)
+    setShowPatientForm(false)
+  }
+
+  const handleProfessionalChange = (profId: string) => {
+    const prof = PROFESSIONALS.find(p => p.id === profId)
+    const wd = toWeekday(new Date(form.date + 'T00:00:00'))
+    const sched = PROF_SCHEDULES.find(s => s.professionalId === profId && s.weekday === wd)
+    const slots = sched && prof ? generateSlots(sched.startTime, sched.endTime, prof.slotMins) : []
+    setForm(f => ({
+      ...f,
+      professionalId: profId,
+      durationMins: prof?.slotMins ?? f.durationMins,
+      startTime: slots[0] ?? '',
+    }))
+  }
+
+  const handleDateChange = (date: string) => {
+    const wd = toWeekday(new Date(date + 'T00:00:00'))
+    const sched = PROF_SCHEDULES.find(s => s.professionalId === form.professionalId && s.weekday === wd)
+    const slots = sched && selectedProf ? generateSlots(sched.startTime, sched.endTime, selectedProf.slotMins) : []
+    setForm(f => ({ ...f, date, startTime: slots[0] ?? '' }))
+  }
 
   const handleSubmit = () => {
-    if (!form.patientName.trim()) return
+    if (!form.patientName.trim() || !form.startTime) return
     setSuccess(true)
   }
 
@@ -132,7 +241,11 @@ function BookAppointmentSheet({ open, onClose, prefillProfId }: { open: boolean;
                   <Input
                     placeholder="Search by name or phone…"
                     value={patientSearch}
-                    onChange={e => { setPatientSearch(e.target.value); setForm(f => ({ ...f, patientId: '', patientName: e.target.value })); setPatientDropOpen(true) }}
+                    onChange={e => {
+                      setPatientSearch(e.target.value)
+                      setForm(f => ({ ...f, patientId: '', patientName: e.target.value }))
+                      setPatientDropOpen(true)
+                    }}
                     onFocus={() => setPatientDropOpen(true)}
                     aria-label="Search patient"
                   />
@@ -156,37 +269,77 @@ function BookAppointmentSheet({ open, onClose, prefillProfId }: { open: boolean;
                 {/* Professional */}
                 <div className="space-y-1">
                   <Label className="text-xs">Professional</Label>
-                  <select aria-label="Professional" className="border rounded-md px-3 py-2 text-sm bg-background w-full"
-                    value={form.professionalId} onChange={e => setForm(f => ({ ...f, professionalId: e.target.value }))}>
-                    {PROFESSIONALS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  <select
+                    aria-label="Professional"
+                    className="border rounded-md px-3 py-2 text-sm bg-background w-full"
+                    value={form.professionalId}
+                    onChange={e => handleProfessionalChange(e.target.value)}
+                  >
+                    {PROFESSIONALS.map(p => (
+                      <option key={p.id} value={p.id}>{p.name} — {p.slotMins} min slots</option>
+                    ))}
                   </select>
                 </div>
 
+                {/* Date + Time Slot */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">Date</Label>
-                    <Input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+                    <Input
+                      type="date"
+                      value={form.date}
+                      onChange={e => handleDateChange(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Start Time</Label>
-                    <Input type="time" value={form.startTime} onChange={e => setForm(f => ({ ...f, startTime: e.target.value }))} />
+                    <Label className="text-xs">Time Slot</Label>
+                    {availableSlots.length > 0 ? (
+                      <select
+                        aria-label="Time slot"
+                        className="border rounded-md px-3 py-2 text-sm bg-background w-full"
+                        value={form.startTime}
+                        onChange={e => setForm(f => ({ ...f, startTime: e.target.value }))}
+                      >
+                        {availableSlots.map(slot => (
+                          <option key={slot} value={slot}>{slot}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="border rounded-md px-3 py-2 text-xs text-muted-foreground bg-muted/30">
+                        No availability on this date
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Type</Label>
-                    <select aria-label="Type" className="border rounded-md px-3 py-2 text-sm bg-background w-full"
-                      value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
+                    <select
+                      aria-label="Type"
+                      className="border rounded-md px-3 py-2 text-sm bg-background w-full"
+                      value={form.type}
+                      onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
+                    >
                       {APPOINTMENT_TYPES.map(t => <option key={t}>{t}</option>)}
                     </select>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Duration (mins)</Label>
-                    <Input type="number" min={15} step={15} value={form.durationMins}
-                      onChange={e => setForm(f => ({ ...f, durationMins: Number(e.target.value) }))} />
+                    <Input
+                      type="number"
+                      min={15}
+                      step={5}
+                      value={form.durationMins}
+                      onChange={e => setForm(f => ({ ...f, durationMins: Number(e.target.value) }))}
+                    />
                   </div>
                 </div>
               </div>
               <SheetFooter className="mt-4">
-                <Button onClick={handleSubmit} disabled={!form.patientName.trim()}>Book Appointment</Button>
+                <Button
+                  onClick={handleSubmit}
+                  disabled={!form.patientName.trim() || !form.startTime}
+                >
+                  Book Appointment
+                </Button>
                 <Button variant="outline" onClick={onClose}>Cancel</Button>
               </SheetFooter>
             </>
@@ -202,15 +355,15 @@ function BookAppointmentSheet({ open, onClose, prefillProfId }: { open: boolean;
 
 export function DashboardPage() {
   const { user } = useAuth()
-  const canBook  = user?.role === 'receptionist' || user?.role === 'branch_manager' || !user
+  const canBook = user?.role === 'receptionist' || user?.role === 'branch_manager' || user?.role === 'org_admin' || !user
 
-  const [bookOpen,       setBookOpen]       = useState(false)
-  const [prefillProfId,  setPrefillProfId]  = useState<string | undefined>(undefined)
+  const [bookOpen,      setBookOpen]      = useState(false)
+  const [prefillProfId, setPrefillProfId] = useState<string | undefined>(undefined)
 
-  const todayWd = todayWeekday()
+  const todayWd = toWeekday(new Date())
   const profAvailability = PROFESSIONALS.map(p => ({
     ...p,
-    available:     PROF_SCHEDULES.some(s => s.professionalId === p.id && s.weekday === todayWd),
+    available: PROF_SCHEDULES.some(s => s.professionalId === p.id && s.weekday === todayWd),
     todayApptCount: TODAY_APPTS.filter(a => a.professionalId === p.id).length,
   }))
 
@@ -219,13 +372,21 @@ export function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">
-          Good morning, {user?.name.split(' ')[0]}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          Here's what's happening at your clinic today.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">
+            Good morning, {user?.name.split(' ')[0]}
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Here's what's happening at your clinic today.
+          </p>
+        </div>
+        {canBook && (
+          <Button onClick={() => openBook()} className="shrink-0 gap-2">
+            <Plus className="h-4 w-4" />
+            New Appointment
+          </Button>
+        )}
       </div>
 
       {/* Stat cards */}
@@ -238,7 +399,12 @@ export function DashboardPage() {
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-              <p className={['text-xs mt-1', stat.trend === 'up' && 'text-chart-1', stat.trend === 'down' && 'text-destructive', stat.trend === 'neutral' && 'text-muted-foreground'].filter(Boolean).join(' ')}>
+              <p className={[
+                'text-xs mt-1',
+                stat.trend === 'up' && 'text-chart-1',
+                stat.trend === 'down' && 'text-destructive',
+                stat.trend === 'neutral' && 'text-muted-foreground',
+              ].filter(Boolean).join(' ')}>
                 {stat.change}
               </p>
             </CardContent>
@@ -279,11 +445,6 @@ export function DashboardPage() {
               <Stethoscope className="h-4 w-4 text-muted-foreground" />
               Professionals Today
             </CardTitle>
-            {canBook && (
-              <Button size="sm" onClick={() => openBook()} aria-label="Book appointment">
-                + Book Appointment
-              </Button>
-            )}
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y divide-border">
@@ -301,7 +462,7 @@ export function DashboardPage() {
                     </div>
                     <div>
                       <p className="text-sm font-medium">{p.name}</p>
-                      <p className="text-xs text-muted-foreground">{p.specialization}</p>
+                      <p className="text-xs text-muted-foreground">{p.specialization} · {p.slotMins} min slots</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
