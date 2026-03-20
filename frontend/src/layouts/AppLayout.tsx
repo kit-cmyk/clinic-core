@@ -124,7 +124,7 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Dashboard',
     to: '/dashboard',
     icon: LayoutDashboard,
-    roles: ['super_admin', 'org_admin', 'branch_manager', 'doctor', 'nurse', 'receptionist', 'lab_technician'],
+    roles: ['org_admin', 'branch_manager', 'doctor', 'nurse', 'receptionist', 'lab_technician'],
   },
   {
     label: 'Appointments',
@@ -166,7 +166,7 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Settings',
     to: '/settings',
     icon: Settings,
-    roles: ['super_admin', 'org_admin', 'branch_manager'],
+    roles: ['org_admin', 'branch_manager'],
   },
   // ── Super Admin section ──────────────────────────────────────────────────────
   {

@@ -26,7 +26,7 @@ export function SuperAdminLoginPage() {
 
     await loginSuperAdmin(email, password)
     if (!useAuthStore.getState().error) {
-      navigate('/admin/plans', { replace: true })
+      navigate('/admin/monitoring', { replace: true })
     }
   }
 
