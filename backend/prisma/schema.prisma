@@ -56,6 +56,7 @@ model SubscriptionTier {
   maxStaff          Int              // -1 = unlimited
   storageLimitBytes BigInt
   monthlyPriceUsd   Decimal          @db.Decimal(10, 2)
+  isActive          Boolean          @default(true)
   createdAt         DateTime         @default(now())
 
   tenants Tenant[]
@@ -84,6 +85,7 @@ model Tenant {
   branches             Branch[]
   staffAssignments     StaffAssignment[]
   invitations          Invitation[]
+  patientInvites       PatientInvite[]
   patients             Patient[]
   appointments         Appointment[]
   labResults           LabResult[]
@@ -118,6 +120,7 @@ model User {
 
   staffAssignments           StaffAssignment[]
   sentInvitations            Invitation[]      @relation("InvitedBy")
+  sentPatientInvites         PatientInvite[]   @relation("PatientInvitedBy")
   patient                    Patient?
   appointmentsAsProfessional Appointment[]     @relation("AppointmentProfessional")
   orderedLabResults          LabResult[]       @relation("LabResultOrderedBy")
@@ -221,6 +224,25 @@ model Invitation {
   @@index([tenantId])
   @@index([token])
   @@map("invitations")
+}
+
+// Pending SMS invitations for patients. Token is single-use with 48h expiry.
+
+model PatientInvite {
+  id          String    @id @default(uuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  phone       String
+  token       String    @unique @default(uuid())
+  invitedById String
+  invitedBy   User      @relation("PatientInvitedBy", fields: [invitedById], references: [id])
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([token])
+  @@index([tenantId])
+  @@map("patient_invites")
 }
 
 // ── Patients ──────────────────────────────────────────────────────────────────

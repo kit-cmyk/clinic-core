@@ -19,6 +19,11 @@ import {
   ChevronRight,
   Stethoscope,
   Clock,
+  Activity,
+  UserPlus,
+  CreditCard,
+  Database,
+  Megaphone,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -111,6 +116,7 @@ interface NavItem {
   to: string
   icon: React.ElementType
   roles: Role[]
+  dividerBefore?: boolean
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -157,16 +163,48 @@ const NAV_ITEMS: NavItem[] = [
     roles: ['org_admin', 'branch_manager', 'receptionist'],
   },
   {
-    label: 'Organizations',
-    to: '/organizations',
-    icon: Building2,
-    roles: ['super_admin'],
-  },
-  {
     label: 'Settings',
     to: '/settings',
     icon: Settings,
     roles: ['super_admin', 'org_admin', 'branch_manager'],
+  },
+  // ── Super Admin section ──────────────────────────────────────────────────────
+  {
+    label: 'Platform Overview',
+    to: '/admin/monitoring',
+    icon: Activity,
+    roles: ['super_admin'],
+    dividerBefore: true,
+  },
+  {
+    label: 'Tenants',
+    to: '/admin/tenants',
+    icon: Building2,
+    roles: ['super_admin'],
+  },
+  {
+    label: 'Sign-Ups',
+    to: '/admin/sign-ups',
+    icon: UserPlus,
+    roles: ['super_admin'],
+  },
+  {
+    label: 'Plans',
+    to: '/admin/plans',
+    icon: CreditCard,
+    roles: ['super_admin'],
+  },
+  {
+    label: 'Master Data',
+    to: '/admin/master-data',
+    icon: Database,
+    roles: ['super_admin'],
+  },
+  {
+    label: 'Platform Updates',
+    to: '/admin/updates',
+    icon: Megaphone,
+    roles: ['super_admin'],
   },
 ]
 
@@ -232,24 +270,35 @@ function Sidebar({
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
           {visibleItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              onClick={onClose}
-              title={collapsed ? item.label : undefined}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 rounded-md px-2 py-2 text-sm font-medium transition-colors',
-                  collapsed ? 'justify-center' : 'px-3',
-                  isActive
-                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                    : 'text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground',
-                )
-              }
-            >
-              <item.icon className="h-4 w-4 shrink-0" />
-              {!collapsed && item.label}
-            </NavLink>
+            <div key={item.to}>
+              {item.dividerBefore && (
+                <div className="pt-2 pb-1">
+                  <Separator className="bg-sidebar-border" />
+                  {!collapsed && (
+                    <p className="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Admin
+                    </p>
+                  )}
+                </div>
+              )}
+              <NavLink
+                to={item.to}
+                onClick={onClose}
+                title={collapsed ? item.label : undefined}
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-3 rounded-md px-2 py-2 text-sm font-medium transition-colors',
+                    collapsed ? 'justify-center' : 'px-3',
+                    isActive
+                      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground',
+                  )
+                }
+              >
+                <item.icon className="h-4 w-4 shrink-0" />
+                {!collapsed && item.label}
+              </NavLink>
+            </div>
           ))}
         </nav>
 

@@ -38,6 +38,8 @@ import tenantRequestsRoutes from './routes/tenantRequests.js';
 import platformRoutes from './routes/platform.js';
 import metricsRoutes from './routes/metrics.js';
 import provisioningRoutes from './routes/provisioning.js';
+import plansRoutes from './routes/plans.js';
+import patientsRoutes from './routes/patients.js';
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/me', meRoutes);
 app.use('/api/v1/invitations', invitationsRoutes);
@@ -46,6 +48,8 @@ app.use('/api/v1/tenant-requests', tenantRequestsRoutes);
 app.use('/api/v1/platform', platformRoutes);
 app.use('/api/v1/metrics', metricsRoutes);
 app.use('/api/v1/provisioning', provisioningRoutes);
+app.use('/api/v1/plans', plansRoutes);
+app.use('/api/v1/patients', patientsRoutes);
 
 // ── 404 handler ───────────────────────────────────────────────────────────
 app.use((_req, res) => {

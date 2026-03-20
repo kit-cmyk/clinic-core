@@ -13,6 +13,7 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 ## [Unreleased]
 
 ### Added
+- Super Admin Platform Overview dashboard: live KPI cards (active tenants, MRR, storage, pending sign-ups), tenant growth chart, plan distribution, platform alerts (announcements + maintenance), sortable tenant health table; replaces all mock data with real API calls; refresh button with cache-bust; loading skeleton + error state (CC-129)
 - Global Master Data API: GET/POST/PATCH /api/v1/master/specialties, /appointment-types, /service-categories; SUPER_ADMIN writes, any auth user reads; Prisma models Specialty, AppointmentType, ServiceCategory; 8 Jest tests (CC-121)
 - Tenant Sign-Up Request API: POST /api/v1/tenant-requests (public), GET (list/detail), POST approve/reject with required reason; TenantRequest Prisma model + TenantRequestStatus enum; 9 Jest tests (CC-119)
 - Platform Updates API: GET/POST /api/v1/platform/announcements + archive patch; GET/POST/PATCH feature-flags; GET/POST /maintenance + cancel patch; Announcement, FeatureFlag, MaintenanceWindow Prisma models; 9 Jest tests (CC-126)
