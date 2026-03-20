@@ -13,6 +13,12 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 ## [Unreleased]
 
 ### Added
+- Global Master Data API: GET/POST/PATCH /api/v1/master/specialties, /appointment-types, /service-categories; SUPER_ADMIN writes, any auth user reads; Prisma models Specialty, AppointmentType, ServiceCategory; 8 Jest tests (CC-121)
+- Tenant Sign-Up Request API: POST /api/v1/tenant-requests (public), GET (list/detail), POST approve/reject with required reason; TenantRequest Prisma model + TenantRequestStatus enum; 9 Jest tests (CC-119)
+- Platform Updates API: GET/POST /api/v1/platform/announcements + archive patch; GET/POST/PATCH feature-flags; GET/POST /maintenance + cancel patch; Announcement, FeatureFlag, MaintenanceWindow Prisma models; 9 Jest tests (CC-126)
+- Platform Metrics API: GET /api/v1/metrics — active tenants, MRR, storage sum, plan breakdown, tenant list; 5-minute in-memory cache with bust endpoint; BigInt-safe JSON serialisation; 6 Jest tests (CC-124)
+- Tenant Provisioning Pipeline API: GET/POST /api/v1/provisioning/:id (start, status), POST retry/:step; 4-step orchestration service (DB_RECORD → ROLES_SEED → STORAGE_SETUP → WELCOME_EMAIL); ProvisioningLog Prisma model; idempotent retry; 7 Jest tests (CC-122)
+- Prisma schema: TenantRequest + TenantRequestStatus enum, ProvisioningLog + ProvisioningStep/ProvisioningStepStatus enums, Specialty, AppointmentType, ServiceCategory, Announcement + AnnouncementSeverity enum, FeatureFlag, MaintenanceWindow
 - Provisioning Status UI: ProvisioningPage at /admin/provisioning/:tenantId — vertical stepper showing 4-step pipeline (DB record, roles seed, storage setup, welcome email) with per-step status icons (pending/running/done/failed), error message display, and Retry button for failed steps; overall status badge; "View Tenant" button on completion; 4 Vitest tests (CC-123)
 - Platform Monitoring Dashboard: MonitoringPage at /admin/monitoring — 4 KPI cards (active tenants, MRR, storage used, plans breakdown), CSS bar chart for 6-month MRR trend, sortable tenant health table with storage progress bars and status badges; 4 Vitest tests (CC-125)
 - Platform Updates UI: PlatformUpdatesPage at /admin/updates — Announcements table with Create Sheet and Archive AlertDialog, Feature Flags toggle rows (On/Off per plan), Maintenance Mode card showing active window with Cancel confirmation; 4 Vitest tests (CC-127)
