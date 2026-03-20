@@ -38,6 +38,8 @@ import { InvoicesPage } from '@/pages/InvoicesPage'
 import { PortalInvoicesPage } from '@/pages/patient/PortalInvoicesPage'
 import { PatientManagementPage } from '@/pages/PatientManagementPage'
 import { AppointmentVisitPage } from '@/pages/AppointmentVisitPage'
+import { SuperAdminLoginPage } from '@/pages/SuperAdminLoginPage'
+import { SuperAdminPublicRoute } from '@/components/SuperAdminPublicRoute'
 
 const router = createBrowserRouter([
   // Public auth routes — redirect to /dashboard if already authenticated
@@ -49,6 +51,14 @@ const router = createBrowserRouter([
           <LoginPage />
         </AuthLayout>
       </PublicRoute>
+    ),
+  },
+  {
+    path: '/super-admin/login',
+    element: (
+      <SuperAdminPublicRoute>
+        <SuperAdminLoginPage />
+      </SuperAdminPublicRoute>
     ),
   },
   {

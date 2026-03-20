@@ -115,6 +115,57 @@ export function createAuthRouter({
     });
   });
 
+  // ── POST /auth/super-admin/login ─────────────────────────────────────────────
+  // Like /auth/login but verifies the user has SUPER_ADMIN role before returning
+  // tokens — non-super-admins get a 403 and their session is immediately revoked.
+  router.post('/super-admin/login', async (req, res, next) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        error: 'bad_request',
+        message: 'email and password are required',
+      });
+    }
+
+    const anonClient = anonClientFactory();
+    const { data, error } = await anonClient.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      if (error.status === 400 || error.message?.toLowerCase().includes('invalid')) {
+        return res.status(401).json({ error: 'unauthorized', message: 'Invalid email or password' });
+      }
+      return next(error);
+    }
+
+    // Verify SUPER_ADMIN role before granting access
+    let dbUser;
+    try {
+      dbUser = await prismaClient.user.findUnique({
+        where: { supabaseUserId: data.user.id },
+        select: { role: true, isActive: true },
+      });
+    } catch (err) {
+      return next(err);
+    }
+
+    if (!dbUser || dbUser.role !== 'SUPER_ADMIN' || !dbUser.isActive) {
+      // Revoke the Supabase session so the token can't be reused
+      const adminClient = adminClientFactory();
+      await adminClient.auth.admin.signOut(data.session.access_token).catch(() => {});
+      return res.status(403).json({
+        error: 'forbidden',
+        message: 'Access denied. This login is for platform administrators only.',
+      });
+    }
+
+    return res.json({
+      access_token: data.session.access_token,
+      refresh_token: data.session.refresh_token,
+      user: { id: data.user.id, email: data.user.email },
+    });
+  });
+
   // ── POST /auth/logout ────────────────────────────────────────────────────────
   // Requires Bearer token. Calls Supabase admin signOut to revoke the JWT
   // globally — invalidates all sessions, not just the current one.

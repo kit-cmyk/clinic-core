@@ -47,11 +47,12 @@ interface AuthState {
   isInitialized:   boolean   // true once INITIAL_SESSION has resolved — used by route guards
   error:           string | null
 
-  login:        (email: string, password: string) => Promise<void>
-  register:     (name: string, email: string, password: string, clinicName: string, clinicAddress: string) => Promise<void>
-  acceptInvite: (token: string, password: string) => Promise<void>
-  logout:       () => Promise<void>
-  clearError:   () => void
+  login:             (email: string, password: string) => Promise<void>
+  loginSuperAdmin:   (email: string, password: string) => Promise<void>
+  register:          (name: string, email: string, password: string, clinicName: string, clinicAddress: string) => Promise<void>
+  acceptInvite:      (token: string, password: string) => Promise<void>
+  logout:            () => Promise<void>
+  clearError:        () => void
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -74,6 +75,35 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const user = await fetchProfile(data.session.access_token)
       set({ user, token: data.session.access_token, isAuthenticated: true, isLoading: false })
+    } catch {
+      await supabase.auth.signOut()
+      set({ isLoading: false, error: 'Failed to load account. Please try again.' })
+    }
+  },
+
+  loginSuperAdmin: async (email, password) => {
+    set({ isLoading: true, error: null })
+
+    const res = await fetch(`${API}/api/v1/auth/super-admin/login`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ email, password }),
+    })
+    const json = await res.json()
+
+    if (!res.ok) {
+      set({ isLoading: false, error: json.message ?? 'Invalid credentials.' })
+      return
+    }
+
+    await supabase.auth.setSession({
+      access_token:  json.access_token,
+      refresh_token: json.refresh_token,
+    })
+
+    try {
+      const user = await fetchProfile(json.access_token)
+      set({ user, token: json.access_token, isAuthenticated: true, isLoading: false })
     } catch {
       await supabase.auth.signOut()
       set({ isLoading: false, error: 'Failed to load account. Please try again.' })
