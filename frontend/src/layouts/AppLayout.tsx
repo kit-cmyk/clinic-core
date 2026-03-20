@@ -47,6 +47,9 @@ const BREADCRUMB_LABELS: Record<string, string> = {
   tenants:        'Tenants',
   'master-data':  'Master Data',
   'sign-ups':     'Sign-Ups',
+  provisioning:   'Provisioning',
+  monitoring:     'Monitoring',
+  updates:        'Platform Updates',
   onboarding:     'Onboarding',
   branches:       'Branches',
   staff:          'Staff',
@@ -58,7 +61,7 @@ const BREADCRUMB_LABELS: Record<string, string> = {
 const ROUTED_PATHS = new Set([
   '/dashboard', '/appointments', '/patients', '/professionals',
   '/clinic-hours', '/lab', '/billing', '/organizations', '/settings',
-  '/admin/plans', '/admin/tenants', '/admin/master-data', '/admin/sign-ups', '/onboarding', '/branches', '/staff',
+  '/admin/plans', '/admin/tenants', '/admin/master-data', '/admin/sign-ups', '/admin/monitoring', '/admin/updates', '/onboarding', '/branches', '/staff',
   '/lab/publish', '/review-queue', '/check-in',
 ])
 

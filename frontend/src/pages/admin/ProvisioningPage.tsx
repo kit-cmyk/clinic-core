@@ -108,10 +108,11 @@ export function ProvisioningPage() {
     <div className="space-y-6 max-w-2xl">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Provisioning Status</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Tenant: <span className="font-medium text-foreground">{provision.orgName}</span>
-          <Badge variant="outline" className="ml-2">{provision.plan}</Badge>
-        </p>
+        <div className="text-muted-foreground text-sm mt-1 flex items-center gap-2">
+          <span>Tenant:</span>
+          <span className="font-medium text-foreground">{provision.orgName}</span>
+          <Badge variant="outline">{provision.plan}</Badge>
+        </div>
       </div>
 
       {/* Overall status */}

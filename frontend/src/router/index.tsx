@@ -12,6 +12,9 @@ import { PlansPage } from '@/pages/admin/PlansPage'
 import { TenantsPage } from '@/pages/admin/TenantsPage'
 import { MasterDataPage } from '@/pages/admin/MasterDataPage'
 import { SignUpsPage } from '@/pages/admin/SignUpsPage'
+import { ProvisioningPage } from '@/pages/admin/ProvisioningPage'
+import { MonitoringPage } from '@/pages/admin/MonitoringPage'
+import { PlatformUpdatesPage } from '@/pages/admin/PlatformUpdatesPage'
 import { OnboardingPage } from '@/pages/OnboardingPage'
 import { BranchesPage } from '@/pages/BranchesPage'
 import { StaffPage } from '@/pages/StaffPage'
@@ -103,6 +106,9 @@ const router = createBrowserRouter([
           { path: '/admin/tenants', element: <TenantsPage /> },
           { path: '/admin/master-data', element: <MasterDataPage /> },
           { path: '/admin/sign-ups', element: <SignUpsPage /> },
+          { path: '/admin/provisioning/:tenantId', element: <ProvisioningPage /> },
+          { path: '/admin/monitoring', element: <MonitoringPage /> },
+          { path: '/admin/updates', element: <PlatformUpdatesPage /> },
           { path: '/onboarding', element: <OnboardingPage /> },
           { path: '/branches', element: <BranchesPage /> },
           { path: '/staff', element: <StaffPage /> },

@@ -13,6 +13,11 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 ## [Unreleased]
 
 ### Added
+- Provisioning Status UI: ProvisioningPage at /admin/provisioning/:tenantId — vertical stepper showing 4-step pipeline (DB record, roles seed, storage setup, welcome email) with per-step status icons (pending/running/done/failed), error message display, and Retry button for failed steps; overall status badge; "View Tenant" button on completion; 4 Vitest tests (CC-123)
+- Platform Monitoring Dashboard: MonitoringPage at /admin/monitoring — 4 KPI cards (active tenants, MRR, storage used, plans breakdown), CSS bar chart for 6-month MRR trend, sortable tenant health table with storage progress bars and status badges; 4 Vitest tests (CC-125)
+- Platform Updates UI: PlatformUpdatesPage at /admin/updates — Announcements table with Create Sheet and Archive AlertDialog, Feature Flags toggle rows (On/Off per plan), Maintenance Mode card showing active window with Cancel confirmation; 4 Vitest tests (CC-127)
+- Global Master Data UI: MasterDataPage at /admin/master-data — 3-tab interface (Specialties, Appointment Types, Service Categories) with add/edit Sheet and deactivate AlertDialog; 4 Vitest tests (CC-118)
+- Tenant Sign-Up Review UI: SignUpsPage at /admin/sign-ups — filter tabs (All/Pending/Approved/Rejected), click-to-open side panel with full contact details, Approve button, Reject with required reason AlertDialog; 4 Vitest tests (CC-120)
 - RBAC permission system: PERMISSION_SCOPES (PLATFORM/ORGANIZATION/CLINICAL) + full PERMISSIONS matrix (resource:action → roles[]); requirePermission() middleware factory; fails closed on unknown keys; 53 tests (CC-20)
 - Supabase Auth endpoints: POST /api/v1/auth/signup, /login, /logout, /refresh; injectable factory pattern for full unit testability; rollback on Prisma failure; 18 tests (CC-18)
 - Dashboard Book Appointment widget: BookAppointmentSheet component with patient combobox (inline create), professional select, date/time/type/duration fields, success confirmation; pre-fills when clicking from Professionals Today card (CC-102)
