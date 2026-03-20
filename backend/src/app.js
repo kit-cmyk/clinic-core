@@ -32,8 +32,10 @@ app.get('/health', (_req, res) => {
 // ── API routes ────────────────────────────────────────────────────────────
 import authRoutes from './routes/auth.js';
 import meRoutes from './routes/me.js';
+import invitationsRoutes from './routes/invitations.js';
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/me', meRoutes);
+app.use('/api/v1/invitations', invitationsRoutes);
 
 // ── 404 handler ───────────────────────────────────────────────────────────
 app.use((_req, res) => {
