@@ -79,6 +79,11 @@ import tenantsRoutes from './routes/tenants.js';
 import organizationRoutes from './routes/organization.js';
 import branchesRoutes from './routes/branches.js';
 import resultsRoutes from './routes/results.js';
+import reviewQueueRoutes from './routes/reviewQueue.js';
+import appointmentsRoutes from './routes/appointments.js';
+import prescriptionsRoutes from './routes/prescriptions.js';
+import notificationsRoutes from './routes/notifications.js';
+import emrRoutes from './routes/emr.js';
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/me', meRoutes);
 app.use('/api/v1/invitations', invitationsRoutes);
@@ -93,6 +98,12 @@ app.use('/api/v1/tenants', tenantsRoutes);
 app.use('/api/v1/organization', organizationRoutes);
 app.use('/api/v1/branches', branchesRoutes);
 app.use('/api/v1/results', resultsRoutes);
+app.use('/api/v1/review-queue', reviewQueueRoutes);
+app.use('/api/v1/appointments', appointmentsRoutes);
+app.use('/api/v1/prescriptions', prescriptionsRoutes);
+app.use('/api/v1/notifications', notificationsRoutes);
+// EMR routes are nested under patients: /api/v1/patients/:id/emr
+app.use('/api/v1/patients/:id/emr', emrRoutes);
 
 // ── 404 handler ───────────────────────────────────────────────────────────
 app.use((_req, res) => {

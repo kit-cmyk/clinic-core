@@ -94,4 +94,11 @@ export const PERMISSIONS = {
   'invoices:read':   [...ORGANIZATION, 'SECRETARY', 'PATIENT'],
   'invoices:create': [...ORGANIZATION, 'SECRETARY'],
   'invoices:update': [...ORGANIZATION, 'SECRETARY'],
+
+  // Notifications — any authenticated user reads their own
+  'notifications:read': [...CLINICAL, 'PATIENT'],
+
+  // Review queue — clinical staff who review uploaded documents
+  'review:read':   [...ORGANIZATION, 'DOCTOR', 'NURSE'],
+  'review:update': [...ORGANIZATION, 'DOCTOR', 'NURSE'],
 };

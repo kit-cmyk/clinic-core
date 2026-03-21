@@ -27,6 +27,7 @@ enum Role {
 enum AppointmentStatus {
   BOOKED
   CONFIRMED
+  CHECKED_IN
   COMPLETED
   CANCELLED
   NO_SHOW
@@ -96,6 +97,9 @@ model Tenant {
   specialClosures      SpecialClosure[]
   invoices             Invoice[]
   invoiceLineItems     InvoiceLineItem[]
+  emrVisits            EmrVisit[]
+  prescriptions        Prescription[]
+  notifications        Notification[]
 
   @@map("tenants")
 }
@@ -125,6 +129,9 @@ model User {
   appointmentsAsProfessional Appointment[]     @relation("AppointmentProfessional")
   orderedLabResults          LabResult[]       @relation("LabResultOrderedBy")
   professional               Professional?
+  recordedEmrVisits          EmrVisit[]        @relation("EmrVisitRecordedBy")
+  writtenPrescriptions       Prescription[]    @relation("PrescriptionPrescribedBy")
+  notifications              Notification[]
 
   @@index([tenantId])
   @@index([supabaseUserId])
@@ -267,9 +274,11 @@ model Patient {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  appointments Appointment[]
-  labResults   LabResult[]
-  invoices     Invoice[]
+  appointments  Appointment[]
+  labResults    LabResult[]
+  invoices      Invoice[]
+  emrVisits     EmrVisit[]
+  prescriptions Prescription[]
 
   @@index([tenantId])
   @@map("patients")
@@ -294,11 +303,13 @@ model Appointment {
   type           String
   status         AppointmentStatus @default(BOOKED)
   notes          String?
+  checkInAt      DateTime?
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
   labResults LabResult[]
   invoices   Invoice[]
+  emrVisit   EmrVisit?
 
   @@index([tenantId])
   @@index([patientId])
@@ -321,13 +332,15 @@ model LabResult {
   appointment   Appointment?    @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
   orderedById   String?
   orderedBy     User?           @relation("LabResultOrderedBy", fields: [orderedById], references: [id], onDelete: SetNull)
-  testName      String
-  result        String?
-  resultFileUrl String?
-  status        LabResultStatus @default(PENDING)
-  publishedAt   DateTime?
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  testName         String
+  result           String?
+  resultFileUrl    String?
+  status           LabResultStatus @default(PENDING)
+  verifiedCategory String?
+  clinicalNotes    String?
+  publishedAt      DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
   @@index([tenantId])
   @@index([patientId])
@@ -634,6 +647,89 @@ model MaintenanceWindow {
 
   @@index([startsAt])
   @@map("maintenance_windows")
+}
+
+// ── EMR Visits ────────────────────────────────────────────────────────────────
+// Electronic Medical Record — one visit record per patient appointment.
+// Created automatically on check-in (CC-62) or manually by staff.
+
+model EmrVisit {
+  id             String      @id @default(uuid())
+  tenantId       String
+  tenant         Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patientId      String
+  patient        Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  appointmentId  String?     @unique
+  appointment    Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  recordedById   String
+  recordedBy     User        @relation("EmrVisitRecordedBy", fields: [recordedById], references: [id])
+  visitDate      DateTime    @default(now())
+  chiefComplaint String?
+  vitals         Json?       // { bp, hr, temp, weight, height }
+  clinicalNotes  String?
+  diagnoses      String[]    @default([])
+  treatmentPlan  String?
+  followUpDays   Int?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  prescriptions Prescription[]
+
+  @@index([tenantId])
+  @@index([patientId])
+  @@map("emr_visits")
+}
+
+// ── Prescriptions ─────────────────────────────────────────────────────────────
+// Digital prescriptions issued by a Doctor, linked to a patient (optionally a visit).
+
+model Prescription {
+  id             String    @id @default(uuid())
+  tenantId       String
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patientId      String
+  patient        Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  visitId        String?
+  visit          EmrVisit? @relation(fields: [visitId], references: [id], onDelete: SetNull)
+  prescribedById String
+  prescribedBy   User      @relation("PrescriptionPrescribedBy", fields: [prescribedById], references: [id])
+  medication     String
+  dosage         String
+  frequency      String
+  durationDays   Int?
+  notes          String?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([patientId])
+  @@index([visitId])
+  @@map("prescriptions")
+}
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+// In-app notifications for staff — e.g. new patient upload requires review.
+
+model Notification {
+  id           String   @id @default(uuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         String   // e.g. 'patient_upload', 'appointment_reminder'
+  title        String
+  body         String
+  resourceType String?  // e.g. 'LabResult', 'Appointment'
+  resourceId   String?  // id of the related record
+  isRead       Boolean  @default(false)
+  readAt       DateTime?
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([isRead])
+  @@map("notifications")
 }
 
 // ── Audit Logs ────────────────────────────────────────────────────────────────
