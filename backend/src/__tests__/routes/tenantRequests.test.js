@@ -22,6 +22,7 @@ function buildPrisma({ findUniqueResult = MOCK_REQUEST, findManyResult = [MOCK_R
   return {
     tenantRequest: {
       findMany: jest.fn().mockResolvedValue(findManyResult),
+      count: jest.fn().mockResolvedValue(findManyResult.length),
       findUnique: jest.fn().mockResolvedValue(findUniqueResult),
       create: jest.fn().mockResolvedValue(MOCK_REQUEST),
       update: jest.fn().mockImplementation(({ data }) =>
@@ -44,6 +45,7 @@ function buildAuth({ role = 'SUPER_ADMIN' } = {}) {
 function buildApp({ prisma, role } = {}) {
   const app = express();
   app.use(express.json());
+  app.use((_req, _res, next) => { _req.audit = jest.fn(); next(); });
   const router = createTenantRequestsRouter({
     prismaClient: prisma ?? buildPrisma(),
     authMiddlewareFactory: buildAuth({ role }),
@@ -81,7 +83,7 @@ describe('GET /tenant-requests', () => {
     const app = buildApp();
     const res = await request(app).get('/tenant-requests');
     expect(res.status).toBe(200);
-    expect(Array.isArray(res.body)).toBe(true);
+    expect(Array.isArray(res.body.data)).toBe(true);
   });
 
   it('returns 403 for non-super-admin', async () => {

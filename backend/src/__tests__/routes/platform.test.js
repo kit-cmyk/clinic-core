@@ -31,6 +31,7 @@ function buildPrisma() {
   return {
     announcement: {
       findMany: jest.fn().mockResolvedValue([MOCK_ANNOUNCEMENT]),
+      count: jest.fn().mockResolvedValue(1),
       create: jest.fn().mockResolvedValue(MOCK_ANNOUNCEMENT),
       update: jest.fn().mockResolvedValue({ ...MOCK_ANNOUNCEMENT, isArchived: true }),
     },
@@ -60,6 +61,7 @@ function buildAuth({ role = 'SUPER_ADMIN' } = {}) {
 function buildApp({ prisma, role } = {}) {
   const app = express();
   app.use(express.json());
+  app.use((_req, _res, next) => { _req.audit = jest.fn(); next(); });
   const router = createPlatformRouter({
     prismaClient: prisma ?? buildPrisma(),
     authMiddlewareFactory: buildAuth({ role }),
@@ -77,8 +79,8 @@ describe('GET /platform/announcements', () => {
     const app = buildApp();
     const res = await request(app).get('/platform/announcements');
     expect(res.status).toBe(200);
-    expect(res.body).toHaveLength(1);
-    expect(res.body[0].title).toBe('System update');
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].title).toBe('System update');
   });
 });
 
