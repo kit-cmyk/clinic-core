@@ -20,6 +20,8 @@ const MOCK_VISIT_APPOINTMENTS: Record<string, {
   'a12': { id: 'a12', patientId: 'pt3', patientName: 'Carlos Rivera', date: '2026-03-18', startTime: '11:00', durationMins: 30, type: 'Lab Review',   professionalName: 'Dr. Liu Wei'    },
 }
 
+interface LabRecord { id: string; name: string; type: string; uploadedAt: string; uploadedBy: string }
+
 // Mock preview content keyed by record type
 const MOCK_PREVIEW_CONTENT: Record<string, { label: string; rows: [string, string, string][] }> = {
   'Blood Work': {

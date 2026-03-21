@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   CalendarDays, Users, FlaskConical, Receipt, Stethoscope, Plus,
-  UserCheck, UserPlus, Clock, ChevronRight, ClipboardCheck,
+  UserCheck, UserPlus, ChevronRight, ClipboardCheck,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
