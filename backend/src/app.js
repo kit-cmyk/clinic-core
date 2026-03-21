@@ -54,7 +54,11 @@ app.use(auditMiddleware);
 
 // ── Health check ──────────────────────────────────────────────────────────
 // Checks DB connectivity so Render and uptime monitors get a real signal.
+// Skip the DB ping in test environments (CI uses a placeholder DATABASE_URL).
 app.get('/health', async (_req, res) => {
+  if (env.isTest()) {
+    return res.json({ status: 'ok', db: 'skipped', env: env.NODE_ENV });
+  }
   try {
     await prisma.$queryRaw`SELECT 1`;
     res.json({ status: 'ok', db: 'up', env: env.NODE_ENV });
