@@ -18,7 +18,8 @@ import {
 } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
-import { PatientForm, MOCK_PATIENTS } from '@/components/patients/PatientForm'
+import { PatientForm } from '@/components/patients/PatientForm'
+import { MOCK_PATIENTS } from '@/data/mockPatients'
 import type { Patient, Role } from '@/types'
 
 // ── Types ──────────────────────────────────────────────────────────────────────

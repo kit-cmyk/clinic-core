@@ -73,10 +73,6 @@ export function createProvisioningService({
 
     await initLogs(tenantRequestId);
 
-    const logMap = Object.fromEntries(
-      request.provisioningLogs.map((l) => [l.step, l])
-    );
-
     // Reload after upsert
     const freshLogs = await prismaClient.provisioningLog.findMany({
       where: { tenantRequestId },

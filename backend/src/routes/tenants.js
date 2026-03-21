@@ -1,9 +1,8 @@
 import express from 'express';
 import { createRequireAuth, requireRole } from '../middleware/auth.js';
 import { prisma as defaultPrisma } from '../models/prisma.js';
-import { getTenantStorageUsed, enforceStorageLimit } from '../middleware/storageLimit.js';
+import { getTenantStorageUsed } from '../middleware/storageLimit.js';
 import { createStorageService } from '../services/storage.js';
-import { writeAuditLog } from '../lib/auditLog.js';
 
 /**
  * Tenant management API (CC-28).

@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { MOCK_PATIENTS as SHARED_PATIENTS } from '@/components/patients/PatientForm'
+import { MOCK_PATIENTS as SHARED_PATIENTS } from '@/data/mockPatients'
 
 type Tab = 'Overview' | 'Appointments' | 'Prescriptions' | 'Lab Results' | 'Uploaded Records' | 'Internal Notes'
 

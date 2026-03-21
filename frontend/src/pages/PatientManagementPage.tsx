@@ -12,7 +12,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { MoreHorizontal, Search } from 'lucide-react'
-import { PatientForm, MOCK_PATIENTS } from '@/components/patients/PatientForm'
+import { PatientForm } from '@/components/patients/PatientForm'
+import { MOCK_PATIENTS } from '@/data/mockPatients'
 import type { Patient } from '@/types'
 
 export function PatientManagementPage() {

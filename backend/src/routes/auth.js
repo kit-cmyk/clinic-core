@@ -280,7 +280,7 @@ export function createAuthRouter({
   });
 
   // ── POST /auth/refresh ───────────────────────────────────────────────────────
-  router.post('/refresh', authLimiter, validate(refreshSchema), async (req, res, next) => {
+  router.post('/refresh', authLimiter, validate(refreshSchema), async (req, res, _next) => {
     const { refresh_token } = req.body;
 
     const anonClient = anonClientFactory();

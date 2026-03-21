@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { PatientForm, MOCK_PATIENTS } from '@/components/patients/PatientForm'
+import { PatientForm } from '@/components/patients/PatientForm'
+import { MOCK_PATIENTS } from '@/data/mockPatients'
 
 describe('PatientForm', () => {
   it('renders add patient form with all fields', () => {

@@ -11,7 +11,8 @@ import {
   SheetFooter,
 } from '@/components/ui/sheet'
 import { useAuthStore } from '@/store/auth'
-import { PatientForm, MOCK_PATIENTS } from '@/components/patients/PatientForm'
+import { PatientForm } from '@/components/patients/PatientForm'
+import { MOCK_PATIENTS } from '@/data/mockPatients'
 import type { Patient } from '@/types'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -131,7 +132,7 @@ function getMonthGrid(d: Date): (Date | null)[][] {
   const month = d.getMonth()
   const first = new Date(year, month, 1)
   const last  = new Date(year, month + 1, 0)
-  let offset = weekDayIdx(first)
+  const offset = weekDayIdx(first)
   const cells: (Date | null)[] = []
   for (let i = 0; i < offset; i++) cells.push(null)
   for (let i = 1; i <= last.getDate(); i++) cells.push(new Date(year, month, i))

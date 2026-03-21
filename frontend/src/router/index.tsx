@@ -3,6 +3,7 @@ import { AppLayout } from '@/layouts/AppLayout'
 import { AuthLayout } from '@/layouts/AuthLayout'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { PublicRoute } from '@/components/PublicRoute'
+import { ComingSoon } from '@/components/ComingSoon'
 import { LoginPage } from '@/pages/LoginPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
@@ -141,13 +142,5 @@ const router = createBrowserRouter([
   { path: '*', element: <NotFoundPage /> },
 ])
 
-function ComingSoon({ label }: { label: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center h-64 gap-3 text-center">
-      <p className="text-2xl font-semibold text-foreground">{label}</p>
-      <p className="text-sm text-muted-foreground">This module is coming soon.</p>
-    </div>
-  )
-}
 
 export default router

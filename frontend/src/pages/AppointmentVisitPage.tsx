@@ -6,8 +6,8 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { FileText, Upload, X, Eye, EyeOff, ChevronDown, ChevronRight, Send } from 'lucide-react'
-import { MOCK_PATIENTS } from '@/components/patients/PatientForm'
-import { INITIAL_SERVICES } from '@/pages/SettingsPage'
+import { MOCK_PATIENTS } from '@/data/mockPatients'
+import { INITIAL_SERVICES } from '@/data/clinicServices'
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
@@ -430,9 +430,9 @@ function PatientHistoryTab({ patientId }: { patientId: string }) {
   const [rxExpandedIds,    setRxExpandedIds]    = useState<Set<string>>(new Set())
   const [labExpandedIds,   setLabExpandedIds]   = useState<Set<string>>(new Set())
 
-  const toggleCard   = (id: string) => setCollapsedIds(prev  => { const n = new Set(prev);  n.has(id) ? n.delete(id) : n.add(id); return n })
-  const toggleRx     = (id: string) => setRxExpandedIds(prev => { const n = new Set(prev);  n.has(id) ? n.delete(id) : n.add(id); return n })
-  const toggleLab    = (id: string) => setLabExpandedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  const toggleCard   = (id: string) => setCollapsedIds(prev  => { const n = new Set(prev);  if (n.has(id)) n.delete(id); else n.add(id); return n })
+  const toggleRx     = (id: string) => setRxExpandedIds(prev => { const n = new Set(prev);  if (n.has(id)) n.delete(id); else n.add(id); return n })
+  const toggleLab    = (id: string) => setLabExpandedIds(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n })
 
   if (history.length === 0) {
     return <p className="text-sm text-muted-foreground py-6 text-center">No previous visits on record.</p>

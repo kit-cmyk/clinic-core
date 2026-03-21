@@ -2,7 +2,6 @@ import express from 'express';
 import { createRequireAuth } from '../middleware/auth.js';
 import { requirePermission } from '../middleware/rbac.js';
 import { prisma as defaultPrisma } from '../models/prisma.js';
-import { writeAuditLog } from '../lib/auditLog.js';
 
 /**
  * Organization management API (CC-32, CC-37).
