@@ -378,7 +378,7 @@ function PatientHistoryTab({ patientId }: { patientId: string }) {
 // ── Tab: Billing ──────────────────────────────────────────────────────────────
 
 function BillingTab({
-  appointmentId, patientName,
+  appointmentId: _appointmentId, patientName,
   items, onItemsChange,
   waivedFee, onWaivedFeeChange,
 }: {

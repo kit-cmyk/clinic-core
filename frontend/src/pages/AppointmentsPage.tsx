@@ -1,8 +1,15 @@
-import React, { useState, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter,
+} from '@/components/ui/sheet'
 import { useAuthStore } from '@/store/auth'
 import { PatientForm, MOCK_PATIENTS } from '@/components/patients/PatientForm'
 import type { Patient } from '@/types'
@@ -180,28 +187,6 @@ function ApptChip({ appt, showTime = false, showProf = false, onClick }: {
       {showTime && <p className="truncate leading-tight" style={{ color: c.text, opacity: 0.8 }}>{appt.startTime}–{end}</p>}
       <p className="truncate leading-tight" style={{ color: c.text, opacity: 0.8 }}>{appt.type}</p>
       {showProf && prof && <p className="truncate leading-tight" style={{ color: c.text, opacity: 0.65 }}>{prof.name}</p>}
-    </div>
-  )
-}
-
-// ── Modal ─────────────────────────────────────────────────────────────────────
-
-function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  return (
-    <div
-      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-background rounded-lg shadow-xl w-full max-w-lg"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between px-5 py-4 border-b">
-          <h2 className="text-base font-semibold">{title}</h2>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xl leading-none">×</button>
-        </div>
-        <div className="p-5">{children}</div>
-      </div>
     </div>
   )
 }
@@ -532,6 +517,7 @@ export function AppointmentsPage() {
 
   const startApptEdit = (a: Appointment) => {
     setApptEditForm({
+      patientId:      a.patientId,
       patientName:    a.patientName,
       professionalId: a.professionalId,
       date:           a.date,
@@ -728,10 +714,11 @@ export function AppointmentsPage() {
         </CardContent>
       </Card>
 
-      {/* ── New Appointment modal ────────────────────────────────────────────── */}
-      {showNewModal && (
-        <Modal title="New Appointment" onClose={() => setShowNewModal(false)}>
-          <div className="space-y-3">
+      {/* ── New Appointment Sheet ────────────────────────────────────────────── */}
+      <Sheet open={showNewModal} onOpenChange={o => !o && setShowNewModal(false)}>
+        <SheetContent>
+          <SheetHeader><SheetTitle>New Appointment</SheetTitle></SheetHeader>
+          <div className="flex-1 overflow-y-auto px-4 space-y-3 mt-2">
             {/* Patient combobox */}
             <div className="space-y-1 relative">
               <label htmlFor="new-patient-search" className="text-xs font-medium">Patient</label>
@@ -740,7 +727,6 @@ export function AppointmentsPage() {
                 className="border rounded-md px-3 py-1.5 text-sm bg-background w-full"
                 placeholder="Search by name or phone…"
                 value={patientSearch}
-                autoFocus
                 onChange={e => {
                   setPatientSearch(e.target.value)
                   setNewForm(f => ({ ...f, patientId: '', patientName: e.target.value }))
@@ -823,12 +809,12 @@ export function AppointmentsPage() {
               </div>
             </div>
           </div>
-          <div className="flex gap-2 mt-5">
-            <Button size="sm" onClick={handleCreateAppt}>Book Appointment</Button>
+          <SheetFooter className="mt-4">
+            <Button size="sm" onClick={handleCreateAppt} disabled={!newForm.patientName.trim()}>Book Appointment</Button>
             <Button size="sm" variant="outline" onClick={() => setShowNewModal(false)}>Cancel</Button>
-          </div>
-        </Modal>
-      )}
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {/* ── Inline PatientForm for new patient creation ──────────────────────── */}
       <PatientForm
@@ -838,78 +824,77 @@ export function AppointmentsPage() {
         initialValues={patientSearch ? { firstName: patientSearch.split(' ')[0], lastName: patientSearch.split(' ').slice(1).join(' ') } : undefined}
       />
 
-      {/* ── Appointment detail / edit / delete modal ─────────────────────────── */}
-      {viewAppt && (
-        <Modal
-          title={apptModalMode === 'edit' ? 'Edit Appointment' : 'Appointment Details'}
-          onClose={closeApptModal}
-        >
-          {apptModalMode === 'view' && (
+      {/* ── Appointment detail / edit / delete Sheet ─────────────────────────── */}
+      <Sheet open={!!viewAppt} onOpenChange={o => !o && closeApptModal()}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>
+              {apptModalMode === 'edit' ? 'Edit Appointment' : apptModalMode === 'confirm-delete' ? 'Delete Appointment' : 'Appointment Details'}
+            </SheetTitle>
+          </SheetHeader>
+
+          {viewAppt && apptModalMode === 'view' && (
             <>
-              <dl className="space-y-3 text-sm">
-                {[
-                  ['Patient',   viewAppt.patientName],
-                  ['Date',      viewAppt.date],
-                  ['Time',      `${viewAppt.startTime} – ${minsToTime(timeToMins(viewAppt.startTime) + viewAppt.durationMins)}`],
-                  ['Duration',  `${viewAppt.durationMins} mins`],
-                  ['Type',      viewAppt.type],
-                ].map(([label, value]) => (
-                  <div key={label} className="flex justify-between gap-4">
-                    <dt className="text-muted-foreground shrink-0">{label}</dt>
-                    <dd className="font-medium text-right">{value}</dd>
+              <div className="flex-1 overflow-y-auto px-4 mt-2">
+                <dl className="space-y-3 text-sm">
+                  {([
+                    ['Patient',  viewAppt.patientName],
+                    ['Date',     viewAppt.date],
+                    ['Time',     `${viewAppt.startTime} – ${minsToTime(timeToMins(viewAppt.startTime) + viewAppt.durationMins)}`],
+                    ['Duration', `${viewAppt.durationMins} mins`],
+                    ['Type',     viewAppt.type],
+                  ] as [string, string][]).map(([label, value]) => (
+                    <div key={label} className="flex justify-between gap-4">
+                      <dt className="text-muted-foreground shrink-0">{label}</dt>
+                      <dd className="font-medium text-right">{value}</dd>
+                    </div>
+                  ))}
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground shrink-0">Professional</dt>
+                    <dd className="font-medium text-right">{PROFESSIONALS.find(p => p.id === viewAppt.professionalId)?.name ?? '—'}</dd>
                   </div>
-                ))}
-                <div className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground shrink-0">Professional</dt>
-                  <dd className="font-medium text-right">{PROFESSIONALS.find(p => p.id === viewAppt.professionalId)?.name ?? '—'}</dd>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground shrink-0">Status</dt>
-                  <dd><Badge variant={statusVariant(viewAppt.status)} className="text-xs capitalize">{viewAppt.status}</Badge></dd>
-                </div>
-              </dl>
-              <div className="flex gap-2 mt-5 flex-wrap">
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground shrink-0">Status</dt>
+                    <dd><Badge variant={statusVariant(viewAppt.status)} className="text-xs capitalize">{viewAppt.status}</Badge></dd>
+                  </div>
+                </dl>
+              </div>
+              <SheetFooter className="mt-4 flex-wrap gap-2">
                 {isProfessional && (
-                  <Button
-                    size="sm"
-                    onClick={() => { closeApptModal(); navigate(`/appointments/${viewAppt.id}/visit`) }}
-                  >
+                  <Button size="sm" onClick={() => { closeApptModal(); navigate(`/appointments/${viewAppt.id}/visit`) }}>
                     Start Visit
                   </Button>
                 )}
                 {canBook && (
                   <>
                     <Button size="sm" variant="outline" onClick={() => startApptEdit(viewAppt)}>Edit</Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => setApptModalMode('confirm-delete')}
-                    >
+                    <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => setApptModalMode('confirm-delete')}>
                       Delete
                     </Button>
                   </>
                 )}
                 <Button size="sm" variant="outline" onClick={closeApptModal}>Close</Button>
-              </div>
+              </SheetFooter>
             </>
           )}
 
-          {apptModalMode === 'confirm-delete' && (
+          {viewAppt && apptModalMode === 'confirm-delete' && (
             <>
-              <p className="text-sm text-muted-foreground">
-                Delete the appointment for <span className="font-medium text-foreground">{viewAppt.patientName}</span> on {viewAppt.date} at {viewAppt.startTime}? This cannot be undone.
-              </p>
-              <div className="flex gap-2 mt-5">
+              <div className="flex-1 px-4 mt-2">
+                <p className="text-sm text-muted-foreground">
+                  Delete the appointment for <span className="font-medium text-foreground">{viewAppt.patientName}</span> on {viewAppt.date} at {viewAppt.startTime}? This cannot be undone.
+                </p>
+              </div>
+              <SheetFooter className="mt-4">
                 <Button size="sm" variant="destructive" onClick={confirmDeleteAppt}>Delete</Button>
                 <Button size="sm" variant="outline" onClick={() => setApptModalMode('view')}>Cancel</Button>
-              </div>
+              </SheetFooter>
             </>
           )}
 
-          {apptModalMode === 'edit' && apptEditForm && (
+          {viewAppt && apptModalMode === 'edit' && apptEditForm && (
             <>
-              <div className="space-y-3">
+              <div className="flex-1 overflow-y-auto px-4 space-y-3 mt-2">
                 <div className="space-y-1">
                   <label className="text-xs font-medium">Patient Name</label>
                   <input
@@ -985,14 +970,14 @@ export function AppointmentsPage() {
                   </div>
                 </div>
               </div>
-              <div className="flex gap-2 mt-5">
+              <SheetFooter className="mt-4">
                 <Button size="sm" onClick={saveApptEdit}>Save Changes</Button>
                 <Button size="sm" variant="outline" onClick={() => setApptModalMode('view')}>Cancel</Button>
-              </div>
+              </SheetFooter>
             </>
           )}
-        </Modal>
-      )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

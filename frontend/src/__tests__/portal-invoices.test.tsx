@@ -31,7 +31,6 @@ describe('PortalInvoicesPage (CC-91)', () => {
   it('Expanding an invoice card shows line item breakdown', async () => {
     render(<RouterProvider router={buildRouter()} />)
     // Click first invoice card
-    const rows = screen.getAllByRole('button', { name: /^INV/ })
     // Cards use aria-expanded, find one
     const card = screen.getByText('INV-2026-001').closest('[role="button"]')
     expect(card).toBeTruthy()

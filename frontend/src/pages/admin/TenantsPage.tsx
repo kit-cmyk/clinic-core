@@ -1,10 +1,16 @@
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { useAuthStore } from '@/store/auth'
 import {
   Search,
@@ -24,6 +30,7 @@ import {
   UserCheck,
   Receipt,
   Plus,
+  MoreHorizontal,
 } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -344,19 +351,27 @@ function UsersTab({ tenant }: { tenant: TenantDetail }) {
                   {member.lastLogin ? `Last login ${formatDate(member.lastLogin)}` : 'Never logged in'}
                 </p>
               </div>
-              <div className="flex gap-1">
-                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" title="Send password reset">
-                  <Mail className="h-3.5 w-3.5" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className={`h-7 w-7 p-0 ${member.isActive ? 'text-destructive hover:text-destructive' : 'text-green-600 hover:text-green-700'}`}
-                  title={member.isActive ? 'Deactivate user' : 'Reactivate user'}
-                >
-                  {member.isActive ? <UserX className="h-3.5 w-3.5" /> : <UserCheck className="h-3.5 w-3.5" />}
-                </Button>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
+                    <MoreHorizontal className="h-4 w-4" />
+                    <span className="sr-only">Row actions</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem className="gap-2 text-xs">
+                    <Mail className="h-3.5 w-3.5" />
+                    Send Password Reset
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className={`gap-2 text-xs ${member.isActive ? 'text-destructive focus:text-destructive' : 'text-emerald-600 focus:text-emerald-600'}`}>
+                    {member.isActive
+                      ? <><UserX className="h-3.5 w-3.5" />Deactivate</>
+                      : <><UserCheck className="h-3.5 w-3.5" />Reactivate</>
+                    }
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         ))}

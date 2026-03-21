@@ -106,8 +106,6 @@ export function PlatformUpdatesPage() {
     )
   }
 
-  const activeAnnouncements = announcements.filter(a => !a.archived)
-
   const handleCreateAnnouncement = () => {
     if (!form.title.trim()) return
     setAnnouncements(prev => [

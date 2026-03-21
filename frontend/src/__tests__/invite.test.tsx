@@ -117,7 +117,7 @@ describe('InviteAcceptPage — password form', () => {
           id: '1',
           email: 'newstaff@clinic.com',
           name: 'New Staff Member',
-          role: 'professional',
+          role: 'doctor',
           tenantId: 't1',
         },
       })
