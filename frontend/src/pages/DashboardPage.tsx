@@ -203,74 +203,6 @@ function SlotUtilizationBar({ totalSlots, bookedSlots }: { totalSlots: number; b
   )
 }
 
-// ── CC-111: Appointment Timeline Strip ────────────────────────────────────────
-
-function AppointmentTimeline({ appts }: { appts: typeof TODAY_APPTS }) {
-  const sorted = [...appts].sort((a, b) => a.startTime.localeCompare(b.startTime))
-
-  if (sorted.length === 0) {
-    return (
-      <Card>
-        <CardHeader><CardTitle className="text-base flex items-center gap-2"><Clock className="h-4 w-4 text-muted-foreground" />Today's Timeline</CardTitle></CardHeader>
-        <CardContent><p className="text-sm text-muted-foreground">No appointments scheduled.</p></CardContent>
-      </Card>
-    )
-  }
-
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base flex items-center gap-2">
-          <Clock className="h-4 w-4 text-muted-foreground" />
-          Today's Timeline
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="px-4 pb-4">
-        <div className="relative">
-          {/* Vertical line */}
-          <div className="absolute left-[52px] top-2 bottom-2 w-px bg-border" />
-
-          {sorted.map((appt, i) => {
-            const prev = sorted[i - 1]
-            const gap = prev ? minutesBetween(prev.startTime, appt.startTime) : 0
-            const prof = PROFESSIONALS.find(p => p.id === appt.professionalId)
-
-            return (
-              <div key={appt.id}>
-                {/* Gap indicator */}
-                {gap > 60 && (
-                  <div className="flex items-center gap-2 pl-[68px] py-1">
-                    <span className="text-[10px] text-muted-foreground/60 italic">{gap} min gap</span>
-                  </div>
-                )}
-                <div className="flex items-start gap-3 py-1.5">
-                  {/* Time */}
-                  <span className="text-xs text-muted-foreground w-12 shrink-0 text-right pt-0.5 tabular-nums">
-                    {appt.startTime}
-                  </span>
-                  {/* Dot */}
-                  <div className={cn('h-3 w-3 rounded-full mt-1 shrink-0 ring-2 ring-background z-10', STATUS_COLORS[appt.status])} />
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium leading-tight">{appt.patientName}</p>
-                    <p className="text-xs text-muted-foreground truncate">{prof?.name}</p>
-                  </div>
-                  <Badge
-                    variant={STATUS_BADGE_VARIANT[appt.status]}
-                    className="text-[10px] capitalize shrink-0"
-                  >
-                    {appt.status}
-                  </Badge>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
 // ── CC-112: Check-In Queue ────────────────────────────────────────────────────
 
 function CheckInQueue({ appts }: { appts: typeof TODAY_APPTS }) {
@@ -325,31 +257,6 @@ function CheckInQueue({ appts }: { appts: typeof TODAY_APPTS }) {
         )}
       </CardContent>
     </Card>
-  )
-}
-
-// ── CC-113: Pending Actions Bar ────────────────────────────────────────────────
-
-function PendingActionsBar({ role }: { role: Role }) {
-  const navigate = useNavigate()
-  const visible = PENDING_ACTIONS.filter(a => a.roles.includes(role) && a.count > 0)
-  if (visible.length === 0) return null
-
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="text-xs text-muted-foreground shrink-0">Pending:</span>
-      {visible.map(action => (
-        <button
-          key={action.label}
-          onClick={() => navigate(action.href)}
-          className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-3 py-1 text-xs font-medium text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors"
-        >
-          <span className="h-4 w-4 rounded-full bg-amber-400 text-white flex items-center justify-center text-[10px] font-bold">{action.count}</span>
-          {action.label}
-          <ChevronRight className="h-3 w-3 opacity-60" />
-        </button>
-      ))}
-    </div>
   )
 }
 

@@ -20,23 +20,6 @@ const MOCK_VISIT_APPOINTMENTS: Record<string, {
   'a12': { id: 'a12', patientId: 'pt3', patientName: 'Carlos Rivera', date: '2026-03-18', startTime: '11:00', durationMins: 30, type: 'Lab Review',   professionalName: 'Dr. Liu Wei'    },
 }
 
-interface LabRecord { id: string; name: string; type: string; uploadedAt: string; uploadedBy: string }
-
-const MOCK_LAB_RECORDS: Record<string, LabRecord[]> = {
-  'pt1': [
-    { id: 'lr1', name: 'CBC Complete Blood Count',   type: 'Blood Work', uploadedAt: '2026-02-10', uploadedBy: 'Lab Tech A' },
-    { id: 'lr2', name: 'Chest X-Ray Report',         type: 'Imaging',    uploadedAt: '2026-01-25', uploadedBy: 'Lab Tech B' },
-    { id: 'lr3', name: 'Urinalysis Results',         type: 'Urinalysis', uploadedAt: '2026-03-01', uploadedBy: 'Lab Tech A' },
-  ],
-  'pt2': [
-    { id: 'lr4', name: 'Lipid Panel',                type: 'Blood Work', uploadedAt: '2026-02-20', uploadedBy: 'Lab Tech B' },
-    { id: 'lr5', name: 'ECG Tracing',                type: 'Cardiology', uploadedAt: '2026-03-05', uploadedBy: 'Lab Tech C' },
-  ],
-  'pt3': [
-    { id: 'lr6', name: 'Blood Sugar Fasting',        type: 'Blood Work', uploadedAt: '2026-03-10', uploadedBy: 'Lab Tech A' },
-  ],
-}
-
 // Mock preview content keyed by record type
 const MOCK_PREVIEW_CONTENT: Record<string, { label: string; rows: [string, string, string][] }> = {
   'Blood Work': {
