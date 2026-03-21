@@ -12,6 +12,17 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+### Fixed
+- CI: backend ESLint config now declares Node.js globals (`process`, `Buffer`) and fetch globals (`fetch`, `FormData`, `Blob`, `AbortSignal`) so all 895 false-positive `no-undef` errors are resolved; Jest globals (`describe`, `it`, `expect`) added for test files
+- CI: removed unused imports and variables in backend — `writeAuditLog` (organization.js, tenants.js), `enforceStorageLimit` (tenants.js), `logMap` (provisioning.js), unused `next` arg (auth.js)
+- CI: frontend ESLint config disables React Compiler-specific rules introduced by `eslint-plugin-react-hooks` v7 (not applicable without the React Compiler); `.vite/deps/**` and `src/components/ui/**` (shadcn generated files) added to ignore list
+- CI: frontend `no-unused-vars` now respects `_`-prefixed variables (consistent with backend convention)
+- CI: removed unused `Sentry` import from `App.tsx` (TypeScript TS6133 build error)
+- CI: extracted `MOCK_PATIENTS` data to `src/data/mockPatients.ts` and `ClinicService` / `INITIAL_SERVICES` to `src/data/clinicServices.ts` so component files export only components (fixes `react-refresh/only-export-components` in `PatientForm.tsx` and `SettingsPage.tsx`)
+- CI: extracted `ComingSoon` component from `router/index.tsx` to `src/components/ComingSoon.tsx` (fixes `react-refresh/only-export-components` in router file)
+- CI: replaced ternary side-effect expressions with `if/else` in `AppointmentVisitPage.tsx` (fixes `@typescript-eslint/no-unused-expressions`)
+- CI: `let offset` → `const offset` in `AppointmentsPage.tsx`; `setProgress(0)` moved from effect body to `handleSubmit` in `PortalUploadPage.tsx`; `setLogoPreview(null)` moved to effect cleanup in `OnboardingPage.tsx`
+
 ### Changed
 - Rebranded application name from ClinicCore to ClinicAlly across all pages, layouts, metadata, and documentation
 
