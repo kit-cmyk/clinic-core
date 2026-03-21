@@ -14,6 +14,8 @@ export interface User {
   name: string
   role: Role
   tenantId: string
+  orgName?: string
+  orgAddress?: string
   branchId?: string
   avatarUrl?: string
 }
@@ -56,7 +58,11 @@ export interface Patient {
   bloodType?: string
   phone?: string
   email?: string
+  address?: string
   allergies: string[]
+  medicalHistory?: string
+  knownConditions?: string
+  previousPrescriptions?: string
   isActive: boolean
 }
 

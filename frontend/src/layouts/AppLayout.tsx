@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate, useLocation, Link } from 'react-router-dom'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useSyncStatus } from '@/hooks/useSyncStatus'
 import { SyncStatusBadge } from '@/components/SyncStatusBadge'
@@ -19,18 +19,104 @@ import {
   ChevronRight,
   Stethoscope,
   Clock,
+  Activity,
+  UserPlus,
+  CreditCard,
+  Database,
+  Megaphone,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { useAuth } from '@/hooks/useAuth'
+import { OnboardingChecklist } from '@/components/OnboardingChecklist'
 import type { Role } from '@/types'
+
+// ── Breadcrumbs ────────────────────────────────────────────────────────────────
+
+const BREADCRUMB_LABELS: Record<string, string> = {
+  dashboard:      'Dashboard',
+  appointments:   'Appointments',
+  visit:          'Visit',
+  patients:       'Patients',
+  chart:          'Chart',
+  professionals:  'Professionals',
+  'clinic-hours': 'Clinic Hours',
+  lab:            'Lab Records',
+  publish:        'Publish Result',
+  billing:        'Billing',
+  organizations:  'Organizations',
+  settings:       'Settings',
+  admin:          'Admin',
+  plans:          'Plans',
+  tenants:        'Tenants',
+  'master-data':  'Master Data',
+  'sign-ups':     'Sign-Ups',
+  provisioning:   'Provisioning',
+  monitoring:     'Monitoring',
+  updates:        'Platform Updates',
+  onboarding:     'Onboarding',
+  branches:       'Branches',
+  staff:          'Staff',
+  'review-queue': 'Review Queue',
+  'check-in':     'Check-In',
+}
+
+// Paths that have actual routes (safe to render as links)
+const ROUTED_PATHS = new Set([
+  '/dashboard', '/appointments', '/patients', '/professionals',
+  '/clinic-hours', '/lab', '/billing', '/organizations', '/settings',
+  '/admin/plans', '/admin/tenants', '/admin/master-data', '/admin/sign-ups', '/admin/monitoring', '/admin/updates', '/onboarding', '/branches', '/staff',
+  '/lab/publish', '/review-queue', '/check-in',
+])
+
+function Breadcrumbs() {
+  const location = useLocation()
+  const crumbs: { label: string; to: string }[] = []
+  let path = ''
+
+  for (const seg of location.pathname.split('/').filter(Boolean)) {
+    path += `/${seg}`
+    const label = BREADCRUMB_LABELS[seg]
+    if (label) crumbs.push({ label, to: path })
+  }
+
+  if (crumbs.length === 0) return null
+
+  return (
+    <nav
+      aria-label="Breadcrumb"
+      className="flex items-center gap-1.5 px-6 py-2 text-xs bg-background shrink-0"
+    >
+      {crumbs.map((crumb, i) => (
+        <span key={crumb.to} className="flex items-center gap-1.5">
+          {i > 0 && <ChevronRight className="h-3 w-3 text-muted-foreground/40" />}
+          {i === crumbs.length - 1 || !ROUTED_PATHS.has(crumb.to) ? (
+            <span className={cn(
+              i === crumbs.length - 1 ? 'text-foreground font-medium' : 'text-muted-foreground'
+            )}>
+              {crumb.label}
+            </span>
+          ) : (
+            <Link
+              to={crumb.to}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {crumb.label}
+            </Link>
+          )}
+        </span>
+      ))}
+    </nav>
+  )
+}
 
 interface NavItem {
   label: string
   to: string
   icon: React.ElementType
   roles: Role[]
+  dividerBefore?: boolean
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -38,7 +124,7 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Dashboard',
     to: '/dashboard',
     icon: LayoutDashboard,
-    roles: ['super_admin', 'org_admin', 'branch_manager', 'doctor', 'nurse', 'receptionist', 'lab_technician'],
+    roles: ['org_admin', 'branch_manager', 'doctor', 'nurse', 'receptionist', 'lab_technician'],
   },
   {
     label: 'Appointments',
@@ -77,16 +163,48 @@ const NAV_ITEMS: NavItem[] = [
     roles: ['org_admin', 'branch_manager', 'receptionist'],
   },
   {
-    label: 'Organizations',
-    to: '/organizations',
+    label: 'Settings',
+    to: '/settings',
+    icon: Settings,
+    roles: ['org_admin', 'branch_manager'],
+  },
+  // ── Super Admin section ──────────────────────────────────────────────────────
+  {
+    label: 'Platform Overview',
+    to: '/admin/monitoring',
+    icon: Activity,
+    roles: ['super_admin'],
+    dividerBefore: true,
+  },
+  {
+    label: 'Tenants',
+    to: '/admin/tenants',
     icon: Building2,
     roles: ['super_admin'],
   },
   {
-    label: 'Settings',
-    to: '/settings',
-    icon: Settings,
-    roles: ['super_admin', 'org_admin', 'branch_manager'],
+    label: 'Sign-Ups',
+    to: '/admin/sign-ups',
+    icon: UserPlus,
+    roles: ['super_admin'],
+  },
+  {
+    label: 'Plans',
+    to: '/admin/plans',
+    icon: CreditCard,
+    roles: ['super_admin'],
+  },
+  {
+    label: 'Master Data',
+    to: '/admin/master-data',
+    icon: Database,
+    roles: ['super_admin'],
+  },
+  {
+    label: 'Platform Updates',
+    to: '/admin/updates',
+    icon: Megaphone,
+    roles: ['super_admin'],
   },
 ]
 
@@ -152,24 +270,35 @@ function Sidebar({
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
           {visibleItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              onClick={onClose}
-              title={collapsed ? item.label : undefined}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 rounded-md px-2 py-2 text-sm font-medium transition-colors',
-                  collapsed ? 'justify-center' : 'px-3',
-                  isActive
-                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                    : 'text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground',
-                )
-              }
-            >
-              <item.icon className="h-4 w-4 shrink-0" />
-              {!collapsed && item.label}
-            </NavLink>
+            <div key={item.to}>
+              {item.dividerBefore && (
+                <div className="pt-2 pb-1">
+                  <Separator className="bg-sidebar-border" />
+                  {!collapsed && (
+                    <p className="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Admin
+                    </p>
+                  )}
+                </div>
+              )}
+              <NavLink
+                to={item.to}
+                onClick={onClose}
+                title={collapsed ? item.label : undefined}
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-3 rounded-md px-2 py-2 text-sm font-medium transition-colors',
+                    collapsed ? 'justify-center' : 'px-3',
+                    isActive
+                      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground',
+                  )
+                }
+              >
+                <item.icon className="h-4 w-4 shrink-0" />
+                {!collapsed && item.label}
+              </NavLink>
+            </div>
           ))}
         </nav>
 
@@ -226,7 +355,7 @@ function Sidebar({
         )}
 
         {/* Collapse toggle — desktop only */}
-        <div className="hidden lg:flex justify-center p-2 border-t border-sidebar-border">
+        <div className="hidden lg:flex justify-center p-2">
           <Button
             variant="ghost"
             size="icon"
@@ -296,14 +425,18 @@ export function AppLayout() {
         </header>
 
         {/* Desktop header row for sync badge */}
-        <div className="hidden lg:flex h-10 items-center justify-end border-b border-border px-6 bg-background">
+        <div className="hidden lg:flex h-14 items-center justify-end border-b border-border px-6 bg-background">
           <SyncStatusBadge sync={sync} />
         </div>
+
+        <Breadcrumbs />
 
         <main className="flex-1 overflow-y-auto p-6">
           <Outlet />
         </main>
       </div>
+
+      <OnboardingChecklist />
     </div>
   )
 }

@@ -22,9 +22,9 @@ import {
 import { MoreHorizontal } from 'lucide-react'
 import { UserManagementPage } from '@/pages/UserManagementPage'
 
-type Section = 'General' | 'Branding' | 'Patient Permissions' | 'Branches' | 'Users'
+type Section = 'General' | 'Branding' | 'Patient Permissions' | 'Branches' | 'Users' | 'Services & Prices'
 
-const SECTIONS: Section[] = ['General', 'Branding', 'Patient Permissions', 'Branches', 'Users']
+const SECTIONS: Section[] = ['General', 'Branding', 'Patient Permissions', 'Branches', 'Users', 'Services & Prices']
 
 const TIMEZONES = ['UTC', 'America/New_York', 'America/Los_Angeles', 'Europe/London', 'Asia/Tokyo', 'Asia/Taipei']
 
@@ -159,6 +159,204 @@ function BranchesSection() {
           </div>
           <SheetFooter>
             <Button onClick={handleSave}>{editBranch ? 'Save Changes' : 'Create Branch'}</Button>
+            <Button variant="outline" onClick={() => setSheetOpen(false)}>Cancel</Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+    </div>
+  )
+}
+
+// ── Services Section ───────────────────────────────────────────────────────────
+
+export interface ClinicService {
+  id: string
+  name: string
+  category: string
+  price: number       // in whole currency units (₱)
+  description: string
+  isActive: boolean
+}
+
+const SERVICE_CATEGORIES = ['Consultation', 'Lab', 'Procedure', 'Imaging', 'Nursing', 'Other']
+
+export const INITIAL_SERVICES: ClinicService[] = [
+  { id: 's1', name: 'General Consultation',     category: 'Consultation', price: 500,  description: 'Standard outpatient consultation',               isActive: true  },
+  { id: 's2', name: 'Follow-up Consultation',   category: 'Consultation', price: 300,  description: 'Follow-up visit within 30 days',                 isActive: true  },
+  { id: 's3', name: 'Complete Blood Count',     category: 'Lab',          price: 350,  description: 'CBC with differential',                          isActive: true  },
+  { id: 's4', name: 'Urinalysis',               category: 'Lab',          price: 150,  description: 'Routine urinalysis',                             isActive: true  },
+  { id: 's5', name: 'Chest X-Ray',              category: 'Imaging',      price: 600,  description: 'PA and lateral view',                            isActive: true  },
+  { id: 's6', name: 'ECG',                      category: 'Procedure',    price: 350,  description: '12-lead electrocardiogram',                      isActive: true  },
+  { id: 's7', name: 'IV Insertion',             category: 'Nursing',      price: 200,  description: 'Peripheral IV line insertion',                   isActive: true  },
+  { id: 's8', name: 'Wound Dressing',           category: 'Nursing',      price: 150,  description: 'Basic wound dressing and cleaning',              isActive: true  },
+  { id: 's9', name: 'Blood Sugar Monitoring',   category: 'Lab',          price: 100,  description: 'Random blood glucose test',                      isActive: false },
+]
+
+interface ServiceForm { name: string; category: string; price: string; description: string }
+const emptyServiceForm: ServiceForm = { name: '', category: 'Consultation', price: '', description: '' }
+
+function ServicesSection() {
+  const [services,    setServices]    = useState<ClinicService[]>(INITIAL_SERVICES)
+  const [sheetOpen,   setSheetOpen]   = useState(false)
+  const [editService, setEditService] = useState<ClinicService | null>(null)
+  const [form,        setForm]        = useState<ServiceForm>(emptyServiceForm)
+  const [formError,   setFormError]   = useState('')
+  const [filterCat,   setFilterCat]   = useState('All')
+
+  const setField = (field: keyof ServiceForm, value: string) => {
+    setForm(f => ({ ...f, [field]: value }))
+    if (formError) setFormError('')
+  }
+
+  const openAdd = () => {
+    setEditService(null)
+    setForm(emptyServiceForm)
+    setFormError('')
+    setSheetOpen(true)
+  }
+
+  const openEdit = (s: ClinicService) => {
+    setEditService(s)
+    setForm({ name: s.name, category: s.category, price: String(s.price), description: s.description })
+    setFormError('')
+    setSheetOpen(true)
+  }
+
+  const handleSave = () => {
+    if (!form.name.trim())         { setFormError('Name is required.'); return }
+    const price = Number(form.price)
+    if (!form.price || isNaN(price) || price < 0) { setFormError('Enter a valid price (0 or more).'); return }
+
+    if (editService) {
+      setServices(prev => prev.map(s => s.id === editService.id
+        ? { ...s, name: form.name.trim(), category: form.category, price, description: form.description.trim() }
+        : s,
+      ))
+    } else {
+      setServices(prev => [...prev, {
+        id: `s-${Date.now()}`, name: form.name.trim(), category: form.category,
+        price, description: form.description.trim(), isActive: true,
+      }])
+    }
+    setSheetOpen(false)
+  }
+
+  const toggleActive = (id: string) =>
+    setServices(prev => prev.map(s => s.id === id ? { ...s, isActive: !s.isActive } : s))
+
+  const categories = ['All', ...SERVICE_CATEGORIES]
+  const displayed = filterCat === 'All' ? services : services.filter(s => s.category === filterCat)
+  const activeCount = services.filter(s => s.isActive).length
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <p className="text-sm font-medium text-foreground">Services & Prices</p>
+          <p className="text-xs text-muted-foreground">{activeCount} active · {services.length} total</p>
+        </div>
+        <Button size="sm" onClick={openAdd}>+ Add Service</Button>
+      </div>
+
+      {/* Category filter */}
+      <div className="flex gap-1.5 flex-wrap">
+        {categories.map(cat => (
+          <button
+            key={cat}
+            onClick={() => setFilterCat(cat)}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors border ${
+              filterCat === cat
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'bg-background text-muted-foreground border-border hover:border-foreground/30'
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
+      {/* Service list */}
+      <div className="space-y-2">
+        {displayed.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-8">No services in this category.</p>
+        )}
+        {displayed.map(s => (
+          <div key={s.id} className={`flex items-center justify-between rounded-md border px-4 py-3 ${!s.isActive ? 'opacity-50' : ''}`}>
+            <div className="flex-1 min-w-0 mr-4">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-sm font-medium">{s.name}</p>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{s.category}</span>
+              </div>
+              {s.description && <p className="text-xs text-muted-foreground mt-0.5 truncate">{s.description}</p>}
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <p className="text-sm font-semibold tabular-nums">₱{s.price.toLocaleString()}</p>
+              <Badge variant={s.isActive ? 'default' : 'secondary'} className="text-xs">
+                {s.isActive ? 'Active' : 'Inactive'}
+              </Badge>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => openEdit(s)}>Edit</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className={s.isActive ? 'text-destructive focus:text-destructive' : ''}
+                    onClick={() => toggleActive(s.id)}
+                  >
+                    {s.isActive ? 'Deactivate' : 'Reactivate'}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Add / Edit sheet */}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>{editService ? 'Edit Service' : 'New Service'}</SheetTitle>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto px-4 space-y-4 mt-4">
+            <div className="space-y-1">
+              <Label htmlFor="svc-name">Service Name *</Label>
+              <Input id="svc-name" value={form.name} onChange={e => setField('name', e.target.value)} placeholder="e.g. General Consultation" />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="svc-cat">Category</Label>
+              <select
+                id="svc-cat"
+                className="border rounded-md px-3 py-2 text-sm bg-background w-full"
+                value={form.category}
+                onChange={e => setField('category', e.target.value)}
+              >
+                {SERVICE_CATEGORIES.map(c => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="svc-price">Price (₱) *</Label>
+              <Input
+                id="svc-price"
+                type="number"
+                min={0}
+                value={form.price}
+                onChange={e => setField('price', e.target.value)}
+                placeholder="e.g. 500"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="svc-desc">Description (optional)</Label>
+              <Input id="svc-desc" value={form.description} onChange={e => setField('description', e.target.value)} placeholder="Short description" />
+            </div>
+            {formError && <p className="text-xs text-destructive">{formError}</p>}
+          </div>
+          <SheetFooter className="mt-4">
+            <Button onClick={handleSave}>{editService ? 'Save Changes' : 'Add Service'}</Button>
             <Button variant="outline" onClick={() => setSheetOpen(false)}>Cancel</Button>
           </SheetFooter>
         </SheetContent>
@@ -311,6 +509,16 @@ export function SettingsPage() {
 
       {/* Users */}
       {activeSection === 'Users' && <UserManagementPage />}
+
+      {/* Services & Prices */}
+      {activeSection === 'Services & Prices' && (
+        <Card>
+          <CardHeader><CardTitle>Services & Prices</CardTitle></CardHeader>
+          <CardContent>
+            <ServicesSection />
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

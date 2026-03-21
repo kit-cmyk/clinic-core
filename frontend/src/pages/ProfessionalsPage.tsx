@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -49,6 +49,112 @@ const MOCK_TIMEOFFS: TimeOff[] = [
 
 const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 const BRANCHES = ['Main Branch', 'Downtown Clinic', 'Westside Location']
+
+const SPECIALIZATIONS = [
+  'Cardiology', 'Dermatology', 'Emergency Medicine', 'Endocrinology',
+  'Gastroenterology', 'General Medicine', 'General Nursing', 'Geriatrics',
+  'Hematology', 'Internal Medicine', 'Nephrology', 'Neurology',
+  'Obstetrics & Gynecology', 'Oncology', 'Ophthalmology', 'Orthopedics',
+  'Otolaryngology', 'Pediatrics', 'Psychiatry', 'Pulmonology',
+  'Radiology', 'Rheumatology', 'Surgery', 'Urology',
+]
+
+// ── Specialization Picker ──────────────────────────────────────────────────────
+
+function SpecializationPicker({
+  value,
+  onChange,
+}: {
+  value: string[]
+  onChange: (v: string[]) => void
+}) {
+  const [open,   setOpen]   = useState(false)
+  const [custom, setCustom] = useState('')
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    if (open) document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const toggle = (spec: string) =>
+    onChange(value.includes(spec) ? value.filter(s => s !== spec) : [...value, spec])
+
+  const addCustom = () => {
+    const trimmed = custom.trim()
+    if (!trimmed || value.includes(trimmed)) { setCustom(''); return }
+    onChange([...value, trimmed])
+    setCustom('')
+  }
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        className="min-h-9 w-full border rounded-md px-3 py-2 text-sm bg-background text-left flex flex-wrap gap-1 items-center"
+        onClick={() => setOpen(o => !o)}
+      >
+        {value.length === 0 ? (
+          <span className="text-muted-foreground">Select specializations…</span>
+        ) : (
+          value.map(s => (
+            <span
+              key={s}
+              className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs rounded px-1.5 py-0.5"
+            >
+              {s}
+              <button
+                type="button"
+                className="hover:text-destructive leading-none"
+                onMouseDown={e => { e.stopPropagation(); toggle(s) }}
+              >
+                ×
+              </button>
+            </span>
+          ))
+        )}
+      </button>
+      {open && (
+        <div className="absolute z-50 w-full bg-background border rounded-md shadow-lg mt-0.5 max-h-56 overflow-y-auto">
+          {SPECIALIZATIONS.map(spec => (
+            <label
+              key={spec}
+              className="flex items-center gap-2 px-3 py-1.5 hover:bg-muted/50 cursor-pointer text-sm"
+            >
+              <input
+                type="checkbox"
+                checked={value.includes(spec)}
+                onChange={() => toggle(spec)}
+                className="h-3.5 w-3.5 shrink-0"
+              />
+              {spec}
+            </label>
+          ))}
+          {/* Add custom */}
+          <div className="border-t px-3 py-2 flex gap-2">
+            <input
+              className="flex-1 text-xs border rounded px-2 py-1 bg-background"
+              placeholder="Add other…"
+              value={custom}
+              onChange={e => setCustom(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustom() } }}
+            />
+            <button
+              type="button"
+              className="text-xs text-primary hover:underline px-1"
+              onClick={addCustom}
+            >
+              Add
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 // ── Schedule Editor ────────────────────────────────────────────────────────────
 
@@ -173,12 +279,12 @@ function TimeOffManager({
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 
-type AddForm = { name: string; specialization: string; branch: string; slotDurationMins: number; bio: string }
-type EditForm = { specialization: string; bio: string; slotDurationMins: number }
+type AddForm = { name: string; specializations: string[]; branch: string; slotDurationMins: number; bio: string }
+type EditForm = { specializations: string[]; bio: string; slotDurationMins: number }
 type SheetMode = 'add' | 'edit' | null
 
-const EMPTY_ADD: AddForm = { name: '', specialization: '', branch: BRANCHES[0], slotDurationMins: 30, bio: '' }
-const EMPTY_EDIT: EditForm = { specialization: '', bio: '', slotDurationMins: 30 }
+const EMPTY_ADD: AddForm = { name: '', specializations: [], branch: BRANCHES[0], slotDurationMins: 30, bio: '' }
+const EMPTY_EDIT: EditForm = { specializations: [], bio: '', slotDurationMins: 30 }
 
 export function ProfessionalsPage() {
   const [professionals, setProfessionals] = useState<Professional[]>(MOCK_PROFESSIONALS)
@@ -195,11 +301,13 @@ export function ProfessionalsPage() {
   const [addForm,      setAddForm]      = useState<AddForm>(EMPTY_ADD)
   const [editForm,     setEditForm]     = useState<EditForm>(EMPTY_EDIT)
 
-  const uniqueSpecializations = [...new Set(professionals.map(p => p.specialization))].sort()
+  const uniqueSpecializations = [...new Set(
+    professionals.flatMap(p => p.specialization.split(', ').filter(Boolean))
+  )].sort()
 
   const filtered = professionals.filter(p =>
     (branchFilter === 'all' || p.branch === branchFilter) &&
-    (specializationFilter === 'all' || p.specialization === specializationFilter)
+    (specializationFilter === 'all' || p.specialization.split(', ').includes(specializationFilter))
   )
 
   const handleExpand = (id: string) => {
@@ -210,13 +318,21 @@ export function ProfessionalsPage() {
 
   const openEdit = (p: Professional) => {
     setSheetTarget(p)
-    setEditForm({ specialization: p.specialization, bio: p.bio ?? '', slotDurationMins: p.slotDurationMins })
+    setEditForm({
+      specializations: p.specialization ? p.specialization.split(', ').filter(Boolean) : [],
+      bio: p.bio ?? '',
+      slotDurationMins: p.slotDurationMins,
+    })
     setSheetMode('edit')
   }
 
   const saveEdit = () => {
     if (!sheetTarget) return
-    setProfessionals(prev => prev.map(p => p.id === sheetTarget.id ? { ...p, ...editForm } : p))
+    setProfessionals(prev => prev.map(p =>
+      p.id === sheetTarget.id
+        ? { ...p, specialization: editForm.specializations.join(', '), bio: editForm.bio, slotDurationMins: editForm.slotDurationMins }
+        : p
+    ))
     setSheetMode(null)
   }
 
@@ -233,13 +349,13 @@ export function ProfessionalsPage() {
   }
 
   const handleAddProfessional = () => {
-    if (!addForm.name.trim() || !addForm.specialization.trim()) return
+    if (!addForm.name.trim() || addForm.specializations.length === 0) return
     setProfessionals(prev => [...prev, {
       id:               `pr-${Date.now()}`,
       tenantId:         't1',
       userId:           `u-${Date.now()}`,
       name:             addForm.name,
-      specialization:   addForm.specialization,
+      specialization:   addForm.specializations.join(', '),
       branch:           addForm.branch,
       slotDurationMins: addForm.slotDurationMins,
       bio:              addForm.bio,
@@ -418,7 +534,10 @@ export function ProfessionalsPage() {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Specialization</Label>
-              <Input placeholder="e.g. Cardiology" value={addForm.specialization} onChange={e => setAddForm(f => ({ ...f, specialization: e.target.value }))} />
+              <SpecializationPicker
+                value={addForm.specializations}
+                onChange={v => setAddForm(f => ({ ...f, specializations: v }))}
+              />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Branch</Label>
@@ -457,7 +576,10 @@ export function ProfessionalsPage() {
           <div className="flex-1 overflow-y-auto px-4 space-y-4">
             <div className="space-y-1">
               <Label className="text-xs">Specialization</Label>
-              <Input value={editForm.specialization} onChange={e => setEditForm(f => ({ ...f, specialization: e.target.value }))} />
+              <SpecializationPicker
+                value={editForm.specializations}
+                onChange={v => setEditForm(f => ({ ...f, specializations: v }))}
+              />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Slot Duration (mins)</Label>

@@ -10,6 +10,11 @@ import RegisterPage from '@/pages/RegisterPage'
 import InviteAcceptPage from '@/pages/InviteAcceptPage'
 import { PlansPage } from '@/pages/admin/PlansPage'
 import { TenantsPage } from '@/pages/admin/TenantsPage'
+import { MasterDataPage } from '@/pages/admin/MasterDataPage'
+import { SignUpsPage } from '@/pages/admin/SignUpsPage'
+import { ProvisioningPage } from '@/pages/admin/ProvisioningPage'
+import { MonitoringPage } from '@/pages/admin/MonitoringPage'
+import { PlatformUpdatesPage } from '@/pages/admin/PlatformUpdatesPage'
 import { OnboardingPage } from '@/pages/OnboardingPage'
 import { BranchesPage } from '@/pages/BranchesPage'
 import { StaffPage } from '@/pages/StaffPage'
@@ -28,11 +33,12 @@ import { AppointmentsPage } from '@/pages/AppointmentsPage'
 import { CheckInPage } from '@/pages/CheckInPage'
 import { ProfessionalsPage } from '@/pages/ProfessionalsPage'
 import { ClinicHoursPage } from '@/pages/ClinicHoursPage'
-import { UserManagementPage } from '@/pages/UserManagementPage'
 import { InvoicesPage } from '@/pages/InvoicesPage'
 import { PortalInvoicesPage } from '@/pages/patient/PortalInvoicesPage'
 import { PatientManagementPage } from '@/pages/PatientManagementPage'
 import { AppointmentVisitPage } from '@/pages/AppointmentVisitPage'
+import { SuperAdminLoginPage } from '@/pages/SuperAdminLoginPage'
+import { SuperAdminPublicRoute } from '@/components/SuperAdminPublicRoute'
 
 const router = createBrowserRouter([
   // Public auth routes — redirect to /dashboard if already authenticated
@@ -47,12 +53,18 @@ const router = createBrowserRouter([
     ),
   },
   {
+    path: '/super-admin/login',
+    element: (
+      <SuperAdminPublicRoute>
+        <SuperAdminLoginPage />
+      </SuperAdminPublicRoute>
+    ),
+  },
+  {
     path: '/register',
     element: (
       <PublicRoute>
-        <AuthLayout>
-          <RegisterPage />
-        </AuthLayout>
+        <RegisterPage />
       </PublicRoute>
     ),
   },
@@ -101,6 +113,11 @@ const router = createBrowserRouter([
           { path: '/settings', element: <SettingsPage /> },
           { path: '/admin/plans', element: <PlansPage /> },
           { path: '/admin/tenants', element: <TenantsPage /> },
+          { path: '/admin/master-data', element: <MasterDataPage /> },
+          { path: '/admin/sign-ups', element: <SignUpsPage /> },
+          { path: '/admin/provisioning/:tenantId', element: <ProvisioningPage /> },
+          { path: '/admin/monitoring', element: <MonitoringPage /> },
+          { path: '/admin/updates', element: <PlatformUpdatesPage /> },
           { path: '/onboarding', element: <OnboardingPage /> },
           { path: '/branches', element: <BranchesPage /> },
           { path: '/staff', element: <StaffPage /> },

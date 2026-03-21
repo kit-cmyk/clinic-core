@@ -56,6 +56,7 @@ model SubscriptionTier {
   maxStaff          Int              // -1 = unlimited
   storageLimitBytes BigInt
   monthlyPriceUsd   Decimal          @db.Decimal(10, 2)
+  isActive          Boolean          @default(true)
   createdAt         DateTime         @default(now())
 
   tenants Tenant[]
@@ -84,6 +85,7 @@ model Tenant {
   branches             Branch[]
   staffAssignments     StaffAssignment[]
   invitations          Invitation[]
+  patientInvites       PatientInvite[]
   patients             Patient[]
   appointments         Appointment[]
   labResults           LabResult[]
@@ -118,6 +120,7 @@ model User {
 
   staffAssignments           StaffAssignment[]
   sentInvitations            Invitation[]      @relation("InvitedBy")
+  sentPatientInvites         PatientInvite[]   @relation("PatientInvitedBy")
   patient                    Patient?
   appointmentsAsProfessional Appointment[]     @relation("AppointmentProfessional")
   orderedLabResults          LabResult[]       @relation("LabResultOrderedBy")
@@ -221,6 +224,25 @@ model Invitation {
   @@index([tenantId])
   @@index([token])
   @@map("invitations")
+}
+
+// Pending SMS invitations for patients. Token is single-use with 48h expiry.
+
+model PatientInvite {
+  id          String    @id @default(uuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  phone       String
+  token       String    @unique @default(uuid())
+  invitedById String
+  invitedBy   User      @relation("PatientInvitedBy", fields: [invitedById], references: [id])
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([token])
+  @@index([tenantId])
+  @@map("patient_invites")
 }
 
 // ── Patients ──────────────────────────────────────────────────────────────────
@@ -466,4 +488,150 @@ model InvoiceLineItem {
   @@index([tenantId])
   @@index([invoiceId])
   @@map("invoice_line_items")
+}
+
+// ── Tenant Requests (CC-119) ──────────────────────────────────────────────────
+// Sign-up requests submitted by medical groups before provisioning.
+
+enum TenantRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model TenantRequest {
+  id           String              @id @default(uuid())
+  orgName      String
+  contactName  String
+  contactEmail String
+  contactPhone String?
+  planRequested SubscriptionPlan   @default(PRO)
+  notes        String?
+  status       TenantRequestStatus @default(PENDING)
+  reviewedAt   DateTime?
+  rejectionReason String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  provisioningLogs ProvisioningLog[]
+
+  @@index([status])
+  @@map("tenant_requests")
+}
+
+// ── Provisioning Logs (CC-122) ────────────────────────────────────────────────
+// Tracks the 4-step provisioning pipeline per approved tenant request.
+
+enum ProvisioningStep {
+  DB_RECORD
+  ROLES_SEED
+  STORAGE_SETUP
+  WELCOME_EMAIL
+}
+
+enum ProvisioningStepStatus {
+  PENDING
+  RUNNING
+  DONE
+  FAILED
+}
+
+model ProvisioningLog {
+  id              String                 @id @default(uuid())
+  tenantRequestId String
+  tenantRequest   TenantRequest          @relation(fields: [tenantRequestId], references: [id], onDelete: Cascade)
+  provisionedTenantId String?             // set once DB_RECORD step completes
+  step            ProvisioningStep
+  status          ProvisioningStepStatus @default(PENDING)
+  errorMessage    String?
+  completedAt     DateTime?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@unique([tenantRequestId, step])
+  @@index([tenantRequestId])
+  @@map("provisioning_logs")
+}
+
+// ── Global Master Data (CC-121) ───────────────────────────────────────────────
+// Platform-wide reference data managed by Super Admin.
+// Not tenant-scoped — shared across all tenants.
+
+model Specialty {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("specialties")
+}
+
+model AppointmentType {
+  id            String   @id @default(uuid())
+  name          String   @unique
+  defaultMinutes Int     @default(30)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("appointment_types")
+}
+
+model ServiceCategory {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("service_categories")
+}
+
+// ── Platform Updates (CC-126) ─────────────────────────────────────────────────
+// Platform-wide announcements, feature flags, and maintenance windows.
+// Managed by Super Admin.
+
+enum AnnouncementSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+model Announcement {
+  id          String               @id @default(uuid())
+  title       String
+  body        String
+  severity    AnnouncementSeverity @default(INFO)
+  isArchived  Boolean              @default(false)
+  publishedAt DateTime             @default(now())
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([isArchived])
+  @@map("announcements")
+}
+
+model FeatureFlag {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  label       String
+  enabledFor  String[] @default([]) // plan names: e.g. ["PRO","ENTERPRISE"]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("feature_flags")
+}
+
+model MaintenanceWindow {
+  id          String    @id @default(uuid())
+  title       String
+  startsAt    DateTime
+  endsAt      DateTime
+  isCancelled Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([startsAt])
+  @@map("maintenance_windows")
 }

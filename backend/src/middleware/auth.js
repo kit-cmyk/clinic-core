@@ -1,14 +1,12 @@
-import jwt from 'jsonwebtoken';
-import { env } from '../config/env.js';
+import { getSupabaseAdmin } from '../lib/supabase.js';
 import { prisma as defaultPrisma } from '../models/prisma.js';
 
 /**
  * Factory for requireAuth middleware.
- * Accepts injectable prismaClient and jwtSecret for testability.
+ * Verifies the Bearer token via Supabase admin getUser() — no local JWT secret needed.
+ * Supabase validates the signature and expiry; we then load tenant/role context from Prisma.
  */
-export function createRequireAuth({ prismaClient = defaultPrisma, jwtSecret } = {}) {
-  const secret = jwtSecret ?? env.JWT_SECRET;
-
+export function createRequireAuth({ prismaClient = defaultPrisma, supabaseAdmin } = {}) {
   return async (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
@@ -16,17 +14,15 @@ export function createRequireAuth({ prismaClient = defaultPrisma, jwtSecret } = 
     }
 
     const token = authHeader.slice(7);
-    let payload;
-    try {
-      payload = jwt.verify(token, secret);
-    } catch {
+    const admin = supabaseAdmin ?? getSupabaseAdmin();
+
+    // Verify token with Supabase — handles signature, expiry, and revocation
+    const { data, error } = await admin.auth.getUser(token);
+    if (error || !data?.user) {
       return res.status(401).json({ error: 'unauthorized', message: 'Invalid or expired token' });
     }
 
-    const supabaseUserId = payload.sub;
-    if (!supabaseUserId) {
-      return res.status(401).json({ error: 'unauthorized', message: 'Token missing subject claim' });
-    }
+    const supabaseUserId = data.user.id;
 
     let user;
     try {

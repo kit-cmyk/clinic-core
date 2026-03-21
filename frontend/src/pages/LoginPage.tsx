@@ -1,9 +1,10 @@
 import { type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { useAuthStore } from '@/store/auth'
 
@@ -61,10 +62,9 @@ export function LoginPage() {
                 Forgot password?
               </button>
             </div>
-            <Input
+            <PasswordInput
               id="password"
               name="password"
-              type="password"
               placeholder="••••••••"
               autoComplete="current-password"
               disabled={isLoading}
@@ -81,6 +81,13 @@ export function LoginPage() {
             {isLoading && <Loader2 className="animate-spin" />}
             {isLoading ? 'Signing in…' : 'Sign in'}
           </Button>
+
+          <p className="text-center text-sm text-muted-foreground">
+            Don't have an account?{' '}
+            <Link to="/register" className="text-foreground font-medium hover:underline underline-offset-4">
+              Sign up
+            </Link>
+          </p>
         </form>
       </CardContent>
     </Card>
