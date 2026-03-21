@@ -13,6 +13,11 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 ## [Unreleased]
 
 ### Added
+- Tenant CRUD API: GET/POST /api/v1/tenants + GET/PUT /api/v1/tenants/:id + GET /api/v1/tenants/:id/storage-usage; SUPER_ADMIN only; slug validation; BigInt serialisation; P2002 → 409, P2025 → 404; 19 Jest tests (CC-28, CC-31)
+- Storage limit enforcement middleware: enforceStorageLimit() blocks uploads exceeding tenant limit with HTTP 413; SUPER_ADMIN bypass; fail-open on storage service errors; getTenantStorageUsed() sums Supabase Storage file sizes; 17 Jest tests (CC-30, CC-31)
+- Dashboard CC-111 to CC-117 widgets: AppointmentTimeline (vertical timeline with gap indicators), CheckInQueue (wait-time colour-coded list), PendingActionsBar (role-filtered amber chips), SlotUtilizationBar (inline progress bar per professional), QuickActionBar (role-gated quick actions), WalkInSlotFinder (first-available slot with one-click booking), AppointmentStatusBar (stacked status breakdown) (CC-111, CC-112, CC-113, CC-114, CC-115, CC-116, CC-117)
+- TenantsPage staff tab: DropdownMenu with MoreHorizontal trigger for Send Password Reset / Deactivate / Reactivate row actions (CC-94, CC-95)
+- AppointmentsPage: converted custom Modal to Sheet side drawer for New Appointment and Appointment detail/edit/delete flows (CC-94)
 - Subscription Plan CRUD API: GET/POST /api/v1/plans + PUT/DELETE /api/v1/plans/:id; SUPER_ADMIN writes, any auth user reads; isActive soft-delete; BigInt/Decimal serialisation; 8 Jest tests (CC-26)
 - SMS Patient Registration: POST /api/v1/patients/invite (E.164 validation, 48h token, Twilio SMS via injectable factory); POST /api/v1/patients/register/:token (used/expired 410, creates Supabase user + Prisma Patient); PatientInvite Prisma model; 9 Jest tests (CC-24)
 - Auth & RBAC test suite: rewrote requireAuth middleware tests to use injectable supabaseAdmin mock; all 6-role requireRole coverage; tenant isolation tests migrated to injectable mock pattern; 212 tests passing, 0 failures (CC-25)
