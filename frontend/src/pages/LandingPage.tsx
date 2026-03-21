@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom'
 
 const GREEN = 'oklch(0.6236 0.1833 147.4139)'
 const GREEN_LIGHT = 'oklch(0.6236 0.1833 147.4139 / 0.1)'
-const GREEN_MID = 'oklch(0.6236 0.1833 147.4139 / 0.2)'
 
 const features = [
   {
