@@ -1,5 +1,9 @@
 import { Link } from 'react-router-dom'
 
+const GREEN = 'oklch(0.6236 0.1833 147.4139)'
+const GREEN_LIGHT = 'oklch(0.6236 0.1833 147.4139 / 0.1)'
+const GREEN_MID = 'oklch(0.6236 0.1833 147.4139 / 0.2)'
+
 const features = [
   {
     icon: (
@@ -82,16 +86,38 @@ const steps = [
   },
 ]
 
+const testimonials = [
+  {
+    quote: "ClinicCore completely changed how we manage our practice. Our admin work dropped by 40% and patients love the self-service portal.",
+    name: 'Dr. Sarah Nkosi',
+    role: 'Family Physician, Cape Town',
+    initials: 'SN',
+  },
+  {
+    quote: "Finally a system that feels like it was designed by people who've actually worked in a clinic. Intuitive, fast, and our whole team was up in a day.",
+    name: 'Marcus van der Berg',
+    role: 'Practice Manager, Johannesburg',
+    initials: 'MB',
+  },
+  {
+    quote: "The multi-branch features are exceptional. We manage 4 locations from one dashboard and the reporting has transformed our decision-making.",
+    name: 'Dr. Priya Chetty',
+    role: 'Medical Director, Durban',
+    initials: 'PC',
+  },
+]
+
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white" style={{ fontFamily: 'Space Grotesk, ui-sans-serif, sans-serif' }}>
+
       {/* Nav */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
+      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div
               className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: 'oklch(0.6236 0.1833 147.4139)' }}
+              style={{ backgroundColor: GREEN }}
             >
               <svg viewBox="0 0 24 24" fill="white" className="w-4 h-4">
                 <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
@@ -113,7 +139,7 @@ export default function LandingPage() {
             <Link
               to="/register"
               className="text-sm font-semibold text-white px-4 py-2 rounded-lg transition-opacity hover:opacity-90"
-              style={{ backgroundColor: 'oklch(0.6236 0.1833 147.4139)' }}
+              style={{ backgroundColor: GREEN }}
             >
               Get started free
             </Link>
@@ -121,169 +147,117 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="relative overflow-hidden">
+      {/* Hero — split layout */}
+      <section className="relative overflow-hidden bg-white">
+        {/* Background blobs */}
         <div
-          className="absolute inset-0 opacity-[0.07]"
+          className="absolute inset-0 pointer-events-none"
           style={{
-            background:
-              'radial-gradient(ellipse 80% 60% at 50% -10%, oklch(0.6236 0.1833 147.4139), transparent)',
+            background: 'radial-gradient(ellipse 70% 60% at 80% 50%, oklch(0.6236 0.1833 147.4139 / 0.06), transparent)',
           }}
         />
         <div
-          className="absolute top-20 left-10 w-72 h-72 rounded-full opacity-[0.06]"
-          style={{ background: 'oklch(0.6236 0.1833 147.4139)', filter: 'blur(80px)' }}
-        />
-        <div
-          className="absolute top-40 right-10 w-96 h-96 rounded-full opacity-[0.04]"
-          style={{ background: 'oklch(0.6004 0.1694 249.8812)', filter: 'blur(100px)' }}
+          className="absolute top-0 left-0 w-96 h-96 rounded-full opacity-[0.05] pointer-events-none"
+          style={{ background: GREEN, filter: 'blur(100px)', transform: 'translate(-30%, -30%)' }}
         />
 
-        <div className="relative max-w-6xl mx-auto px-6 pt-20 pb-24 text-center">
-          <div
-            className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full border mb-8"
-            style={{
-              color: 'oklch(0.6236 0.1833 147.4139)',
-              borderColor: 'oklch(0.6236 0.1833 147.4139 / 0.3)',
-              backgroundColor: 'oklch(0.6236 0.1833 147.4139 / 0.06)',
-            }}
-          >
-            <span
-              className="w-1.5 h-1.5 rounded-full animate-pulse"
-              style={{ backgroundColor: 'oklch(0.6236 0.1833 147.4139)' }}
-            />
-            Now live · Trusted by clinics worldwide
-          </div>
-
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 leading-[1.08] tracking-tight max-w-4xl mx-auto">
-            The clinic management
-            <span className="block" style={{ color: 'oklch(0.6236 0.1833 147.4139)' }}>
-              platform that works
-            </span>
-            as hard as you do.
-          </h1>
-
-          <p className="mt-6 text-lg md:text-xl text-gray-500 max-w-2xl mx-auto leading-relaxed">
-            ClinicCore brings appointments, patients, billing, and your team together in one
-            beautifully simple system — so you can focus on care, not admin.
-          </p>
-
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              to="/register"
-              className="inline-flex items-center gap-2 text-base font-semibold text-white px-8 py-3.5 rounded-xl transition-all hover:opacity-90"
+        <div className="relative max-w-6xl mx-auto px-6 py-16 md:py-24 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          {/* Left — text */}
+          <div>
+            <div
+              className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full border mb-8"
               style={{
-                backgroundColor: 'oklch(0.6236 0.1833 147.4139)',
-                boxShadow: '0 8px 30px oklch(0.6236 0.1833 147.4139 / 0.35)',
+                color: GREEN,
+                borderColor: 'oklch(0.6236 0.1833 147.4139 / 0.3)',
+                backgroundColor: 'oklch(0.6236 0.1833 147.4139 / 0.06)',
               }}
             >
-              Start for free
-              <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                <path
-                  fillRule="evenodd"
-                  d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </Link>
-            <Link
-              to="/login"
-              className="inline-flex items-center gap-2 text-base font-semibold text-gray-700 px-8 py-3.5 rounded-xl border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all"
-            >
-              Sign in to your account
-            </Link>
+              <span
+                className="w-1.5 h-1.5 rounded-full animate-pulse"
+                style={{ backgroundColor: GREEN }}
+              />
+              Trusted by clinics worldwide
+            </div>
+
+            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 leading-[1.08] tracking-tight">
+              Care-first
+              <span className="block" style={{ color: GREEN }}>
+                clinic management.
+              </span>
+            </h1>
+
+            <p className="mt-6 text-lg text-gray-500 leading-relaxed max-w-lg">
+              ClinicCore puts patients at the centre of everything — connecting appointments, records,
+              billing, and your team so you can focus on what truly matters: delivering exceptional care.
+            </p>
+
+            <div className="mt-10 flex flex-col sm:flex-row items-start gap-4">
+              <Link
+                to="/register"
+                className="inline-flex items-center gap-2 text-base font-semibold text-white px-8 py-3.5 rounded-xl transition-all hover:opacity-90"
+                style={{
+                  backgroundColor: GREEN,
+                  boxShadow: '0 8px 30px oklch(0.6236 0.1833 147.4139 / 0.35)',
+                }}
+              >
+                Start for free
+                <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clipRule="evenodd" />
+                </svg>
+              </Link>
+              <Link
+                to="/login"
+                className="inline-flex items-center gap-2 text-base font-semibold text-gray-700 px-8 py-3.5 rounded-xl border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all"
+              >
+                Sign in
+              </Link>
+            </div>
+
+            <p className="mt-4 text-sm text-gray-400">No credit card required · Set up in under 5 minutes</p>
+
+            {/* Trust row */}
+            <div className="mt-10 flex items-center gap-6 flex-wrap">
+              {[
+                { icon: '🔒', text: 'HIPAA Compliant' },
+                { icon: '⚡', text: '99.9% Uptime' },
+                { icon: '🏥', text: 'Multi-branch' },
+              ].map((item) => (
+                <div key={item.text} className="flex items-center gap-1.5 text-sm text-gray-500">
+                  <span>{item.icon}</span>
+                  <span>{item.text}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <p className="mt-4 text-sm text-gray-400">No credit card required · Set up in under 5 minutes</p>
-        </div>
-
-        {/* Dashboard mockup */}
-        <div className="relative max-w-5xl mx-auto px-6 pb-16">
-          <div
-            className="relative rounded-2xl overflow-hidden border border-gray-200"
-            style={{ boxShadow: '0 40px 80px -20px rgba(0,0,0,0.15)' }}
-          >
-            {/* Browser chrome */}
-            <div className="bg-gray-100 px-4 py-3 flex items-center gap-2 border-b border-gray-200">
-              <div className="flex gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-red-400" />
-                <div className="w-3 h-3 rounded-full bg-yellow-400" />
-                <div className="w-3 h-3 rounded-full bg-green-400" />
-              </div>
-              <div className="flex-1 mx-4">
-                <div className="bg-white rounded-md px-3 py-1 text-xs text-gray-400 max-w-xs mx-auto text-center">
-                  cliniccore-app.onrender.com/dashboard
-                </div>
-              </div>
-            </div>
-            {/* Mock UI */}
-            <div className="bg-gray-50 p-4 grid grid-cols-12 gap-4 min-h-[320px]">
-              <div className="col-span-2 bg-white rounded-xl border border-gray-100 p-3 flex flex-col gap-2">
+          {/* Right — image */}
+          <div className="relative hidden lg:block">
+            <div
+              className="absolute inset-0 rounded-3xl"
+              style={{
+                background: 'linear-gradient(135deg, oklch(0.6236 0.1833 147.4139 / 0.12), oklch(0.6999 0.1796 150.1066 / 0.08))',
+                transform: 'rotate(2deg) scale(1.02)',
+              }}
+            />
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl" style={{ aspectRatio: '4/3' }}>
+              <img
+                src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=900&q=80"
+                alt="Doctor consulting with a patient in a modern clinic"
+                className="w-full h-full object-cover"
+              />
+              {/* Floating stat card */}
+              <div className="absolute bottom-6 left-6 bg-white rounded-2xl shadow-xl px-4 py-3 flex items-center gap-3">
                 <div
-                  className="w-full h-6 rounded-md"
-                  style={{ backgroundColor: 'oklch(0.6236 0.1833 147.4139 / 0.15)' }}
-                />
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div
-                    key={i}
-                    className="w-full h-4 rounded-md"
-                    style={
-                      i === 1
-                        ? { backgroundColor: 'oklch(0.6236 0.1833 147.4139 / 0.2)' }
-                        : { backgroundColor: '#f3f4f6' }
-                    }
-                  />
-                ))}
-              </div>
-              <div className="col-span-10 flex flex-col gap-4">
-                <div className="grid grid-cols-4 gap-3">
-                  {[
-                    { label: "Today's Appts", value: '24', color: 'oklch(0.6236 0.1833 147.4139)' },
-                    { label: 'Patients', value: '1,284', color: 'oklch(0.6004 0.1694 249.8812)' },
-                    { label: 'Revenue', value: '$8,420', color: 'oklch(0.6818 0.1924 45.7782)' },
-                    { label: 'Pending', value: '7', color: 'oklch(0.6396 0.2105 300.0543)' },
-                  ].map((stat, i) => (
-                    <div key={i} className="bg-white rounded-xl border border-gray-100 p-3">
-                      <div className="text-xs text-gray-400 mb-1">{stat.label}</div>
-                      <div className="text-lg font-bold" style={{ color: stat.color }}>
-                        {stat.value}
-                      </div>
-                    </div>
-                  ))}
+                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: GREEN_LIGHT }}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke={GREEN} strokeWidth="2" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                  </svg>
                 </div>
-                <div className="grid grid-cols-3 gap-3 flex-1">
-                  <div className="col-span-2 bg-white rounded-xl border border-gray-100 p-4">
-                    <div className="text-xs font-semibold text-gray-400 mb-3">
-                      Appointments this week
-                    </div>
-                    <div className="flex items-end gap-2 h-24">
-                      {[60, 85, 45, 90, 70, 55, 80].map((h, i) => (
-                        <div
-                          key={i}
-                          className="flex-1 rounded-t-sm"
-                          style={{
-                            height: `${h}%`,
-                            backgroundColor:
-                              i === 3
-                                ? 'oklch(0.6236 0.1833 147.4139)'
-                                : 'oklch(0.6236 0.1833 147.4139 / 0.2)',
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <div className="bg-white rounded-xl border border-gray-100 p-3">
-                    <div className="text-xs font-semibold text-gray-400 mb-3">Upcoming</div>
-                    {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className="flex items-center gap-2 mb-2">
-                        <div className="w-5 h-5 rounded-full bg-gray-100 flex-shrink-0" />
-                        <div className="flex-1 space-y-1">
-                          <div className="h-2 bg-gray-100 rounded-full w-3/4" />
-                          <div className="h-1.5 bg-gray-50 rounded-full w-1/2" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <div>
+                  <div className="text-xs text-gray-400">Today's appointments</div>
+                  <div className="text-lg font-bold text-gray-900">24 patients seen</div>
                 </div>
               </div>
             </div>
@@ -303,13 +277,91 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Care mission section */}
+      <section className="py-24 bg-white overflow-hidden">
+        <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          {/* Image */}
+          <div className="relative order-2 lg:order-1">
+            <div
+              className="absolute -inset-4 rounded-3xl opacity-30"
+              style={{ background: `linear-gradient(135deg, ${GREEN}, transparent)`, filter: 'blur(40px)' }}
+            />
+            <div className="relative rounded-3xl overflow-hidden shadow-xl" style={{ aspectRatio: '4/3' }}>
+              <img
+                src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=800&q=80"
+                alt="A doctor attentively listening to a patient"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            {/* Floating card */}
+            <div className="absolute -right-4 top-8 bg-white rounded-2xl shadow-xl px-4 py-3 max-w-[180px]">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: GREEN }} />
+                <span className="text-xs font-semibold text-gray-700">Patient satisfaction</span>
+              </div>
+              <div className="text-2xl font-bold" style={{ color: GREEN }}>98.4%</div>
+              <div className="text-xs text-gray-400 mt-0.5">avg. across clinics</div>
+            </div>
+          </div>
+
+          {/* Text */}
+          <div className="order-1 lg:order-2">
+            <div
+              className="text-sm font-semibold uppercase tracking-widest mb-4"
+              style={{ color: GREEN }}
+            >
+              Our mission
+            </div>
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 tracking-tight leading-tight">
+              At the heart of everything,
+              <span className="block" style={{ color: GREEN }}>it's about care.</span>
+            </h2>
+            <p className="mt-5 text-lg text-gray-500 leading-relaxed">
+              We built ClinicCore because great healthcare starts with great tools. When your team spends
+              less time on admin, they spend more time with patients — and that changes outcomes.
+            </p>
+            <div className="mt-8 space-y-5">
+              {[
+                {
+                  title: 'Patient-first design',
+                  desc: 'Every workflow is designed around the patient journey, from first booking to follow-up care.',
+                },
+                {
+                  title: 'Trusted & secure',
+                  desc: 'HIPAA-compliant infrastructure with end-to-end encryption keeps your patient data safe.',
+                },
+                {
+                  title: 'Always there for you',
+                  desc: '24/7 access from any device, with 99.9% uptime so your clinic never misses a beat.',
+                },
+              ].map((item) => (
+                <div key={item.title} className="flex gap-4">
+                  <div
+                    className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+                    style={{ backgroundColor: GREEN_LIGHT }}
+                  >
+                    <svg viewBox="0 0 16 16" fill={GREEN} className="w-3.5 h-3.5">
+                      <path fillRule="evenodd" d="M12.416 3.376a.75.75 0 0 1 .208 1.04l-5 7.5a.75.75 0 0 1-1.154.114l-3-3a.75.75 0 0 1 1.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 0 1 1.04-.207Z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-gray-900">{item.title}</div>
+                    <div className="text-sm text-gray-500 mt-0.5 leading-relaxed">{item.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Features */}
-      <section id="features" className="py-24">
+      <section id="features" className="py-24 bg-gray-50/60">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
             <div
               className="text-sm font-semibold uppercase tracking-widest mb-4"
-              style={{ color: 'oklch(0.6236 0.1833 147.4139)' }}
+              style={{ color: GREEN }}
             >
               Everything you need
             </div>
@@ -325,13 +377,13 @@ export default function LandingPage() {
             {features.map((feature) => (
               <div
                 key={feature.title}
-                className="group p-6 rounded-2xl border border-gray-100 bg-white hover:border-gray-200 hover:shadow-lg transition-all duration-200"
+                className="group p-6 rounded-2xl border border-gray-100 bg-white hover:border-transparent hover:shadow-xl transition-all duration-300"
               >
                 <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
+                  className="w-11 h-11 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-200"
                   style={{
-                    backgroundColor: 'oklch(0.6236 0.1833 147.4139 / 0.1)',
-                    color: 'oklch(0.6236 0.1833 147.4139)',
+                    backgroundColor: GREEN_LIGHT,
+                    color: GREEN,
                   }}
                 >
                   {feature.icon}
@@ -344,13 +396,61 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Testimonials */}
+      <section className="py-24 bg-white">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <div
+              className="text-sm font-semibold uppercase tracking-widest mb-4"
+              style={{ color: GREEN }}
+            >
+              Loved by clinicians
+            </div>
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 tracking-tight">
+              Hear from our clinics
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {testimonials.map((t) => (
+              <div
+                key={t.name}
+                className="p-7 rounded-2xl border border-gray-100 bg-white shadow-sm hover:shadow-lg transition-shadow duration-200 flex flex-col"
+              >
+                {/* Stars */}
+                <div className="flex gap-1 mb-4">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <svg key={s} viewBox="0 0 20 20" fill={GREEN} className="w-4 h-4">
+                      <path fillRule="evenodd" d="M10.868 2.884c-.321-.772-1.415-.772-1.736 0l-1.83 4.401-4.753.381c-.833.067-1.171 1.107-.536 1.651l3.62 3.102-1.106 4.637c-.194.813.691 1.456 1.405 1.02L10 15.591l4.069 2.485c.713.436 1.598-.207 1.404-1.02l-1.106-4.637 3.62-3.102c.635-.544.297-1.584-.536-1.65l-4.752-.382-1.831-4.401Z" clipRule="evenodd" />
+                    </svg>
+                  ))}
+                </div>
+                <p className="text-sm text-gray-600 leading-relaxed flex-1">"{t.quote}"</p>
+                <div className="mt-6 flex items-center gap-3">
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                    style={{ backgroundColor: GREEN }}
+                  >
+                    {t.initials}
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-gray-900">{t.name}</div>
+                    <div className="text-xs text-gray-400">{t.role}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* How it works */}
       <section id="how-it-works" className="py-24 bg-gray-50/60">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
             <div
               className="text-sm font-semibold uppercase tracking-widest mb-4"
-              style={{ color: 'oklch(0.6236 0.1833 147.4139)' }}
+              style={{ color: GREEN }}
             >
               Simple onboarding
             </div>
@@ -366,11 +466,9 @@ export default function LandingPage() {
                 <div
                   className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 font-bold text-xl"
                   style={{
-                    backgroundColor:
-                      index === 0 ? 'oklch(0.6236 0.1833 147.4139)' : 'white',
-                    color:
-                      index === 0 ? 'white' : 'oklch(0.6236 0.1833 147.4139)',
-                    border: '2px solid oklch(0.6236 0.1833 147.4139 / 0.3)',
+                    backgroundColor: index === 0 ? GREEN : 'white',
+                    color: index === 0 ? 'white' : GREEN,
+                    border: `2px solid oklch(0.6236 0.1833 147.4139 / 0.3)`,
                   }}
                 >
                   {step.number}
@@ -385,47 +483,48 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-24">
+      {/* CTA — with image */}
+      <section className="py-24 bg-white">
         <div className="max-w-6xl mx-auto px-6">
-          <div
-            className="relative rounded-3xl overflow-hidden p-12 text-center"
-            style={{
-              background:
-                'linear-gradient(135deg, oklch(0.6236 0.1833 147.4139), oklch(0.6999 0.1796 150.1066))',
-            }}
-          >
-            <div
-              className="absolute top-0 right-0 w-64 h-64 rounded-full opacity-10 bg-white"
-              style={{ transform: 'translate(30%, -30%)' }}
-            />
-            <div
-              className="absolute bottom-0 left-0 w-48 h-48 rounded-full opacity-10 bg-white"
-              style={{ transform: 'translate(-30%, 30%)' }}
-            />
-            <div className="relative">
+          <div className="relative rounded-3xl overflow-hidden">
+            {/* Background image */}
+            <div className="absolute inset-0">
+              <img
+                src="https://images.unsplash.com/photo-1582750433449-648ed127bb54?auto=format&fit=crop&w=1600&q=80"
+                alt="Healthcare professionals"
+                className="w-full h-full object-cover"
+              />
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: 'linear-gradient(135deg, oklch(0.6236 0.1833 147.4139 / 0.92), oklch(0.4 0.18 147 / 0.96))',
+                }}
+              />
+            </div>
+
+            <div className="relative p-12 md:p-16 text-center">
+              <div className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full border border-white/30 text-white/90 mb-6 bg-white/10">
+                <svg viewBox="0 0 24 24" fill="white" className="w-3.5 h-3.5">
+                  <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+                </svg>
+                Care-first · Secure · Always on
+              </div>
               <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight">
-                Ready to transform
-                <br />
-                your clinic?
+                Ready to put patients first?
               </h2>
               <p className="mt-4 text-lg text-white/80 max-w-xl mx-auto">
-                Join hundreds of healthcare providers who have simplified their practice management
-                with ClinicCore.
+                Join hundreds of healthcare providers who have transformed their practice with ClinicCore.
+                Better care starts here.
               </p>
               <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link
                   to="/register"
                   className="inline-flex items-center gap-2 text-base font-semibold px-8 py-3.5 rounded-xl transition-all hover:opacity-90 bg-white"
-                  style={{ color: 'oklch(0.6236 0.1833 147.4139)' }}
+                  style={{ color: GREEN }}
                 >
                   Create free account
                   <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path
-                      fillRule="evenodd"
-                      d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z"
-                      clipRule="evenodd"
-                    />
+                    <path fillRule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clipRule="evenodd" />
                   </svg>
                 </Link>
                 <Link
@@ -447,7 +546,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-2">
             <div
               className="w-7 h-7 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: 'oklch(0.6236 0.1833 147.4139)' }}
+              style={{ backgroundColor: GREEN }}
             >
               <svg viewBox="0 0 24 24" fill="white" className="w-3.5 h-3.5">
                 <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
@@ -456,15 +555,11 @@ export default function LandingPage() {
             <span className="text-sm font-bold text-gray-900">ClinicCore</span>
           </div>
           <p className="text-sm text-gray-400">
-            © {new Date().getFullYear()} ClinicCore. Modern clinic management for modern healthcare.
+            © {new Date().getFullYear()} ClinicCore. Care-first clinic management.
           </p>
           <div className="flex items-center gap-6 text-sm text-gray-400">
-            <Link to="/login" className="hover:text-gray-600 transition-colors">
-              Sign in
-            </Link>
-            <Link to="/register" className="hover:text-gray-600 transition-colors">
-              Register
-            </Link>
+            <Link to="/login" className="hover:text-gray-600 transition-colors">Sign in</Link>
+            <Link to="/register" className="hover:text-gray-600 transition-colors">Register</Link>
           </div>
         </div>
       </footer>
