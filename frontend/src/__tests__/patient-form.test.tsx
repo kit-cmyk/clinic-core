@@ -2,12 +2,6 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { PatientForm, MOCK_PATIENTS } from '@/components/patients/PatientForm'
 
-function fill(label: string, value: string) {
-  const el = screen.getByRole('textbox', { name: new RegExp(label, 'i') })
-    ?? screen.getByLabelText(new RegExp(label, 'i'))
-  fireEvent.change(el, { target: { value } })
-}
-
 describe('PatientForm', () => {
   it('renders add patient form with all fields', () => {
     render(<PatientForm open={true} onClose={vi.fn()} onSave={vi.fn()} />)

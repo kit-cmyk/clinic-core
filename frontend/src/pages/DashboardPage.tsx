@@ -1,5 +1,9 @@
 import { useState, useMemo, useEffect } from 'react'
-import { CalendarDays, Users, FlaskConical, Receipt, Stethoscope, Plus } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import {
+  CalendarDays, Users, FlaskConical, Receipt, Stethoscope, Plus,
+  UserCheck, UserPlus, Clock, ChevronRight, ClipboardCheck,
+} from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -12,9 +16,14 @@ import {
   SheetTitle,
   SheetFooter,
 } from '@/components/ui/sheet'
+import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { PatientForm, MOCK_PATIENTS } from '@/components/patients/PatientForm'
-import type { Patient } from '@/types'
+import type { Patient, Role } from '@/types'
+
+// ── Types ──────────────────────────────────────────────────────────────────────
+
+type AppointmentStatus = 'booked' | 'confirmed' | 'checked-in' | 'completed' | 'no-show'
 
 // ── Shared mock data ───────────────────────────────────────────────────────────
 
@@ -45,16 +54,35 @@ const PROF_SCHEDULES = [
   { professionalId: 'p5', weekday: 3, startTime: '10:00', endTime: '18:00' },
 ]
 
-const TODAY_APPTS = [
-  { id: 'a10', patientName: 'John Doe',       professionalId: 'p1', status: 'booked' as const },
-  { id: 'a11', patientName: 'Jane Smith',     professionalId: 'p2', status: 'booked' as const },
-  { id: 'a12', patientName: 'Carlos Rivera',  professionalId: 'p3', status: 'booked' as const },
-  { id: 'a13', patientName: 'Priya Sharma',   professionalId: 'p4', status: 'booked' as const },
-  { id: 'a14', patientName: 'Aisha Patel',    professionalId: 'p5', status: 'booked' as const },
-  { id: 'a15', patientName: 'Tom Wilson',     professionalId: 'p1', status: 'booked' as const },
+// Expanded with times and mixed statuses for CC-111/CC-112/CC-117
+const TODAY_APPTS: {
+  id: string
+  patientName: string
+  professionalId: string
+  status: AppointmentStatus
+  startTime: string
+  arrivedAt: string | null
+}[] = [
+  { id: 'a10', patientName: 'John Doe',       professionalId: 'p1', status: 'completed',  startTime: '08:00', arrivedAt: null },
+  { id: 'a11', patientName: 'Jane Smith',     professionalId: 'p2', status: 'checked-in', startTime: '09:00', arrivedAt: '08:52' },
+  { id: 'a12', patientName: 'Carlos Rivera',  professionalId: 'p3', status: 'confirmed',  startTime: '09:30', arrivedAt: null },
+  { id: 'a13', patientName: 'Priya Sharma',   professionalId: 'p4', status: 'checked-in', startTime: '09:40', arrivedAt: '09:35' },
+  { id: 'a14', patientName: 'Aisha Patel',    professionalId: 'p5', status: 'booked',     startTime: '10:30', arrivedAt: null },
+  { id: 'a15', patientName: 'Tom Wilson',     professionalId: 'p1', status: 'booked',     startTime: '11:00', arrivedAt: null },
+  { id: 'a16', patientName: 'Maria Lopez',    professionalId: 'p2', status: 'no-show',    startTime: '11:30', arrivedAt: null },
+  { id: 'a17', patientName: 'David Chen',     professionalId: 'p3', status: 'booked',     startTime: '13:00', arrivedAt: null },
+]
+
+// Pending actions mock data for CC-113
+const PENDING_ACTIONS: { label: string; count: number; href: string; roles: Role[] }[] = [
+  { label: 'lab results to publish', count: 3,  href: '/lab/publish', roles: ['lab_technician', 'org_admin', 'branch_manager', 'doctor'] },
+  { label: 'prescriptions to sign',  count: 2,  href: '/patients',    roles: ['doctor'] },
+  { label: 'invoices unpaid',        count: 5,  href: '/billing',     roles: ['receptionist', 'org_admin', 'branch_manager'] },
 ]
 
 const APPOINTMENT_TYPES = ['Consultation', 'Follow-up', 'Lab Review', 'New Patient', 'Emergency']
+
+// ── Utility helpers ────────────────────────────────────────────────────────────
 
 function fmt(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -81,14 +109,376 @@ function generateSlots(startTime: string, endTime: string, slotMins: number): st
   return slots
 }
 
+/** Minutes between two HH:MM strings. Positive if b > a. */
+function minutesBetween(a: string, b: string): number {
+  const [ah, am] = a.split(':').map(Number)
+  const [bh, bm] = b.split(':').map(Number)
+  return (bh * 60 + bm) - (ah * 60 + am)
+}
+
+// ── Status colour helpers ──────────────────────────────────────────────────────
+
+const STATUS_COLORS: Record<AppointmentStatus, string> = {
+  completed:  'bg-emerald-500',
+  'checked-in': 'bg-amber-400',
+  confirmed:  'bg-blue-500',
+  booked:     'bg-slate-400',
+  'no-show':  'bg-destructive',
+}
+
+const STATUS_BADGE_VARIANT: Record<AppointmentStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  completed:    'default',
+  'checked-in': 'default',
+  confirmed:    'secondary',
+  booked:       'outline',
+  'no-show':    'destructive',
+}
+
 // ── Stat cards ────────────────────────────────────────────────────────────────
 
 const STAT_CARDS = [
-  { title: "Today's Appointments", value: '24', change: '+4 from yesterday', icon: CalendarDays, trend: 'up' as const },
-  { title: 'Active Patients',      value: '1,284', change: '+12 this week', icon: Users,        trend: 'up' as const },
-  { title: 'Pending Lab Results',  value: '7',  change: '3 urgent',        icon: FlaskConical, trend: 'neutral' as const },
-  { title: 'Outstanding Invoices', value: '₱38,450', change: '5 overdue', icon: Receipt,      trend: 'down' as const },
+  { title: "Today's Appointments", value: '24',      change: '+4 from yesterday', icon: CalendarDays, trend: 'up' as const },
+  { title: 'Active Patients',      value: '1,284',   change: '+12 this week',    icon: Users,        trend: 'up' as const },
+  { title: 'Pending Lab Results',  value: '7',       change: '3 urgent',         icon: FlaskConical, trend: 'neutral' as const },
+  { title: 'Outstanding Invoices', value: '₱38,450', change: '5 overdue',        icon: Receipt,      trend: 'down' as const },
 ]
+
+// ── CC-117: Appointment Status Breakdown Bar ───────────────────────────────────
+
+function AppointmentStatusBar({ appts }: { appts: typeof TODAY_APPTS }) {
+  const total = appts.length
+  if (total === 0) return null
+
+  const counts = appts.reduce((acc, a) => {
+    acc[a.status] = (acc[a.status] ?? 0) + 1
+    return acc
+  }, {} as Record<AppointmentStatus, number>)
+
+  const segments: { status: AppointmentStatus; pct: number; count: number }[] =
+    (['completed', 'checked-in', 'confirmed', 'booked', 'no-show'] as AppointmentStatus[])
+      .filter(s => (counts[s] ?? 0) > 0)
+      .map(s => ({ status: s, count: counts[s], pct: (counts[s] / total) * 100 }))
+
+  return (
+    <div className="px-6 pb-3">
+      <div className="flex h-2 rounded-full overflow-hidden gap-px">
+        {segments.map(seg => (
+          <div
+            key={seg.status}
+            className={cn('h-full', STATUS_COLORS[seg.status])}
+            style={{ width: `${seg.pct}%` }}
+            title={`${seg.count} ${seg.status}`}
+          />
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5">
+        {segments.map(seg => (
+          <span key={seg.status} className="flex items-center gap-1 text-[10px] text-muted-foreground">
+            <span className={cn('inline-block h-2 w-2 rounded-full', STATUS_COLORS[seg.status])} />
+            {seg.count} {seg.status}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── CC-114: Slot Utilization Bar ──────────────────────────────────────────────
+
+function SlotUtilizationBar({ totalSlots, bookedSlots }: { totalSlots: number; bookedSlots: number }) {
+  if (totalSlots === 0) return null
+  const pct = Math.round((bookedSlots / totalSlots) * 100)
+  const barColor = pct >= 90 ? 'bg-destructive' : pct >= 70 ? 'bg-amber-400' : 'bg-emerald-500'
+
+  return (
+    <div className="mt-1.5">
+      <div className="flex h-1.5 w-full rounded-full overflow-hidden bg-muted">
+        <div
+          className={cn('h-full rounded-full transition-all', barColor)}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <p className="text-[10px] text-muted-foreground mt-0.5">{pct}% utilised · {bookedSlots}/{totalSlots} slots</p>
+    </div>
+  )
+}
+
+// ── CC-111: Appointment Timeline Strip ────────────────────────────────────────
+
+function AppointmentTimeline({ appts }: { appts: typeof TODAY_APPTS }) {
+  const sorted = [...appts].sort((a, b) => a.startTime.localeCompare(b.startTime))
+
+  if (sorted.length === 0) {
+    return (
+      <Card>
+        <CardHeader><CardTitle className="text-base flex items-center gap-2"><Clock className="h-4 w-4 text-muted-foreground" />Today's Timeline</CardTitle></CardHeader>
+        <CardContent><p className="text-sm text-muted-foreground">No appointments scheduled.</p></CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Clock className="h-4 w-4 text-muted-foreground" />
+          Today's Timeline
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="px-4 pb-4">
+        <div className="relative">
+          {/* Vertical line */}
+          <div className="absolute left-[52px] top-2 bottom-2 w-px bg-border" />
+
+          {sorted.map((appt, i) => {
+            const prev = sorted[i - 1]
+            const gap = prev ? minutesBetween(prev.startTime, appt.startTime) : 0
+            const prof = PROFESSIONALS.find(p => p.id === appt.professionalId)
+
+            return (
+              <div key={appt.id}>
+                {/* Gap indicator */}
+                {gap > 60 && (
+                  <div className="flex items-center gap-2 pl-[68px] py-1">
+                    <span className="text-[10px] text-muted-foreground/60 italic">{gap} min gap</span>
+                  </div>
+                )}
+                <div className="flex items-start gap-3 py-1.5">
+                  {/* Time */}
+                  <span className="text-xs text-muted-foreground w-12 shrink-0 text-right pt-0.5 tabular-nums">
+                    {appt.startTime}
+                  </span>
+                  {/* Dot */}
+                  <div className={cn('h-3 w-3 rounded-full mt-1 shrink-0 ring-2 ring-background z-10', STATUS_COLORS[appt.status])} />
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium leading-tight">{appt.patientName}</p>
+                    <p className="text-xs text-muted-foreground truncate">{prof?.name}</p>
+                  </div>
+                  <Badge
+                    variant={STATUS_BADGE_VARIANT[appt.status]}
+                    className="text-[10px] capitalize shrink-0"
+                  >
+                    {appt.status}
+                  </Badge>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ── CC-112: Check-In Queue ────────────────────────────────────────────────────
+
+function CheckInQueue({ appts }: { appts: typeof TODAY_APPTS }) {
+  // Mock current time as 10:15 for demo purposes
+  const NOW = '10:15'
+  const queue = appts
+    .filter(a => a.status === 'checked-in' && a.arrivedAt)
+    .sort((a, b) => (a.arrivedAt ?? '').localeCompare(b.arrivedAt ?? ''))
+
+  const waitMins = (arrivedAt: string) => minutesBetween(arrivedAt, NOW)
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2">
+          <UserCheck className="h-4 w-4 text-muted-foreground" />
+          Check-In Queue
+          {queue.length > 0 && (
+            <Badge variant="default" className="text-xs ml-auto">{queue.length} waiting</Badge>
+          )}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-0">
+        {queue.length === 0 ? (
+          <p className="text-sm text-muted-foreground px-6 pb-4">No patients currently waiting.</p>
+        ) : (
+          <div className="divide-y divide-border">
+            {queue.map(appt => {
+              const prof = PROFESSIONALS.find(p => p.id === appt.professionalId)
+              const wait = waitMins(appt.arrivedAt!)
+              return (
+                <div key={appt.id} className="flex items-center justify-between px-6 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                      <span className="text-amber-700 text-xs font-medium">{appt.patientName.charAt(0)}</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{appt.patientName}</p>
+                      <p className="text-xs text-muted-foreground">{prof?.name} · appt {appt.startTime}</p>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className={cn('text-sm font-semibold', wait > 30 ? 'text-destructive' : wait > 15 ? 'text-amber-600' : 'text-emerald-600')}>
+                      {wait}m wait
+                    </p>
+                    <p className="text-xs text-muted-foreground">arrived {appt.arrivedAt}</p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+// ── CC-113: Pending Actions Bar ────────────────────────────────────────────────
+
+function PendingActionsBar({ role }: { role: Role }) {
+  const navigate = useNavigate()
+  const visible = PENDING_ACTIONS.filter(a => a.roles.includes(role) && a.count > 0)
+  if (visible.length === 0) return null
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-xs text-muted-foreground shrink-0">Pending:</span>
+      {visible.map(action => (
+        <button
+          key={action.label}
+          onClick={() => navigate(action.href)}
+          className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-3 py-1 text-xs font-medium text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors"
+        >
+          <span className="h-4 w-4 rounded-full bg-amber-400 text-white flex items-center justify-center text-[10px] font-bold">{action.count}</span>
+          {action.label}
+          <ChevronRight className="h-3 w-3 opacity-60" />
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// ── CC-115: Quick-Action Bar ──────────────────────────────────────────────────
+
+interface QuickAction {
+  label: string
+  icon: React.ElementType
+  roles: Role[]
+  action: 'book' | 'checkin' | 'addpatient' | 'lab' | 'invoice'
+}
+
+const QUICK_ACTIONS: QuickAction[] = [
+  { label: 'New Appointment',   icon: CalendarDays,    roles: ['receptionist', 'branch_manager', 'org_admin'],                                  action: 'book' },
+  { label: 'Check-In Patient',  icon: UserCheck,       roles: ['receptionist', 'branch_manager', 'org_admin', 'nurse'],                        action: 'checkin' },
+  { label: 'Add Patient',       icon: UserPlus,        roles: ['receptionist', 'branch_manager', 'org_admin', 'nurse'],                        action: 'addpatient' },
+  { label: 'Publish Lab Result',icon: FlaskConical,    roles: ['lab_technician', 'org_admin', 'branch_manager'],                               action: 'lab' },
+  { label: 'New Invoice',       icon: Receipt,         roles: ['receptionist', 'org_admin', 'branch_manager'],                                  action: 'invoice' },
+]
+
+function QuickActionBar({ role, onBook }: { role: Role; onBook: () => void }) {
+  const navigate = useNavigate()
+  const visible = QUICK_ACTIONS.filter(a => a.roles.includes(role))
+  if (visible.length === 0) return null
+
+  const handleAction = (action: QuickAction['action']) => {
+    if (action === 'book') { onBook(); return }
+    if (action === 'checkin')    navigate('/check-in')
+    if (action === 'addpatient') navigate('/patients')
+    if (action === 'lab')        navigate('/lab/publish')
+    if (action === 'invoice')    navigate('/billing')
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {visible.map(qa => (
+        <Button
+          key={qa.action}
+          variant="outline"
+          size="sm"
+          className="gap-1.5 text-xs h-8"
+          onClick={() => handleAction(qa.action)}
+        >
+          <qa.icon className="h-3.5 w-3.5" />
+          {qa.label}
+        </Button>
+      ))}
+    </div>
+  )
+}
+
+// ── CC-116: Walk-In Slot Finder ───────────────────────────────────────────────
+
+function WalkInSlotFinder({
+  todayWd,
+  onBook,
+}: {
+  todayWd: number
+  onBook: (profId: string, slot: string) => void
+}) {
+  const availableToday = PROFESSIONALS.filter(p =>
+    PROF_SCHEDULES.some(s => s.professionalId === p.id && s.weekday === todayWd)
+  )
+  const [selectedProfId, setSelectedProfId] = useState(availableToday[0]?.id ?? '')
+
+  const nextSlot = useMemo(() => {
+    if (!selectedProfId) return null
+    const prof = PROFESSIONALS.find(p => p.id === selectedProfId)
+    const sched = PROF_SCHEDULES.find(s => s.professionalId === selectedProfId && s.weekday === todayWd)
+    if (!prof || !sched) return null
+    const allSlots = generateSlots(sched.startTime, sched.endTime, prof.slotMins)
+    const bookedSlots = new Set(
+      TODAY_APPTS
+        .filter(a => a.professionalId === selectedProfId && a.status !== 'no-show' && a.status !== 'completed')
+        .map(a => a.startTime)
+    )
+    return allSlots.find(s => !bookedSlots.has(s)) ?? null
+  }, [selectedProfId, todayWd])
+
+  if (availableToday.length === 0) return null
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <ClipboardCheck className="h-4 w-4 text-muted-foreground" />
+          Walk-In Slot Finder
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col sm:flex-row items-start sm:items-end gap-3">
+          <div className="space-y-1 flex-1 min-w-0">
+            <Label className="text-xs">Professional</Label>
+            <select
+              aria-label="Professional"
+              className="border rounded-md px-3 py-1.5 text-sm bg-background w-full"
+              value={selectedProfId}
+              onChange={e => setSelectedProfId(e.target.value)}
+            >
+              {availableToday.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-3">
+            {nextSlot ? (
+              <>
+                <div className="text-center">
+                  <p className="text-[10px] text-muted-foreground">Next open slot</p>
+                  <p className="text-xl font-bold tabular-nums text-foreground">{nextSlot}</p>
+                </div>
+                <Button
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => onBook(selectedProfId, nextSlot)}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Book Now
+                </Button>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">No open slots today</p>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
 
 // ── Book Appointment Sheet ─────────────────────────────────────────────────────
 
@@ -106,10 +496,12 @@ function BookAppointmentSheet({
   open,
   onClose,
   prefillProfId,
+  prefillSlot,
 }: {
   open: boolean
   onClose: () => void
   prefillProfId?: string
+  prefillSlot?: string
 }) {
   const [patients,        setPatients]        = useState<Patient[]>(MOCK_PATIENTS)
   const [patientSearch,   setPatientSearch]   = useState('')
@@ -155,18 +547,19 @@ function BookAppointmentSheet({
     const wd = toWeekday(new Date())
     const sched = PROF_SCHEDULES.find(s => s.professionalId === profId && s.weekday === wd)
     const slots = sched && prof ? generateSlots(sched.startTime, sched.endTime, prof.slotMins) : []
+    const initialSlot = (prefillSlot && slots.includes(prefillSlot)) ? prefillSlot : (slots[0] ?? '')
     setForm({
       patientId: '',
       patientName: '',
       professionalId: profId,
       date: today,
-      startTime: slots[0] ?? '',
+      startTime: initialSlot,
       durationMins: prof?.slotMins ?? 30,
       type: APPOINTMENT_TYPES[0],
     })
     setPatientSearch('')
     setSuccess(false)
-  }, [open, prefillProfId])
+  }, [open, prefillProfId, prefillSlot])
 
   // Update startTime when slots change
   useEffect(() => {
@@ -355,22 +748,38 @@ function BookAppointmentSheet({
 
 export function DashboardPage() {
   const { user } = useAuth()
-  const canBook = user?.role === 'receptionist' || user?.role === 'branch_manager' || user?.role === 'org_admin' || !user
+  const role: Role = user?.role ?? 'receptionist'
+  const canBook = ['receptionist', 'branch_manager', 'org_admin'].includes(role) || !user
 
   const [bookOpen,      setBookOpen]      = useState(false)
   const [prefillProfId, setPrefillProfId] = useState<string | undefined>(undefined)
+  const [prefillSlot,   setPrefillSlot]   = useState<string | undefined>(undefined)
 
   const todayWd = toWeekday(new Date())
-  const profAvailability = PROFESSIONALS.map(p => ({
-    ...p,
-    available: PROF_SCHEDULES.some(s => s.professionalId === p.id && s.weekday === todayWd),
-    todayApptCount: TODAY_APPTS.filter(a => a.professionalId === p.id).length,
-  }))
 
-  const openBook = (profId?: string) => { setPrefillProfId(profId); setBookOpen(true) }
+  const profAvailability = PROFESSIONALS.map(p => {
+    const sched = PROF_SCHEDULES.find(s => s.professionalId === p.id && s.weekday === todayWd)
+    const totalSlots = sched ? generateSlots(sched.startTime, sched.endTime, p.slotMins).length : 0
+    const bookedSlots = TODAY_APPTS.filter(
+      a => a.professionalId === p.id && a.status !== 'no-show'
+    ).length
+    return {
+      ...p,
+      available: !!sched,
+      todayApptCount: TODAY_APPTS.filter(a => a.professionalId === p.id).length,
+      totalSlots,
+      bookedSlots,
+    }
+  })
+
+  const openBook = (profId?: string, slot?: string) => {
+    setPrefillProfId(profId)
+    setPrefillSlot(slot)
+    setBookOpen(true)
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -412,12 +821,23 @@ export function DashboardPage() {
         ))}
       </div>
 
+      {/* CC-115: Quick-action bar */}
+      <QuickActionBar role={role} onBook={() => openBook()} />
+
+      {/* CC-113: Pending actions */}
+      <PendingActionsBar role={role} />
+
+      {/* CC-116: Walk-in slot finder */}
+      <WalkInSlotFinder todayWd={todayWd} onBook={openBook} />
+
+      {/* Row 1: Today's Appointments + Professionals Today */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Today's Appointments */}
+        {/* Today's Appointments — CC-117 status bar */}
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-1">
             <CardTitle className="text-base">Today's Appointments</CardTitle>
           </CardHeader>
+          <AppointmentStatusBar appts={TODAY_APPTS} />
           <CardContent className="p-0">
             <div className="divide-y divide-border">
               {TODAY_APPTS.map((appt) => (
@@ -428,17 +848,22 @@ export function DashboardPage() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-foreground">{appt.patientName}</p>
-                      <p className="text-xs text-muted-foreground">{PROFESSIONALS.find(p => p.id === appt.professionalId)?.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {PROFESSIONALS.find(p => p.id === appt.professionalId)?.name}
+                        {appt.startTime && <span className="ml-1 tabular-nums">· {appt.startTime}</span>}
+                      </p>
                     </div>
                   </div>
-                  <Badge variant="default" className="capitalize text-xs">{appt.status}</Badge>
+                  <Badge variant={STATUS_BADGE_VARIANT[appt.status]} className="capitalize text-xs">
+                    {appt.status}
+                  </Badge>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
 
-        {/* Professionals available today */}
+        {/* Professionals Today — CC-114 utilization bars */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-base flex items-center gap-2">
@@ -456,13 +881,19 @@ export function DashboardPage() {
                   role={canBook ? 'button' : undefined}
                   aria-label={canBook ? `Book appointment with ${p.name}` : undefined}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <span className="text-primary text-xs font-medium">{p.name.charAt(0)}</span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">{p.name}</p>
-                      <p className="text-xs text-muted-foreground">{p.specialization} · {p.slotMins} min slots</p>
+                  <div className="flex-1 min-w-0 mr-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <span className="text-primary text-xs font-medium">{p.name.charAt(0)}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">{p.name}</p>
+                        <p className="text-xs text-muted-foreground">{p.specialization} · {p.slotMins} min slots</p>
+                        {/* CC-114 utilization bar */}
+                        {p.available && (
+                          <SlotUtilizationBar totalSlots={p.totalSlots} bookedSlots={p.bookedSlots} />
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -480,10 +911,17 @@ export function DashboardPage() {
         </Card>
       </div>
 
+      {/* Row 2: Timeline + Check-in queue — CC-111, CC-112 */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <AppointmentTimeline appts={TODAY_APPTS} />
+        <CheckInQueue appts={TODAY_APPTS} />
+      </div>
+
       <BookAppointmentSheet
         open={bookOpen}
         onClose={() => setBookOpen(false)}
         prefillProfId={prefillProfId}
+        prefillSlot={prefillSlot}
       />
     </div>
   )

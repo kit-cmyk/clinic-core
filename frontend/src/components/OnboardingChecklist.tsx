@@ -8,7 +8,7 @@ import { useOnboardingStore, ONBOARDING_STEPS } from '@/store/onboarding'
 
 export function OnboardingChecklist() {
   const { user } = useAuth()
-  const { loadForUser, completedSteps, isPanelOpen, openPanel, closePanel, togglePanel } =
+  const { loadForUser, completedSteps, isPanelOpen, openPanel, closePanel } =
     useOnboardingStore()
   const navigate = useNavigate()
 
