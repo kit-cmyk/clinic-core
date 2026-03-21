@@ -551,7 +551,7 @@ export function TenantsPage() {
   const user = useAuthStore((s) => s.user)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'All' | TenantStatus>('All')
-  const [selectedId, setSelectedId] = useState<string | null>(MOCK_TENANTS[0]?.id ?? null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   if (user?.role !== 'super_admin') {
     return (

@@ -26,7 +26,7 @@ describe('LoginPage', () => {
   it('renders email and password fields', () => {
     renderWithRouter(loginRoutes, '/login')
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/password/i)).toBeInTheDocument()
+    expect(screen.getByLabelText('Password')).toBeInTheDocument()
   })
 
   it('shows validation error when submitted empty', async () => {
@@ -38,7 +38,7 @@ describe('LoginPage', () => {
   it('shows loading state on submit with credentials', async () => {
     renderWithRouter(loginRoutes, '/login')
     await userEvent.type(screen.getByLabelText(/email/i), 'user@test.com')
-    await userEvent.type(screen.getByLabelText(/password/i), 'password123')
+    await userEvent.type(screen.getByLabelText('Password'), 'password123')
     await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
     expect(screen.getByText(/signing in/i)).toBeInTheDocument()
   })

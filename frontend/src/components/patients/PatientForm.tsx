@@ -128,13 +128,13 @@ export function PatientForm({ open, onClose, onSave, initialValues }: PatientFor
           {/* Name */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label className="text-xs">First Name *</Label>
-              <Input value={form.firstName} onChange={e => set('firstName', e.target.value)} placeholder="e.g. Maria" />
+              <Label htmlFor="firstName" className="text-xs">First Name *</Label>
+              <Input id="firstName" value={form.firstName} onChange={e => set('firstName', e.target.value)} placeholder="e.g. Maria" />
               {errors.firstName && <p className="text-xs text-destructive">{errors.firstName}</p>}
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Last Name *</Label>
-              <Input value={form.lastName} onChange={e => set('lastName', e.target.value)} placeholder="e.g. Santos" />
+              <Label htmlFor="lastName" className="text-xs">Last Name *</Label>
+              <Input id="lastName" value={form.lastName} onChange={e => set('lastName', e.target.value)} placeholder="e.g. Santos" />
               {errors.lastName && <p className="text-xs text-destructive">{errors.lastName}</p>}
             </div>
           </div>
@@ -142,8 +142,8 @@ export function PatientForm({ open, onClose, onSave, initialValues }: PatientFor
           {/* DOB + Sex */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label className="text-xs">Date of Birth</Label>
-              <Input type="date" value={form.dob} onChange={e => set('dob', e.target.value)} />
+              <Label htmlFor="dob" className="text-xs">Date of Birth</Label>
+              <Input id="dob" type="date" value={form.dob} onChange={e => set('dob', e.target.value)} />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Sex *</Label>
@@ -163,8 +163,8 @@ export function PatientForm({ open, onClose, onSave, initialValues }: PatientFor
           {/* Phone + Blood Type */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label className="text-xs">Phone *</Label>
-              <Input value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="09171234567" />
+              <Label htmlFor="phone" className="text-xs">Phone *</Label>
+              <Input id="phone" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="09171234567" />
               {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
             </div>
             <div className="space-y-1">

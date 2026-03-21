@@ -26,7 +26,7 @@ describe('DashboardPage — stat cards and layout (CC-102)', () => {
     // Stat card titles (may appear multiple times — also in the Today's Appointments section heading)
     expect(screen.getAllByText("Today's Appointments").length).toBeGreaterThan(0)
     expect(screen.getByText('Active Patients')).toBeInTheDocument()
-    expect(screen.getByText('Pending Lab Results')).toBeInTheDocument()
+    expect(screen.getAllByText('Pending Lab Results').length).toBeGreaterThan(0)
     expect(screen.getByText('Outstanding Invoices')).toBeInTheDocument()
   })
 
@@ -40,8 +40,8 @@ describe('DashboardPage — stat cards and layout (CC-102)', () => {
 
   it('Book Appointment header button opens the booking sheet', async () => {
     renderDashboard()
-    // The header button has aria-label="Book appointment" (distinct from per-row "Book appointment with X")
-    const bookBtn = screen.getByRole('button', { name: /^book appointment$/i })
+    // The quick-action bar shows "New Appointment" for receptionist role (default when user is null)
+    const bookBtn = screen.getByRole('button', { name: /^new appointment$/i })
     await user.click(bookBtn)
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /book appointment/i })).toBeInTheDocument()

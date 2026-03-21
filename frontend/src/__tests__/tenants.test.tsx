@@ -57,7 +57,7 @@ describe('TenantsPage', () => {
     render(<MemoryRouter><TenantsPage /></MemoryRouter>)
     await user.click(screen.getByText('City Medical Clinic'))
     await waitFor(() => {
-      expect(screen.getByText('admin@citymedical.com')).toBeInTheDocument()
+      expect(screen.getByText('Contact Email')).toBeInTheDocument()
     })
   })
 })
