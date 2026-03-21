@@ -1,6 +1,6 @@
 # ClinicAlly 2.0 — Client Testing Guide
 
-Version: 0.1.0 | Last updated: 2026-03-17
+Version: 0.1.0 | Last updated: 2026-03-21
 
 ## How to use this guide
 

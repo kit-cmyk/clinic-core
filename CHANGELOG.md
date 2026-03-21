@@ -12,6 +12,9 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 ## [Unreleased]
 
+### Changed
+- Rebranded application name from ClinicCore to ClinicAlly across all pages, layouts, metadata, and documentation
+
 ### Added
 - Tenant CRUD API: GET/POST /api/v1/tenants + GET/PUT /api/v1/tenants/:id + GET /api/v1/tenants/:id/storage-usage; SUPER_ADMIN only; slug validation; BigInt serialisation; P2002 → 409, P2025 → 404; 19 Jest tests (CC-28, CC-31)
 - Storage limit enforcement middleware: enforceStorageLimit() blocks uploads exceeding tenant limit with HTTP 413; SUPER_ADMIN bypass; fail-open on storage service errors; getTenantStorageUsed() sums Supabase Storage file sizes; 17 Jest tests (CC-30, CC-31)
