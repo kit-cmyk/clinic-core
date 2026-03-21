@@ -1,9 +1,33 @@
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
+import pinoHttp from 'pino-http';
+import * as Sentry from '@sentry/node';
 import { env } from './config/env.js';
+import { logger } from './lib/logger.js';
+import { auditMiddleware } from './lib/auditLog.js';
+import { prisma } from './models/prisma.js';
 
 const app = express();
+
+// ── Request logging ───────────────────────────────────────────────────────
+// Redact sensitive fields so PHI never appears in logs (HIPAA § 164.312(b)).
+app.use(pinoHttp({
+  logger,
+  autoLogging: { ignore: (req) => req.url === '/health' },
+  redact: {
+    paths: [
+      'req.headers.authorization',
+      'req.body.password',
+      'req.body.phone',
+      'req.body.dob',
+      'req.body.allergies',
+      'req.body.bloodType',
+      'req.body.refresh_token',
+    ],
+    censor: '[redacted]',
+  },
+}));
 
 // ── Security headers ──────────────────────────────────────────────────────
 app.use(helmet());
@@ -24,9 +48,20 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// ── Audit logging helper ──────────────────────────────────────────────────
+// Attaches req.audit() to every request (populated with actor after auth).
+app.use(auditMiddleware);
+
 // ── Health check ──────────────────────────────────────────────────────────
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', env: env.NODE_ENV });
+// Checks DB connectivity so Render and uptime monitors get a real signal.
+app.get('/health', async (_req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: 'ok', db: 'up', env: env.NODE_ENV });
+  } catch (err) {
+    logger.error({ err }, '[health] DB check failed');
+    res.status(503).json({ status: 'degraded', db: 'down', env: env.NODE_ENV });
+  }
 });
 
 // ── API routes ────────────────────────────────────────────────────────────
@@ -58,10 +93,15 @@ app.use((_req, res) => {
   res.status(404).json({ error: 'not_found', message: 'Route not found' });
 });
 
+// ── Sentry error handler (must be before our error handler) ───────────────
+if (env.SENTRY_DSN) {
+  Sentry.setupExpressErrorHandler(app);
+}
+
 // ── Global error handler ──────────────────────────────────────────────────
 // eslint-disable-next-line no-unused-vars
 app.use((err, _req, res, _next) => {
-  console.error('[error]', err);
+  logger.error({ err }, '[error] unhandled exception');
   const status = err.status || err.statusCode || 500;
   res.status(status).json({
     error: err.code || 'internal_error',

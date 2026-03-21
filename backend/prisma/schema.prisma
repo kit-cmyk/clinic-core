@@ -635,3 +635,26 @@ model MaintenanceWindow {
   @@index([startsAt])
   @@map("maintenance_windows")
 }
+
+// ── Audit Logs ────────────────────────────────────────────────────────────────
+// Immutable record of who did what and when. Required for HIPAA compliance.
+// Never deleted — archive-only lifecycle.
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  tenantId     String?  // null for platform-level (super admin) actions
+  actorId      String?  // User.id — null for unauthenticated events (e.g. failed login)
+  actorRole    String?  // Role at time of action
+  action       String   // Dot-namespaced: "auth.login", "patient.viewed", "user.created"
+  resourceType String?  // Model name: "Patient", "User", "Tenant"
+  resourceId   String?  // ID of the affected record
+  metadata     Json?    // Structured extra context (search terms, field changes, etc.)
+  ip           String?  // Client IP address
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([actorId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

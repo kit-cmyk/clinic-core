@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { useAuth } from '@/hooks/useAuth'
+import { useIdleLogout } from '@/hooks/useIdleLogout'
 import { OnboardingChecklist } from '@/components/OnboardingChecklist'
 import type { Role } from '@/types'
 
@@ -378,6 +379,9 @@ export function AppLayout() {
   })
   const { isOnline } = useNetworkStatus()
   const sync = useSyncStatus()
+
+  // Auto-logout after 15 minutes of inactivity (HIPAA § 164.312(a)(2)(iii))
+  useIdleLogout()
 
   const handleToggleCollapse = () => {
     setCollapsed((prev) => {

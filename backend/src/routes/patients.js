@@ -1,10 +1,24 @@
 import express from 'express';
+import { z } from 'zod';
 import { createRequireAuth } from '../middleware/auth.js';
 import { requirePermission } from '../middleware/rbac.js';
 import { prisma as defaultPrisma } from '../models/prisma.js';
 import { createSmsService } from '../lib/sms.js';
 import { createSupabaseAdminClient } from '../lib/supabase.js';
 import { env } from '../config/env.js';
+import { inviteLimiter } from '../middleware/rateLimiter.js';
+import { validate } from '../middleware/validate.js';
+import { writeAuditLog } from '../lib/auditLog.js';
+
+const inviteSchema = z.object({
+  phone: z.string().regex(/^\+[1-9]\d{6,14}$/, 'phone must be a valid E.164 number (e.g. +14155550123)'),
+});
+
+const registerPatientSchema = z.object({
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+});
 
 /** Token validity in hours. */
 const TOKEN_EXPIRY_HOURS = 48;
@@ -31,7 +45,7 @@ export function createPatientsRouter({
   // ── POST /patients/invite ─────────────────────────────────────────────────
   // Sends an SMS registration link to the given phone number.
   // Auth: staff who can manage patients (secretary, nurse, doctor, org_admin, super_admin).
-  router.post('/invite', requireAuth, requirePermission('patients:create'), async (req, res, next) => {
+  router.post('/invite', inviteLimiter, requireAuth, requirePermission('patients:create'), validate(inviteSchema), async (req, res, next) => {
     const { phone } = req.body;
     const tenantId = req.tenantId;
     const invitedById = req.user.id;
@@ -54,8 +68,9 @@ export function createPatientsRouter({
 
       const registrationUrl = `${env.FRONTEND_URL}/patient-register/${invite.token}`;
       const sms = smsServiceFactory();
-      await sms.send(phone, `You've been invited to register at ClinicCore. Complete your registration here (expires in 48h): ${registrationUrl}`);
+      await sms.send(phone, `You've been invited to register at ClinicAlly. Complete your registration here (expires in 48h): ${registrationUrl}`);
 
+      req.audit({ action: 'patient.invite_sent', resourceType: 'PatientInvite', resourceId: invite.id, metadata: { phone } });
       return res.status(201).json({ message: 'Invitation sent', token: invite.token, expiresAt });
     } catch (err) {
       return next(err);
@@ -64,13 +79,9 @@ export function createPatientsRouter({
 
   // ── POST /patients/register/:token ────────────────────────────────────────
   // Public endpoint. Patient redeems the SMS token and creates their account.
-  router.post('/register/:token', async (req, res, next) => {
+  router.post('/register/:token', validate(registerPatientSchema), async (req, res, next) => {
     const { token } = req.params;
     const { firstName, lastName, password } = req.body;
-
-    if (!firstName || !lastName || !password) {
-      return res.status(400).json({ error: 'bad_request', message: 'firstName, lastName, and password are required' });
-    }
 
     try {
       const invite = await prismaClient.patientInvite.findUnique({
@@ -132,6 +143,7 @@ export function createPatientsRouter({
         data: { usedAt: new Date() },
       });
 
+      writeAuditLog({ action: 'patient.registered', tenantId, actorId: user.id, actorRole: 'PATIENT', resourceType: 'Patient', ip: req.ip });
       return res.status(201).json({
         message: 'Registration successful',
         userId: user.id,

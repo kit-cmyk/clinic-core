@@ -1,5 +1,5 @@
 /**
- * ClinicCore RBAC — Permission Scopes & Matrix
+ * ClinicAlly RBAC — Permission Scopes & Matrix
  *
  * Three access tiers (scopes) map to Prisma Role enum values:
  *

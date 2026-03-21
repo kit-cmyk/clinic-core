@@ -17,6 +17,8 @@
  *   Requires: SLACK_BOT_TOKEN with channels:history + channels:read scopes
  */
 
+import { logger } from '../lib/logger.js';
+
 const WEBHOOK_DEV  = process.env.SLACK_WEBHOOK_DEV;
 const WEBHOOK_PO   = process.env.SLACK_WEBHOOK_PO;
 const ONCALL       = process.env.SLACK_ONCALL || '@oncall';
@@ -26,7 +28,7 @@ const CHANNEL_PO   = process.env.SLACK_PO_CHANNEL_ID;
 
 async function sendTo(webhookUrl, label, text) {
   if (!webhookUrl || webhookUrl.includes('YOUR/WEBHOOK')) {
-    console.log(`[Slack:${label} — not configured] ${text}`);
+    logger.debug({ label, text }, '[Slack] not configured — skipping');
     return;
   }
   try {
@@ -35,9 +37,9 @@ async function sendTo(webhookUrl, label, text) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text }),
     });
-    if (!res.ok) console.error(`[Slack:${label}] Failed: ${res.status}`);
+    if (!res.ok) logger.error({ label, status: res.status }, '[Slack] webhook delivery failed');
   } catch (err) {
-    console.error(`[Slack:${label}] Webhook error:`, err.message);
+    logger.error({ err, label }, '[Slack] webhook error');
   }
 }
 
@@ -49,11 +51,11 @@ const sendBoth = (text) => Promise.all([sendDev(text), sendPO(text)]);
 
 async function readChannel(channelId, label, limit = 20) {
   if (!BOT_TOKEN || BOT_TOKEN.includes('YOUR')) {
-    console.log(`[Slack:${label}:read — bot token not configured]`);
+    logger.debug({ label }, '[Slack] bot token not configured — skipping read');
     return [];
   }
   if (!channelId || channelId.includes('YOUR')) {
-    console.log(`[Slack:${label}:read — channel ID not configured]`);
+    logger.debug({ label }, '[Slack] channel ID not configured — skipping read');
     return [];
   }
   try {
@@ -63,12 +65,12 @@ async function readChannel(channelId, label, limit = 20) {
     });
     const data = await res.json();
     if (!data.ok) {
-      console.error(`[Slack:${label}:read] API error: ${data.error}`);
+      logger.error({ label, slackError: data.error }, '[Slack] API error');
       return [];
     }
     return data.messages || [];
   } catch (err) {
-    console.error(`[Slack:${label}:read] Error:`, err.message);
+    logger.error({ err, label }, '[Slack] read error');
     return [];
   }
 }

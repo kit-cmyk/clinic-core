@@ -31,6 +31,16 @@ export const env = {
   TWILIO_AUTH_TOKEN:   process.env.TWILIO_AUTH_TOKEN    || '',
   TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER  || '',
 
+  // Monitoring
+  SENTRY_DSN: process.env.SENTRY_DSN || '',
+
+  // Email (SMTP — any provider: SendGrid, Mailgun, AWS SES, etc.)
+  SMTP_HOST: process.env.SMTP_HOST || '',
+  SMTP_PORT: parseInt(process.env.SMTP_PORT || '587', 10),
+  SMTP_USER: process.env.SMTP_USER || '',
+  SMTP_PASS: process.env.SMTP_PASS || '',
+  SMTP_FROM: process.env.SMTP_FROM || 'noreply@clinically.app',
+
   isDev:  () => env.NODE_ENV === 'development',
   isProd: () => env.NODE_ENV === 'production',
   isTest: () => env.NODE_ENV === 'test',

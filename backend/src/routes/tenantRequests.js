@@ -2,6 +2,7 @@ import express from 'express';
 import { createRequireAuth } from '../middleware/auth.js';
 import { requireRole } from '../middleware/auth.js';
 import { prisma as defaultPrisma } from '../models/prisma.js';
+import { parsePagination, paginatedResponse } from '../lib/pagination.js';
 
 /**
  * Factory for /api/v1/tenant-requests — sign-up review workflow (CC-119).
@@ -16,16 +17,17 @@ export function createTenantRequestsRouter({
     ? authMiddlewareFactory({ prismaClient })
     : createRequireAuth({ prismaClient });
 
-  // GET /tenant-requests — list all (filterable by status)
+  // GET /tenant-requests — list all (filterable by status, paginated)
   router.get('/', requireAuth, requireRole('SUPER_ADMIN'), async (req, res, next) => {
     try {
       const { status } = req.query;
+      const { page, limit, skip } = parsePagination(req.query);
       const where = status ? { status } : {};
-      const requests = await prismaClient.tenantRequest.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-      });
-      return res.json(requests);
+      const [requests, total] = await Promise.all([
+        prismaClient.tenantRequest.findMany({ where, orderBy: { createdAt: 'desc' }, skip, take: limit }),
+        prismaClient.tenantRequest.count({ where }),
+      ]);
+      return res.json(paginatedResponse(requests, total, page, limit));
     } catch (err) {
       return next(err);
     }

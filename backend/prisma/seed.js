@@ -4,7 +4,7 @@ import { SUBSCRIPTION_TIERS } from './seedData.js';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Seeding ClinicCore database...');
+  console.log('🌱 Seeding ClinicAlly database...');
 
   // ── Subscription Tiers ───────────────────────────────────────────────────
   console.log('  › Subscription tiers...');
