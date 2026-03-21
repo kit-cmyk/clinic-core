@@ -39,8 +39,18 @@ import { PatientManagementPage } from '@/pages/PatientManagementPage'
 import { AppointmentVisitPage } from '@/pages/AppointmentVisitPage'
 import { SuperAdminLoginPage } from '@/pages/SuperAdminLoginPage'
 import { SuperAdminPublicRoute } from '@/components/SuperAdminPublicRoute'
+import LandingPage from '@/pages/LandingPage'
 
 const router = createBrowserRouter([
+  // Landing page — redirects authenticated users to /dashboard
+  {
+    path: '/',
+    element: (
+      <PublicRoute>
+        <LandingPage />
+      </PublicRoute>
+    ),
+  },
   // Public auth routes — redirect to /dashboard if already authenticated
   {
     path: '/login',
@@ -99,7 +109,6 @@ const router = createBrowserRouter([
       {
         element: <AppLayout />,
         children: [
-          { index: true, element: <Navigate to="/dashboard" replace /> },
           { path: '/dashboard', element: <DashboardPage /> },
           { path: '/appointments', element: <AppointmentsPage /> },
           { path: '/patients', element: <PatientManagementPage /> },
