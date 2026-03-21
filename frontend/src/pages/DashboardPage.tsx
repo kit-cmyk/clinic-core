@@ -748,14 +748,24 @@ function BookAppointmentSheet({
 
 export function DashboardPage() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const role: Role = user?.role ?? 'receptionist'
   const canBook = ['receptionist', 'branch_manager', 'org_admin'].includes(role) || !user
+  const canCheckIn = ['receptionist', 'branch_manager', 'org_admin', 'nurse'].includes(role) || !user
 
-  const [bookOpen,      setBookOpen]      = useState(false)
-  const [prefillProfId, setPrefillProfId] = useState<string | undefined>(undefined)
-  const [prefillSlot,   setPrefillSlot]   = useState<string | undefined>(undefined)
+  const [bookOpen,       setBookOpen]       = useState(false)
+  const [prefillProfId,  setPrefillProfId]  = useState<string | undefined>(undefined)
+  const [prefillSlot,    setPrefillSlot]    = useState<string | undefined>(undefined)
+  const [localStatuses,  setLocalStatuses]  = useState<Record<string, AppointmentStatus>>({})
+  const [localArrivedAt, setLocalArrivedAt] = useState<Record<string, string>>({})
 
   const todayWd = toWeekday(new Date())
+
+  const effectiveAppts = TODAY_APPTS.map(a => ({
+    ...a,
+    status: (localStatuses[a.id] ?? a.status) as AppointmentStatus,
+    arrivedAt: localArrivedAt[a.id] ?? a.arrivedAt,
+  }))
 
   const profAvailability = PROFESSIONALS.map(p => {
     const sched = PROF_SCHEDULES.find(s => s.professionalId === p.id && s.weekday === todayWd)
@@ -778,24 +788,28 @@ export function DashboardPage() {
     setBookOpen(true)
   }
 
+  const handleCheckIn = (apptId: string) => {
+    const now = new Date()
+    const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+    setLocalStatuses(prev => ({ ...prev, [apptId]: 'checked-in' }))
+    setLocalArrivedAt(prev => ({ ...prev, [apptId]: time }))
+  }
+
+  const labPending     = PENDING_ACTIONS.find(a => a.label === 'lab results to publish')
+  const invoicePending = PENDING_ACTIONS.find(a => a.label === 'invoices unpaid')
+  const showLabCard     = !!(labPending     && labPending.roles.includes(role)     && labPending.count > 0)
+  const showInvoiceCard = !!(invoicePending && invoicePending.roles.includes(role) && invoicePending.count > 0)
+
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">
-            Good morning, {user?.name.split(' ')[0]}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Here's what's happening at your clinic today.
-          </p>
-        </div>
-        {canBook && (
-          <Button onClick={() => openBook()} className="shrink-0 gap-2">
-            <Plus className="h-4 w-4" />
-            New Appointment
-          </Button>
-        )}
+      <div>
+        <h1 className="text-2xl font-semibold text-foreground">
+          Good morning, {user?.name.split(' ')[0]}
+        </h1>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Here's what's happening at your clinic today.
+        </p>
       </div>
 
       {/* Stat cards */}
@@ -824,24 +838,27 @@ export function DashboardPage() {
       {/* CC-115: Quick-action bar */}
       <QuickActionBar role={role} onBook={() => openBook()} />
 
-      {/* CC-113: Pending actions */}
-      <PendingActionsBar role={role} />
-
       {/* CC-116: Walk-in slot finder */}
       <WalkInSlotFinder todayWd={todayWd} onBook={openBook} />
 
-      {/* Row 1: Today's Appointments + Professionals Today */}
+      {/* Row 1: Today's Appointments + Check-In Queue */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Today's Appointments — CC-117 status bar */}
         <Card>
           <CardHeader className="pb-1">
             <CardTitle className="text-base">Today's Appointments</CardTitle>
           </CardHeader>
-          <AppointmentStatusBar appts={TODAY_APPTS} />
+          <AppointmentStatusBar appts={effectiveAppts} />
           <CardContent className="p-0">
             <div className="divide-y divide-border">
-              {TODAY_APPTS.map((appt) => (
-                <div key={appt.id} className="flex items-center justify-between px-6 py-3 hover:bg-muted/40 transition-colors">
+              {effectiveAppts.map((appt) => (
+                <div
+                  key={appt.id}
+                  className="flex items-center justify-between px-6 py-3 hover:bg-muted/40 transition-colors cursor-pointer"
+                  onClick={() => navigate(`/appointments/${appt.id}/visit`)}
+                  role="button"
+                  aria-label={`View appointment for ${appt.patientName}`}
+                >
                   <div className="flex items-center gap-4">
                     <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                       <span className="text-primary text-xs font-medium">{appt.patientName.charAt(0)}</span>
@@ -854,15 +871,34 @@ export function DashboardPage() {
                       </p>
                     </div>
                   </div>
-                  <Badge variant={STATUS_BADGE_VARIANT[appt.status]} className="capitalize text-xs">
-                    {appt.status}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    {canCheckIn && (appt.status === 'booked' || appt.status === 'confirmed') && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs gap-1"
+                        onClick={e => { e.stopPropagation(); handleCheckIn(appt.id) }}
+                      >
+                        <UserCheck className="h-3 w-3" />
+                        Check In
+                      </Button>
+                    )}
+                    <Badge variant={STATUS_BADGE_VARIANT[appt.status]} className="capitalize text-xs">
+                      {appt.status}
+                    </Badge>
+                  </div>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
 
+        {/* Check-In Queue — CC-112 */}
+        <CheckInQueue appts={effectiveAppts} />
+      </div>
+
+      {/* Row 2: Professionals Today + Pending Lab Results + Pending Invoices */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
         {/* Professionals Today — CC-114 utilization bars */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
@@ -909,12 +945,64 @@ export function DashboardPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
 
-      {/* Row 2: Timeline + Check-in queue — CC-111, CC-112 */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <AppointmentTimeline appts={TODAY_APPTS} />
-        <CheckInQueue appts={TODAY_APPTS} />
+        {/* Pending Lab Results */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <FlaskConical className="h-4 w-4 text-muted-foreground" />
+              Pending Lab Results
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {showLabCard ? (
+              <div>
+                <p className="text-3xl font-bold tabular-nums">{labPending!.count}</p>
+                <p className="text-sm text-muted-foreground mt-1">results to publish</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-4 w-full gap-1.5"
+                  onClick={() => navigate(labPending!.href)}
+                >
+                  <ChevronRight className="h-3.5 w-3.5" />
+                  View All
+                </Button>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No pending lab results.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Pending Invoices */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Receipt className="h-4 w-4 text-muted-foreground" />
+              Pending Invoices
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {showInvoiceCard ? (
+              <div>
+                <p className="text-3xl font-bold tabular-nums">{invoicePending!.count}</p>
+                <p className="text-sm text-muted-foreground mt-1">invoices unpaid</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-4 w-full gap-1.5"
+                  onClick={() => navigate(invoicePending!.href)}
+                >
+                  <ChevronRight className="h-3.5 w-3.5" />
+                  View All
+                </Button>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No pending invoices.</p>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <BookAppointmentSheet

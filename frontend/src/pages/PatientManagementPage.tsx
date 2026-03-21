@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -16,6 +16,7 @@ import { PatientForm, MOCK_PATIENTS } from '@/components/patients/PatientForm'
 import type { Patient } from '@/types'
 
 export function PatientManagementPage() {
+  const navigate = useNavigate()
   const [patients,    setPatients]    = useState<Patient[]>(MOCK_PATIENTS)
   const [search,      setSearch]      = useState('')
   const [formOpen,    setFormOpen]    = useState(false)
@@ -98,7 +99,11 @@ export function PatientManagementPage() {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {filtered.map(p => (
-                    <tr key={p.id} className="hover:bg-muted/30 transition-colors">
+                    <tr
+                      key={p.id}
+                      className="hover:bg-muted/30 transition-colors cursor-pointer"
+                      onClick={() => navigate(`/patients/${p.id}/chart`)}
+                    >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -120,7 +125,7 @@ export function PatientManagementPage() {
                           {p.isActive ? 'Active' : 'Inactive'}
                         </Badge>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8">

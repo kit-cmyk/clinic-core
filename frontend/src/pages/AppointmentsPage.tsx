@@ -498,7 +498,7 @@ export function AppointmentsPage() {
 
   // View / edit / delete modal
   const [viewApptId,        setViewApptId]        = useState<string | null>(null)
-  const [apptModalMode,     setApptModalMode]     = useState<'view' | 'edit' | 'confirm-delete'>('view')
+  const [apptModalMode,     setApptModalMode]     = useState<'view' | 'edit' | 'reschedule' | 'confirm-delete'>('view')
   const [apptEditForm,      setApptEditForm]      = useState<ApptEditForm | null>(null)
 
   const viewAppt = viewApptId ? appointments.find(a => a.id === viewApptId) ?? null : null
@@ -542,6 +542,36 @@ export function AppointmentsPage() {
   const confirmDeleteAppt = () => {
     if (!viewApptId) return
     setAppointments(prev => prev.filter(a => a.id !== viewApptId))
+    closeApptModal()
+  }
+
+  const markNoShow = () => {
+    if (!viewApptId) return
+    setAppointments(prev => prev.map(a => a.id === viewApptId ? { ...a, status: 'no_show' } : a))
+    closeApptModal()
+  }
+
+  const startReschedule = (a: Appointment) => {
+    setApptEditForm({
+      patientId:      a.patientId,
+      patientName:    a.patientName,
+      professionalId: a.professionalId,
+      date:           a.date,
+      startTime:      a.startTime,
+      durationMins:   a.durationMins,
+      type:           a.type,
+      status:         'booked',
+    })
+    setApptModalMode('reschedule')
+  }
+
+  const saveReschedule = () => {
+    if (!viewApptId || !apptEditForm) return
+    setAppointments(prev => prev.map(a =>
+      a.id === viewApptId
+        ? { ...a, date: apptEditForm.date, startTime: apptEditForm.startTime, durationMins: apptEditForm.durationMins, professionalId: apptEditForm.professionalId, status: 'booked' }
+        : a
+    ))
     closeApptModal()
   }
 
@@ -829,7 +859,7 @@ export function AppointmentsPage() {
         <SheetContent>
           <SheetHeader>
             <SheetTitle>
-              {apptModalMode === 'edit' ? 'Edit Appointment' : apptModalMode === 'confirm-delete' ? 'Delete Appointment' : 'Appointment Details'}
+              {apptModalMode === 'edit' ? 'Edit Appointment' : apptModalMode === 'reschedule' ? 'Reschedule Appointment' : apptModalMode === 'confirm-delete' ? 'Delete Appointment' : 'Appointment Details'}
             </SheetTitle>
           </SheetHeader>
 
@@ -865,6 +895,12 @@ export function AppointmentsPage() {
                     Start Visit
                   </Button>
                 )}
+                {canBook && (viewAppt.status === 'booked' || viewAppt.status === 'confirmed') && (
+                  <>
+                    <Button size="sm" variant="outline" onClick={() => startReschedule(viewAppt)}>Reschedule</Button>
+                    <Button size="sm" variant="outline" className="text-amber-600 hover:text-amber-700" onClick={markNoShow}>No Show</Button>
+                  </>
+                )}
                 {canBook && (
                   <>
                     <Button size="sm" variant="outline" onClick={() => startApptEdit(viewAppt)}>Edit</Button>
@@ -887,6 +923,62 @@ export function AppointmentsPage() {
               </div>
               <SheetFooter className="mt-4">
                 <Button size="sm" variant="destructive" onClick={confirmDeleteAppt}>Delete</Button>
+                <Button size="sm" variant="outline" onClick={() => setApptModalMode('view')}>Cancel</Button>
+              </SheetFooter>
+            </>
+          )}
+
+          {viewAppt && apptModalMode === 'reschedule' && apptEditForm && (
+            <>
+              <div className="flex-1 overflow-y-auto px-4 space-y-3 mt-2">
+                <p className="text-sm text-muted-foreground">
+                  Rescheduling appointment for <span className="font-medium text-foreground">{viewAppt.patientName}</span>. Pick a new date, time, and professional.
+                </p>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Professional</label>
+                  <select
+                    className="border rounded-md px-3 py-2 text-sm bg-background w-full"
+                    value={apptEditForm.professionalId}
+                    onChange={e => setApptEditForm(f => f ? { ...f, professionalId: e.target.value } : f)}
+                    aria-label="Professional"
+                  >
+                    {PROFESSIONALS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium">New Date</label>
+                    <input
+                      type="date"
+                      className="border rounded-md px-3 py-1.5 text-sm bg-background w-full"
+                      value={apptEditForm.date}
+                      onChange={e => setApptEditForm(f => f ? { ...f, date: e.target.value } : f)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium">New Time</label>
+                    <input
+                      type="time"
+                      className="border rounded-md px-3 py-1.5 text-sm bg-background w-full"
+                      value={apptEditForm.startTime}
+                      onChange={e => setApptEditForm(f => f ? { ...f, startTime: e.target.value } : f)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium">Duration (mins)</label>
+                    <input
+                      type="number"
+                      min={15}
+                      step={15}
+                      className="border rounded-md px-3 py-1.5 text-sm bg-background w-full"
+                      value={apptEditForm.durationMins}
+                      onChange={e => setApptEditForm(f => f ? { ...f, durationMins: Number(e.target.value) } : f)}
+                    />
+                  </div>
+                </div>
+              </div>
+              <SheetFooter className="mt-4">
+                <Button size="sm" onClick={saveReschedule}>Confirm Reschedule</Button>
                 <Button size="sm" variant="outline" onClick={() => setApptModalMode('view')}>Cancel</Button>
               </SheetFooter>
             </>
