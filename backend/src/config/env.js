@@ -31,6 +31,9 @@ export const env = {
   TWILIO_AUTH_TOKEN:   process.env.TWILIO_AUTH_TOKEN    || '',
   TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER  || '',
 
+  // Malware scanning (CC-47)
+  MALWARE_SCAN_API_URL: process.env.MALWARE_SCAN_API_URL || '',
+
   // Monitoring
   SENTRY_DSN: process.env.SENTRY_DSN || '',
 
