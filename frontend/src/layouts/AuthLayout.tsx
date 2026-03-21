@@ -24,7 +24,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
           <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
             <span className="text-primary-foreground font-bold text-lg">C</span>
           </div>
-          <h1 className="text-xl font-semibold text-foreground">ClinicCore</h1>
+          <h1 className="text-xl font-semibold text-foreground">ClinicAlly</h1>
           <p className="text-sm text-muted-foreground">Clinic Management System</p>
         </div>
         {children}

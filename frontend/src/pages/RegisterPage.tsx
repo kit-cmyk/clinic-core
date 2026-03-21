@@ -15,7 +15,7 @@ const ROLE_OPTIONS = [
   {
     type: 'org_admin' as AccountType,
     label: 'Organization Admin',
-    description: 'Set up ClinicCore for your clinic or practice. You will manage staff, branches, and settings.',
+    description: 'Set up ClinicAlly for your clinic or practice. You will manage staff, branches, and settings.',
   },
   {
     type: 'staff' as AccountType,
@@ -94,7 +94,7 @@ export function RegisterPage() {
             <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
               <span className="text-primary-foreground font-bold text-sm">C</span>
             </div>
-            <span className="text-base font-semibold text-foreground">ClinicCore</span>
+            <span className="text-base font-semibold text-foreground">ClinicAlly</span>
           </div>
           <Link
             to="/"

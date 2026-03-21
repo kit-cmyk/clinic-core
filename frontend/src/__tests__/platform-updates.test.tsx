@@ -38,7 +38,7 @@ describe('PlatformUpdatesPage', () => {
     render(<MemoryRouter><PlatformUpdatesPage /></MemoryRouter>)
     expect(screen.getByText('New Lab Results Module')).toBeInTheDocument()
     expect(screen.getByText('Scheduled Maintenance')).toBeInTheDocument()
-    expect(screen.getByText('Welcome to ClinicCore v2')).toBeInTheDocument()
+    expect(screen.getByText('Welcome to ClinicAlly v2')).toBeInTheDocument()
   })
 
   it('feature flags section shows all toggle rows', () => {

@@ -105,7 +105,7 @@ export function InviteAcceptPage() {
       <CardHeader>
         <CardTitle>Accept Invitation</CardTitle>
         <CardDescription>
-          You've been invited to join ClinicCore. Set up your password to get started.
+          You've been invited to join ClinicAlly. Set up your password to get started.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">

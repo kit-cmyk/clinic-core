@@ -55,7 +55,7 @@ interface MaintenanceWindow {
 const MOCK_ANNOUNCEMENTS: Announcement[] = [
   { id: '1', title: 'New Lab Results Module', body: 'Lab technicians can now publish results directly from the platform.', severity: 'info', expiresAt: '2026-04-01', archived: false, createdAt: '2026-03-15' },
   { id: '2', title: 'Scheduled Maintenance', body: 'System will be down for 30 minutes on March 25 at 2:00 AM UTC.', severity: 'warning', expiresAt: '2026-03-25', archived: false, createdAt: '2026-03-18' },
-  { id: '3', title: 'Welcome to ClinicCore v2', body: 'We have launched the new platform. Old version will be deprecated April 30.', severity: 'critical', expiresAt: '2026-04-30', archived: true, createdAt: '2026-03-01' },
+  { id: '3', title: 'Welcome to ClinicAlly v2', body: 'We have launched the new platform. Old version will be deprecated April 30.', severity: 'critical', expiresAt: '2026-04-30', archived: true, createdAt: '2026-03-01' },
 ]
 
 const MOCK_FLAGS: FeatureFlag[] = [

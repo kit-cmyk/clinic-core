@@ -1,4 +1,4 @@
-# ClinicCore 2.0 — Client Testing Guide
+# ClinicAlly 2.0 — Client Testing Guide
 
 Version: 0.1.0 | Last updated: 2026-03-17
 

@@ -1,4 +1,4 @@
-# ClinicCore
+# ClinicAlly
 
 Multi-tenant SaaS clinic management platform — manage multiple clinic branches, clinical staff, patients, appointments, lab records, and billing under a single unified platform.
 

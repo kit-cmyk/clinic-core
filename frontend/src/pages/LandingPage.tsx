@@ -88,7 +88,7 @@ const steps = [
 
 const testimonials = [
   {
-    quote: "ClinicCore completely changed how we manage our practice. Our admin work dropped by 40% and patients love the self-service portal.",
+    quote: "ClinicAlly completely changed how we manage our practice. Our admin work dropped by 40% and patients love the self-service portal.",
     name: 'Dr. Sarah Nkosi',
     role: 'Family Physician, Cape Town',
     initials: 'SN',
@@ -123,7 +123,7 @@ export default function LandingPage() {
                 <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
               </svg>
             </div>
-            <span className="text-lg font-bold text-gray-900">ClinicCore</span>
+            <span className="text-lg font-bold text-gray-900">ClinicAlly</span>
           </div>
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-500">
             <a href="#features" className="hover:text-gray-900 transition-colors">Features</a>
@@ -187,7 +187,7 @@ export default function LandingPage() {
             </h1>
 
             <p className="mt-6 text-lg text-gray-500 leading-relaxed max-w-lg">
-              ClinicCore puts patients at the centre of everything — connecting appointments, records,
+              ClinicAlly puts patients at the centre of everything — connecting appointments, records,
               billing, and your team so you can focus on what truly matters: delivering exceptional care.
             </p>
 
@@ -317,7 +317,7 @@ export default function LandingPage() {
               <span className="block" style={{ color: GREEN }}>it's about care.</span>
             </h2>
             <p className="mt-5 text-lg text-gray-500 leading-relaxed">
-              We built ClinicCore because great healthcare starts with great tools. When your team spends
+              We built ClinicAlly because great healthcare starts with great tools. When your team spends
               less time on admin, they spend more time with patients — and that changes outcomes.
             </p>
             <div className="mt-8 space-y-5">
@@ -369,7 +369,7 @@ export default function LandingPage() {
               Built for modern clinics
             </h2>
             <p className="mt-4 text-lg text-gray-500 max-w-2xl mx-auto">
-              From solo practitioners to multi-branch practices, ClinicCore scales with your growth.
+              From solo practitioners to multi-branch practices, ClinicAlly scales with your growth.
             </p>
           </div>
 
@@ -513,7 +513,7 @@ export default function LandingPage() {
                 Ready to put patients first?
               </h2>
               <p className="mt-4 text-lg text-white/80 max-w-xl mx-auto">
-                Join hundreds of healthcare providers who have transformed their practice with ClinicCore.
+                Join hundreds of healthcare providers who have transformed their practice with ClinicAlly.
                 Better care starts here.
               </p>
               <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -552,10 +552,10 @@ export default function LandingPage() {
                 <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
               </svg>
             </div>
-            <span className="text-sm font-bold text-gray-900">ClinicCore</span>
+            <span className="text-sm font-bold text-gray-900">ClinicAlly</span>
           </div>
           <p className="text-sm text-gray-400">
-            © {new Date().getFullYear()} ClinicCore. Care-first clinic management.
+            © {new Date().getFullYear()} ClinicAlly. Care-first clinic management.
           </p>
           <div className="flex items-center gap-6 text-sm text-gray-400">
             <Link to="/login" className="hover:text-gray-600 transition-colors">Sign in</Link>

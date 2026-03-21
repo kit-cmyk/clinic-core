@@ -255,7 +255,7 @@ function Sidebar({
             <span className="text-sidebar-primary-foreground font-bold text-sm">C</span>
           </div>
           {!collapsed && (
-            <span className="font-semibold text-sidebar-foreground truncate">ClinicCore</span>
+            <span className="font-semibold text-sidebar-foreground truncate">ClinicAlly</span>
           )}
           <Button
             variant="ghost"
@@ -418,7 +418,7 @@ export function AppLayout() {
           >
             <Menu className="h-4 w-4" />
           </Button>
-          <span className="ml-3 font-semibold text-foreground">ClinicCore</span>
+          <span className="ml-3 font-semibold text-foreground">ClinicAlly</span>
           <div className="ml-auto">
             <SyncStatusBadge sync={sync} />
           </div>

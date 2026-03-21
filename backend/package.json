@@ -1,7 +1,7 @@
 {
   "name": "cliniccore-backend",
   "version": "0.1.0",
-  "description": "ClinicCore 2.0 — Node.js/Express API",
+  "description": "ClinicAlly 2.0 — Node.js/Express API",
   "type": "module",
   "main": "src/server.js",
   "scripts": {
