@@ -40,6 +40,7 @@ import metricsRoutes from './routes/metrics.js';
 import provisioningRoutes from './routes/provisioning.js';
 import plansRoutes from './routes/plans.js';
 import patientsRoutes from './routes/patients.js';
+import tenantsRoutes from './routes/tenants.js';
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/me', meRoutes);
 app.use('/api/v1/invitations', invitationsRoutes);
@@ -50,6 +51,7 @@ app.use('/api/v1/metrics', metricsRoutes);
 app.use('/api/v1/provisioning', provisioningRoutes);
 app.use('/api/v1/plans', plansRoutes);
 app.use('/api/v1/patients', patientsRoutes);
+app.use('/api/v1/tenants', tenantsRoutes);
 
 // ── 404 handler ───────────────────────────────────────────────────────────
 app.use((_req, res) => {
