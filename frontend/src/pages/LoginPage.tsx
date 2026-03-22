@@ -1,29 +1,34 @@
-import { type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Loader2, User, Mail } from 'lucide-react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { useAuthStore } from '@/store/auth'
 
+const loginSchema = z.object({
+  email:    z.string().min(1, 'Email is required').email('Enter a valid email address'),
+  password: z.string().min(1, 'Password is required'),
+})
+
+type LoginFields = z.infer<typeof loginSchema>
+
 export function LoginPage() {
   const navigate = useNavigate()
   const { login, isLoading, error, clearError } = useAuthStore()
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFields>({ resolver: zodResolver(loginSchema) })
+
+  const onSubmit = async (data: LoginFields) => {
     clearError()
-    const form = e.currentTarget
-    const email = (form.elements.namedItem('email') as HTMLInputElement).value.trim()
-    const password = (form.elements.namedItem('password') as HTMLInputElement).value
-
-    if (!email || !password) {
-      useAuthStore.setState({ error: 'Please enter your email and password.' })
-      return
-    }
-
-    await login(email, password)
+    await login(data.email, data.password)
     if (!useAuthStore.getState().error) {
       navigate('/dashboard', { replace: true })
     }
@@ -45,21 +50,30 @@ export function LoginPage() {
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         <div className="space-y-1.5">
-          <Label htmlFor="email">Email</Label>
+          <div className="flex items-center gap-1">
+            <Label htmlFor="email">Email</Label>
+            <span aria-hidden="true" className="text-destructive text-xs leading-none">*</span>
+          </div>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
               id="email"
-              name="email"
               type="email"
               placeholder="you@clinic.com"
               autoComplete="email"
               disabled={isLoading}
               className="pl-9"
+              aria-describedby={errors.email ? 'email-error' : undefined}
+              {...register('email')}
             />
           </div>
+          {errors.email && (
+            <p id="email-error" role="alert" className="text-xs text-destructive">
+              {errors.email.message}
+            </p>
+          )}
         </div>
 
         <div className="space-y-1.5">
@@ -75,11 +89,17 @@ export function LoginPage() {
           </div>
           <PasswordInput
             id="password"
-            name="password"
             placeholder="••••••••"
             autoComplete="current-password"
             disabled={isLoading}
+            aria-describedby={errors.password ? 'password-error' : undefined}
+            {...register('password')}
           />
+          {errors.password && (
+            <p id="password-error" role="alert" className="text-xs text-destructive">
+              {errors.password.message}
+            </p>
+          )}
         </div>
 
         {error && (

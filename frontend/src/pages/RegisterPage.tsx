@@ -1,6 +1,9 @@
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Loader2, Info, MailOpen } from 'lucide-react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/ui/password-input'
@@ -8,6 +11,20 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/auth'
+
+const registerSchema = z.object({
+  name:            z.string().min(1, 'Full name is required'),
+  clinicName:      z.string().min(1, 'Clinic name is required'),
+  clinicAddress:   z.string().min(1, 'Address is required'),
+  email:           z.string().min(1, 'Email is required').email('Enter a valid email address'),
+  password:        z.string().min(8, 'Password must be at least 8 characters'),
+  confirmPassword: z.string().min(1, 'Please confirm your password'),
+}).refine(d => d.password === d.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
+})
+
+type RegisterFields = z.infer<typeof registerSchema>
 
 type AccountType = 'org_admin' | 'staff'
 
@@ -113,43 +130,26 @@ function DecorativePanel() {
 
 export function RegisterPage() {
   const navigate = useNavigate()
-  const { register, isLoading, error, clearError } = useAuthStore()
+  const { register: authRegister, isLoading, error, clearError } = useAuthStore()
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
-  const [passwordError, setPasswordError] = useState<string | null>(null)
 
   const selected = selectedIndex !== null ? ROLE_OPTIONS[selectedIndex] : null
   const isOrgAdmin = selected?.type === 'org_admin'
   const isStaff = selected?.type === 'staff'
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<RegisterFields>({ resolver: zodResolver(registerSchema) })
+
+  const onSubmit = async (data: RegisterFields) => {
     clearError()
-    setPasswordError(null)
-
-    const form = e.currentTarget
-    const name = (form.elements.namedItem('name') as HTMLInputElement).value.trim()
-    const clinicName = (form.elements.namedItem('clinicName') as HTMLInputElement).value.trim()
-    const clinicAddress = (form.elements.namedItem('clinicAddress') as HTMLInputElement).value.trim()
-    const email = (form.elements.namedItem('email') as HTMLInputElement).value.trim()
-    const password = (form.elements.namedItem('password') as HTMLInputElement).value
-    const confirmPassword = (form.elements.namedItem('confirmPassword') as HTMLInputElement).value
-
-    if (password !== confirmPassword) {
-      setPasswordError('Passwords do not match.')
-      return
-    }
-    if (password.length < 8) {
-      setPasswordError('Password must be at least 8 characters.')
-      return
-    }
-
-    await register(name, email, password, clinicName, clinicAddress)
+    await authRegister(data.name, data.email, data.password, data.clinicName, data.clinicAddress)
     if (!useAuthStore.getState().error) {
       navigate('/onboarding', { replace: true })
     }
   }
-
-  const displayError = passwordError ?? error
 
   return (
     <div className="min-h-screen flex bg-slate-100/80 dark:bg-zinc-900">
@@ -246,35 +246,49 @@ export function RegisterPage() {
             )}
 
             {isOrgAdmin && (
-              <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
                 <div className="space-y-3">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     Organization
                   </p>
                   <div className="grid sm:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <Label htmlFor="clinicName">Clinic / practice name</Label>
+                      <Label htmlFor="clinicName">
+                        Clinic / practice name <span aria-hidden="true" className="text-destructive">*</span>
+                      </Label>
                       <Input
                         id="clinicName"
-                        name="clinicName"
                         type="text"
                         placeholder="Sunridge Medical Centre"
                         autoComplete="organization"
                         disabled={isLoading}
-                        required
+                        aria-describedby={errors.clinicName ? 'clinicName-error' : undefined}
+                        {...register('clinicName')}
                       />
+                      {errors.clinicName && (
+                        <p id="clinicName-error" role="alert" className="text-xs text-destructive">
+                          {errors.clinicName.message}
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="clinicAddress">Address</Label>
+                      <Label htmlFor="clinicAddress">
+                        Address <span className="text-destructive" aria-hidden="true">*</span>
+                      </Label>
                       <Input
                         id="clinicAddress"
-                        name="clinicAddress"
                         type="text"
                         placeholder="123 Health St, Cape Town, 8001"
                         autoComplete="street-address"
                         disabled={isLoading}
-                        required
+                        aria-describedby={errors.clinicAddress ? 'clinicAddress-error' : undefined}
+                        {...register('clinicAddress')}
                       />
+                      {errors.clinicAddress && (
+                        <p id="clinicAddress-error" role="alert" className="text-xs text-destructive">
+                          {errors.clinicAddress.message}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -287,57 +301,85 @@ export function RegisterPage() {
                   </p>
                   <div className="grid sm:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <Label htmlFor="name">Full name</Label>
+                      <Label htmlFor="name">
+                        Full name <span className="text-destructive" aria-hidden="true">*</span>
+                      </Label>
                       <Input
                         id="name"
-                        name="name"
                         type="text"
                         placeholder="Jane Smith"
                         autoComplete="name"
                         disabled={isLoading}
-                        required
+                        aria-describedby={errors.name ? 'name-error' : undefined}
+                        {...register('name')}
                       />
+                      {errors.name && (
+                        <p id="name-error" role="alert" className="text-xs text-destructive">
+                          {errors.name.message}
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="email">Work email</Label>
+                      <Label htmlFor="email">
+                        Work email <span className="text-destructive" aria-hidden="true">*</span>
+                      </Label>
                       <Input
                         id="email"
-                        name="email"
                         type="email"
                         placeholder="jane@clinic.com"
                         autoComplete="email"
                         disabled={isLoading}
-                        required
+                        aria-describedby={errors.email ? 'email-error' : undefined}
+                        {...register('email')}
                       />
+                      {errors.email && (
+                        <p id="email-error" role="alert" className="text-xs text-destructive">
+                          {errors.email.message}
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="password">Password</Label>
+                      <Label htmlFor="password">
+                        Password <span className="text-destructive" aria-hidden="true">*</span>
+                      </Label>
                       <PasswordInput
                         id="password"
-                        name="password"
                         placeholder="Min. 8 characters"
                         autoComplete="new-password"
                         disabled={isLoading}
-                        required
+                        aria-describedby={errors.password ? 'password-error' : undefined}
+                        {...register('password')}
                       />
+                      {errors.password && (
+                        <p id="password-error" role="alert" className="text-xs text-destructive">
+                          {errors.password.message}
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="confirmPassword">Confirm password</Label>
+                      <Label htmlFor="confirmPassword">
+                        Confirm password <span className="text-destructive" aria-hidden="true">*</span>
+                      </Label>
                       <PasswordInput
                         id="confirmPassword"
-                        name="confirmPassword"
                         placeholder="••••••••"
                         autoComplete="new-password"
                         disabled={isLoading}
-                        required
+                        aria-describedby={errors.confirmPassword ? 'confirmPassword-error' : undefined}
+                        {...register('confirmPassword')}
                       />
+                      {errors.confirmPassword && (
+                        <p id="confirmPassword-error" role="alert" className="text-xs text-destructive">
+                          {errors.confirmPassword.message}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {displayError && (
+                {error && (
                   <p role="alert" className="text-sm text-destructive">
-                    {displayError}
+                    {error}
                   </p>
                 )}
 
