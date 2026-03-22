@@ -66,10 +66,14 @@ export function UserManagementPage() {
   const [search,     setSearch]     = useState('')
   const [sheetMode,  setSheetMode]  = useState<SheetMode>(null)
   const [selected,   setSelected]   = useState<ManagedUser | null>(null)
-  const [editForm,   setEditForm]   = useState<EditFormState>({ name: '', email: '', role: 'doctor', branch: '', isActive: true })
-  const [inviteForm, setInviteForm] = useState({ name: '', email: '', role: 'doctor' as Role, branch: BRANCHES[0] })
+  const [editForm,       setEditForm]       = useState<EditFormState>({ name: '', email: '', role: 'doctor', branch: '', isActive: true })
+  const [editSnapshot,   setEditSnapshot]   = useState<EditFormState>({ name: '', email: '', role: 'doctor', branch: '', isActive: true })
+  const [inviteForm,     setInviteForm]     = useState({ name: '', email: '', role: 'doctor' as Role, branch: BRANCHES[0] })
   const [localToast,     setLocalToast]     = useState<string | null>(null)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const [pendingEditClose, setPendingEditClose] = useState(false)
+
+  const isEditFormDirty = JSON.stringify(editForm) !== JSON.stringify(editSnapshot)
 
   const showToast = (msg: string) => {
     setLocalToast(msg)
@@ -88,8 +92,14 @@ export function UserManagementPage() {
 
   const openEdit = (u: ManagedUser) => {
     setSelected(u)
-    setEditForm({ name: u.name, email: u.email, role: u.role as Role, branch: u.branch ?? BRANCHES[0], isActive: u.isActive })
+    const vals = { name: u.name, email: u.email, role: u.role as Role, branch: u.branch ?? BRANCHES[0], isActive: u.isActive }
+    setEditForm(vals)
+    setEditSnapshot(vals)
     setSheetMode('edit')
+  }
+
+  const requestCloseEdit = () => {
+    if (isEditFormDirty) { setPendingEditClose(true) } else { setSheetMode(null) }
   }
 
   const saveEdit = () => {
@@ -255,7 +265,7 @@ export function UserManagementPage() {
       </Sheet>
 
       {/* Edit Sheet */}
-      <Sheet open={sheetMode === 'edit'} onOpenChange={open => !open && setSheetMode(null)}>
+      <Sheet open={sheetMode === 'edit'} onOpenChange={isOpen => !isOpen && requestCloseEdit()}>
         <SheetContent>
           <SheetHeader>
             <SheetTitle>Edit User</SheetTitle>
@@ -311,7 +321,7 @@ export function UserManagementPage() {
           </div>
           <SheetFooter>
             <Button onClick={saveEdit}>Save Changes</Button>
-            <Button variant="outline" onClick={() => setSheetMode(null)}>Cancel</Button>
+            <Button variant="outline" onClick={requestCloseEdit}>Cancel</Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>
@@ -369,6 +379,23 @@ export function UserManagementPage() {
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      <AlertDialog open={pendingEditClose} onOpenChange={(open) => !open && setPendingEditClose(false)}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes. If you close now, they will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingEditClose(false)}>Keep Editing</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={() => { setPendingEditClose(false); setSheetMode(null) }}>
+              Discard Changes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!pendingDeleteId} onOpenChange={(open) => !open && setPendingDeleteId(null)}>
         <AlertDialogContent size="sm">
