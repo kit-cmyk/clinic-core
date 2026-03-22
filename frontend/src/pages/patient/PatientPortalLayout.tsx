@@ -21,23 +21,27 @@ export function PatientPortalLayout() {
         </div>
       </header>
       <nav className="border-b bg-card px-4">
-        <div className="max-w-4xl mx-auto flex gap-1 overflow-x-auto">
-          {NAV_LINKS.map((link) => (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              end={link.end}
-              className={({ isActive }) =>
-                `px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
-                  isActive
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                }`
-              }
-            >
-              {link.label}
-            </NavLink>
-          ))}
+        <div className="relative max-w-4xl mx-auto">
+          <div className="flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {NAV_LINKS.map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                end={link.end}
+                className={({ isActive }) =>
+                  `px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
+                    isActive
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-muted-foreground hover:text-foreground'
+                  }`
+                }
+              >
+                {link.label}
+              </NavLink>
+            ))}
+          </div>
+          {/* Right fade — hints that more tabs exist off-screen */}
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-card to-transparent" />
         </div>
       </nav>
       <main className="max-w-4xl mx-auto px-4 py-6">
