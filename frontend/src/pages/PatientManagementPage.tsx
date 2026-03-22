@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -13,45 +13,87 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { MoreHorizontal, Search } from 'lucide-react'
 import { PatientForm } from '@/components/patients/PatientForm'
-import { MOCK_PATIENTS } from '@/data/mockPatients'
+import api from '@/services/api'
 import type { Patient } from '@/types'
+
+function toPatient(raw: Record<string, unknown>): Patient {
+  return {
+    ...(raw as Patient),
+    fullName: `${raw.firstName} ${raw.lastName}`,
+    dob: raw.dob ? String(raw.dob).substring(0, 10) : undefined,
+  }
+}
 
 export function PatientManagementPage() {
   const navigate = useNavigate()
-  const [patients,    setPatients]    = useState<Patient[]>(MOCK_PATIENTS)
-  const [search,      setSearch]      = useState('')
-  const [formOpen,    setFormOpen]    = useState(false)
-  const [editTarget,  setEditTarget]  = useState<Patient | undefined>(undefined)
 
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase().trim()
-    if (!q) return patients
-    return patients.filter(p =>
-      p.fullName.toLowerCase().includes(q) ||
-      (p.phone ?? '').toLowerCase().includes(q) ||
-      (p.email ?? '').toLowerCase().includes(q),
-    )
-  }, [patients, search])
+  const [patients,   setPatients]   = useState<Patient[]>([])
+  const [loading,    setLoading]    = useState(true)
+  const [error,      setError]      = useState<string | null>(null)
+  const [search,     setSearch]     = useState('')
+  const [page,       setPage]       = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [total,      setTotal]      = useState(0)
+  const [formOpen,   setFormOpen]   = useState(false)
+  const [editTarget, setEditTarget] = useState<Patient | undefined>(undefined)
 
-  const openAdd = () => { setEditTarget(undefined); setFormOpen(true) }
+  const fetchPatients = useCallback(async (searchVal = search, pageVal = page) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const params: Record<string, string | number> = { page: pageVal, limit: 20 }
+      if (searchVal.trim()) params.search = searchVal.trim()
+      const res = await api.get('/api/v1/patients', { params })
+      setPatients(res.data.data.map(toPatient))
+      setTotal(res.data.pagination.total)
+      setTotalPages(res.data.pagination.pages)
+    } catch {
+      setError('Failed to load patients. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }, [search, page])
 
+  useEffect(() => {
+    fetchPatients(search, page)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page])
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1)
+      fetchPatients(search, 1)
+    }, 400)
+    return () => clearTimeout(timer)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search])
+
+  const openAdd  = () => { setEditTarget(undefined); setFormOpen(true) }
   const openEdit = (p: Patient) => { setEditTarget(p); setFormOpen(true) }
 
-  const handleSave = (patient: Patient) => {
-    setPatients(prev => {
-      const idx = prev.findIndex(p => p.id === patient.id)
-      if (idx >= 0) {
-        const updated = [...prev]
-        updated[idx] = patient
-        return updated
+  const handleSave = async (patient: Patient) => {
+    try {
+      if (patient.id && patients.find(p => p.id === patient.id)) {
+        await api.put(`/api/v1/patients/${patient.id}`, patient)
+      } else {
+        await api.post('/api/v1/patients', patient)
       }
-      return [...prev, patient]
-    })
-    setFormOpen(false)
+      setFormOpen(false)
+      fetchPatients(search, page)
+    } catch {
+      // PatientForm surfaces its own errors; just close on success
+    }
   }
 
-  const toggleActive = (id: string) =>
-    setPatients(prev => prev.map(p => p.id === id ? { ...p, isActive: !p.isActive } : p))
+  const toggleActive = async (p: Patient) => {
+    try {
+      await api.put(`/api/v1/patients/${p.id}`, { isActive: !p.isActive })
+      fetchPatients(search, page)
+    } catch {
+      setError('Failed to update patient status.')
+    }
+  }
 
   const activeCount = patients.filter(p => p.isActive).length
 
@@ -61,7 +103,9 @@ export function PatientManagementPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Patients</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{activeCount} active · {patients.length} total</p>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {loading ? 'Loading…' : `${activeCount} active · ${total} total`}
+          </p>
         </div>
         <Button size="sm" onClick={openAdd}>+ Add Patient</Button>
       </div>
@@ -78,10 +122,19 @@ export function PatientManagementPage() {
         />
       </div>
 
+      {/* Error */}
+      {error && (
+        <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+
       {/* Table */}
       <Card>
         <CardContent className="p-0">
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="py-16 text-center text-sm text-muted-foreground">Loading patients…</div>
+          ) : patients.length === 0 ? (
             <div className="py-16 text-center text-sm text-muted-foreground">
               {search ? `No patients match "${search}"` : 'No patients yet. Click "Add Patient" to get started.'}
             </div>
@@ -99,7 +152,7 @@ export function PatientManagementPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {filtered.map(p => (
+                  {patients.map(p => (
                     <tr
                       key={p.id}
                       className="hover:bg-muted/30 transition-colors cursor-pointer"
@@ -139,7 +192,7 @@ export function PatientManagementPage() {
                               <Link to={`/patients/${p.id}/chart`}>View Chart</Link>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => toggleActive(p.id)}>
+                            <DropdownMenuItem onClick={() => toggleActive(p)}>
                               {p.isActive ? 'Deactivate' : 'Activate'}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -153,6 +206,21 @@ export function PatientManagementPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>Page {page} of {totalPages}</span>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+              Previous
+            </Button>
+            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
 
       <PatientForm
         open={formOpen}

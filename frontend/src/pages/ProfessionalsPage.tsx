@@ -20,32 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { MoreHorizontal } from 'lucide-react'
 import type { Professional, ProfessionalSchedule, TimeOff } from '@/types'
-
-// ── Mock Data ──────────────────────────────────────────────────────────────────
-
-const MOCK_PROFESSIONALS: Professional[] = [
-  { id: 'pr1', tenantId: 't1', userId: 'u1', name: 'Dr. Sarah Kim',    specialization: 'General Medicine',  bio: 'Board-certified GP with 12 years of experience.',       slotDurationMins: 30, isActive: true,  branch: 'Main Branch' },
-  { id: 'pr2', tenantId: 't1', userId: 'u2', name: 'Dr. James Park',   specialization: 'Cardiology',         bio: 'Specialist in cardiovascular disease and prevention.',   slotDurationMins: 45, isActive: true,  branch: 'Main Branch' },
-  { id: 'pr3', tenantId: 't1', userId: 'u3', name: 'Dr. Liu Wei',      specialization: 'Pediatrics',         bio: 'Dedicated to child health and development.',             slotDurationMins: 30, isActive: true,  branch: 'Downtown Clinic' },
-  { id: 'pr4', tenantId: 't1', userId: 'u4', name: 'Nurse Ana Santos', specialization: 'General Nursing',    bio: 'Senior registered nurse specializing in patient care.',  slotDurationMins: 20, isActive: true,  branch: 'Downtown Clinic' },
-  { id: 'pr5', tenantId: 't1', userId: 'u5', name: 'Dr. Priya Nair',   specialization: 'Dermatology',        bio: 'Dermatologist with focus on medical and cosmetic care.', slotDurationMins: 30, isActive: false, branch: 'Westside Location' },
-]
-
-const MOCK_SCHEDULES: ProfessionalSchedule[] = [
-  { id: 's1', tenantId: 't1', professionalId: 'pr1', branchId: 'b1', weekday: 0, startTime: '08:00', endTime: '17:00' },
-  { id: 's2', tenantId: 't1', professionalId: 'pr1', branchId: 'b1', weekday: 1, startTime: '08:00', endTime: '17:00' },
-  { id: 's3', tenantId: 't1', professionalId: 'pr1', branchId: 'b1', weekday: 2, startTime: '08:00', endTime: '17:00' },
-  { id: 's4', tenantId: 't1', professionalId: 'pr1', branchId: 'b1', weekday: 3, startTime: '08:00', endTime: '17:00' },
-  { id: 's5', tenantId: 't1', professionalId: 'pr1', branchId: 'b1', weekday: 4, startTime: '08:00', endTime: '13:00' },
-  { id: 's6', tenantId: 't1', professionalId: 'pr2', branchId: 'b1', weekday: 0, startTime: '09:00', endTime: '17:00' },
-  { id: 's7', tenantId: 't1', professionalId: 'pr2', branchId: 'b1', weekday: 2, startTime: '09:00', endTime: '17:00' },
-  { id: 's8', tenantId: 't1', professionalId: 'pr2', branchId: 'b1', weekday: 4, startTime: '09:00', endTime: '17:00' },
-]
-
-const MOCK_TIMEOFFS: TimeOff[] = [
-  { id: 'to1', tenantId: 't1', professionalId: 'pr1', startDate: '2026-04-01', endDate: '2026-04-05', reason: 'Annual leave' },
-  { id: 'to2', tenantId: 't1', professionalId: 'pr2', startDate: '2026-03-25', endDate: '2026-03-26', reason: 'Medical conference' },
-]
+import api from '@/services/api'
 
 const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 const BRANCHES = ['Main Branch', 'Downtown Clinic', 'Westside Location']
@@ -287,19 +262,44 @@ const EMPTY_ADD: AddForm = { name: '', specializations: [], branch: BRANCHES[0],
 const EMPTY_EDIT: EditForm = { specializations: [], bio: '', slotDurationMins: 30 }
 
 export function ProfessionalsPage() {
-  const [professionals, setProfessionals] = useState<Professional[]>(MOCK_PROFESSIONALS)
-  const [schedules,     setSchedules]     = useState<ProfessionalSchedule[]>(MOCK_SCHEDULES)
-  const [timeOffs,      setTimeOffs]      = useState<TimeOff[]>(MOCK_TIMEOFFS)
+  const [professionals, setProfessionals] = useState<Professional[]>([])
+  const [schedules,     setSchedules]     = useState<ProfessionalSchedule[]>([])
+  const [timeOffs,      setTimeOffs]      = useState<TimeOff[]>([])
+  const [loading,       setLoading]       = useState(true)
+  const [error,         setError]         = useState<string | null>(null)
 
-  const [expandedId,          setExpandedId]          = useState<string | null>(null)
-  const [activeTab,           setActiveTab]           = useState<'profile' | 'schedule' | 'timeoff'>('profile')
-  const [branchFilter,        setBranchFilter]        = useState('all')
+  const [expandedId,           setExpandedId]           = useState<string | null>(null)
+  const [activeTab,            setActiveTab]            = useState<'profile' | 'schedule' | 'timeoff'>('profile')
+  const [branchFilter,         setBranchFilter]         = useState('all')
   const [specializationFilter, setSpecializationFilter] = useState('all')
 
-  const [sheetMode,    setSheetMode]    = useState<SheetMode>(null)
-  const [sheetTarget,  setSheetTarget]  = useState<Professional | null>(null)
-  const [addForm,      setAddForm]      = useState<AddForm>(EMPTY_ADD)
-  const [editForm,     setEditForm]     = useState<EditForm>(EMPTY_EDIT)
+  const [sheetMode,   setSheetMode]   = useState<SheetMode>(null)
+  const [sheetTarget, setSheetTarget] = useState<Professional | null>(null)
+  const [addForm,     setAddForm]     = useState<AddForm>(EMPTY_ADD)
+  const [editForm,    setEditForm]    = useState<EditForm>(EMPTY_EDIT)
+
+  useEffect(() => {
+    api.get('/api/v1/professionals', { params: { isActive: false } })
+      .then(res => {
+        const profs: Professional[] = res.data.data.map((p: Record<string, unknown>) => ({
+          ...(p as Professional),
+          name: `${(p.user as { firstName: string; lastName: string }).firstName} ${(p.user as { firstName: string; lastName: string }).lastName}`,
+          branch: '', // branch not returned in list endpoint
+        }))
+        setProfessionals(profs)
+        // Flatten schedules
+        const allSchedules: ProfessionalSchedule[] = res.data.data.flatMap((p: Record<string, unknown>) =>
+          ((p.schedules as ProfessionalSchedule[]) ?? []).map(s => ({
+            ...s,
+            tenantId: p.tenantId as string,
+            professionalId: p.id as string,
+          }))
+        )
+        setSchedules(allSchedules)
+      })
+      .catch(() => setError('Failed to load professionals.'))
+      .finally(() => setLoading(false))
+  }, [])
 
   const uniqueSpecializations = [...new Set(
     professionals.flatMap(p => p.specialization.split(', ').filter(Boolean))
@@ -407,113 +407,128 @@ export function ProfessionalsPage() {
         </div>
       </div>
 
+      {/* Error state */}
+      {error && (
+        <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+
       {/* Professional list */}
       <div className="space-y-2">
-        {filtered.map(p => {
-          const isExpanded = expandedId === p.id
-          return (
-            <Card key={p.id} className={`transition-shadow ${isExpanded ? 'shadow-md' : ''}`}>
-              {/* Row */}
-              <div
-                className="flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-muted/30 transition-colors"
-                onClick={() => handleExpand(p.id)}
-                role="button"
-                aria-expanded={isExpanded}
-              >
-                <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <span className="text-sm font-semibold text-primary">{p.name.charAt(0)}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{p.name}</p>
-                  <p className="text-xs text-muted-foreground">{p.specialization} · {p.branch}</p>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <span className="text-xs text-muted-foreground">{p.slotDurationMins} min slots</span>
-                  <Badge variant={p.isActive ? 'default' : 'secondary'}>
-                    {p.isActive ? 'Active' : 'Inactive'}
-                  </Badge>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={e => e.stopPropagation()}
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={e => { e.stopPropagation(); openEdit(p) }}>
-                        Edit Profile
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={e => { e.stopPropagation(); toggleActive(p.id) }}>
-                        {p.isActive ? 'Deactivate' : 'Activate'}
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={e => { e.stopPropagation(); handleDelete(p.id) }}
-                      >
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <span className="text-muted-foreground text-sm">{isExpanded ? '▲' : '▼'}</span>
-                </div>
-              </div>
-
-              {/* Expanded panel */}
-              {isExpanded && (
-                <CardContent className="border-t pt-4 pb-4">
-                  <div className="flex gap-1 mb-4 border-b pb-2">
-                    {(['profile', 'schedule', 'timeoff'] as const).map(tab => (
-                      <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        className={`px-3 py-1 text-xs font-medium rounded-t transition-colors capitalize ${
-                          activeTab === tab
-                            ? 'bg-background border border-b-background text-foreground shadow-sm'
-                            : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        {tab === 'timeoff' ? 'Time Off' : tab.charAt(0).toUpperCase() + tab.slice(1)}
-                      </button>
-                    ))}
+        {loading ? (
+          <Card>
+            <CardContent className="py-0">
+              <div className="py-16 text-center text-sm text-muted-foreground">Loading professionals…</div>
+            </CardContent>
+          </Card>
+        ) : (
+          filtered.map(p => {
+            const isExpanded = expandedId === p.id
+            return (
+              <Card key={p.id} className={`transition-shadow ${isExpanded ? 'shadow-md' : ''}`}>
+                {/* Row */}
+                <div
+                  className="flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-muted/30 transition-colors"
+                  onClick={() => handleExpand(p.id)}
+                  role="button"
+                  aria-expanded={isExpanded}
+                >
+                  <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <span className="text-sm font-semibold text-primary">{p.name.charAt(0)}</span>
                   </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">{p.name}</p>
+                    <p className="text-xs text-muted-foreground">{p.specialization} · {p.branch}</p>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="text-xs text-muted-foreground">{p.slotDurationMins} min slots</span>
+                    <Badge variant={p.isActive ? 'default' : 'secondary'}>
+                      {p.isActive ? 'Active' : 'Inactive'}
+                    </Badge>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={e => e.stopPropagation()}
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={e => { e.stopPropagation(); openEdit(p) }}>
+                          Edit Profile
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={e => { e.stopPropagation(); toggleActive(p.id) }}>
+                          {p.isActive ? 'Deactivate' : 'Activate'}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={e => { e.stopPropagation(); handleDelete(p.id) }}
+                        >
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    <span className="text-muted-foreground text-sm">{isExpanded ? '▲' : '▼'}</span>
+                  </div>
+                </div>
 
-                  {activeTab === 'profile' && (
-                    <div className="space-y-2 text-sm">
-                      <p><span className="font-medium">Specialization:</span> {p.specialization}</p>
-                      <p><span className="font-medium">Slot Duration:</span> {p.slotDurationMins} minutes</p>
-                      <p><span className="font-medium">Bio:</span> {p.bio || <span className="text-muted-foreground">No bio set</span>}</p>
+                {/* Expanded panel */}
+                {isExpanded && (
+                  <CardContent className="border-t pt-4 pb-4">
+                    <div className="flex gap-1 mb-4 border-b pb-2">
+                      {(['profile', 'schedule', 'timeoff'] as const).map(tab => (
+                        <button
+                          key={tab}
+                          onClick={() => setActiveTab(tab)}
+                          className={`px-3 py-1 text-xs font-medium rounded-t transition-colors capitalize ${
+                            activeTab === tab
+                              ? 'bg-background border border-b-background text-foreground shadow-sm'
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          {tab === 'timeoff' ? 'Time Off' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                        </button>
+                      ))}
                     </div>
-                  )}
 
-                  {activeTab === 'schedule' && (
-                    <ScheduleEditor
-                      professionalId={p.id}
-                      schedules={schedules}
-                      onSave={updated => handleScheduleSave(p.id, updated)}
-                    />
-                  )}
+                    {activeTab === 'profile' && (
+                      <div className="space-y-2 text-sm">
+                        <p><span className="font-medium">Specialization:</span> {p.specialization}</p>
+                        <p><span className="font-medium">Slot Duration:</span> {p.slotDurationMins} minutes</p>
+                        <p><span className="font-medium">Bio:</span> {p.bio || <span className="text-muted-foreground">No bio set</span>}</p>
+                      </div>
+                    )}
 
-                  {activeTab === 'timeoff' && (
-                    <TimeOffManager
-                      professionalId={p.id}
-                      timeOffs={timeOffs}
-                      onAdd={t => setTimeOffs(prev => [...prev, t])}
-                      onRemove={id => setTimeOffs(prev => prev.filter(t => t.id !== id))}
-                    />
-                  )}
-                </CardContent>
-              )}
-            </Card>
-          )
-        })}
+                    {activeTab === 'schedule' && (
+                      <ScheduleEditor
+                        professionalId={p.id}
+                        schedules={schedules}
+                        onSave={updated => handleScheduleSave(p.id, updated)}
+                      />
+                    )}
+
+                    {activeTab === 'timeoff' && (
+                      <TimeOffManager
+                        professionalId={p.id}
+                        timeOffs={timeOffs}
+                        onAdd={t => setTimeOffs(prev => [...prev, t])}
+                        onRemove={id => setTimeOffs(prev => prev.filter(t => t.id !== id))}
+                      />
+                    )}
+                  </CardContent>
+                )}
+              </Card>
+            )
+          })
+        )}
       </div>
 
-      {filtered.length === 0 && (
+      {!loading && filtered.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground text-sm">
             No professionals found for the selected branch.

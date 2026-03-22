@@ -41,6 +41,8 @@ import { AppointmentVisitPage } from '@/pages/AppointmentVisitPage'
 import { SuperAdminLoginPage } from '@/pages/SuperAdminLoginPage'
 import { SuperAdminPublicRoute } from '@/components/SuperAdminPublicRoute'
 import LandingPage from '@/pages/LandingPage'
+import ForgotPasswordPage from '@/pages/ForgotPasswordPage'
+import ResetPasswordPage from '@/pages/ResetPasswordPage'
 
 const router = createBrowserRouter([
   // Landing page — redirects authenticated users to /dashboard
@@ -103,6 +105,24 @@ const router = createBrowserRouter([
       </AuthLayout>
     ),
   },
+  {
+    path: '/forgot-password',
+    element: (
+      <PublicRoute>
+        <AuthLayout>
+          <ForgotPasswordPage />
+        </AuthLayout>
+      </PublicRoute>
+    ),
+  },
+  {
+    path: '/reset-password',
+    element: (
+      <AuthLayout>
+        <ResetPasswordPage />
+      </AuthLayout>
+    ),
+  },
   // Protected app routes — redirect to /login if not authenticated
   {
     element: <ProtectedRoute />,
@@ -117,7 +137,7 @@ const router = createBrowserRouter([
           { path: '/professionals', element: <ProfessionalsPage /> },
           { path: '/clinic-hours', element: <ClinicHoursPage /> },
           { path: '/users', element: <Navigate to="/settings" replace /> },
-          { path: '/lab', element: <ComingSoon label="Lab Records" /> },
+          { path: '/lab', element: <Navigate to="/dashboard" replace /> },
           { path: '/billing', element: <InvoicesPage /> },
           { path: '/organizations', element: <ComingSoon label="Organizations" /> },
           { path: '/settings', element: <SettingsPage /> },
