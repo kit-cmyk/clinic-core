@@ -12,7 +12,7 @@ services:
     region: singapore
     rootDir: backend
     buildCommand: npm ci && npx prisma generate
-    startCommand: npx prisma migrate resolve --applied "0_init" || true && npx prisma migrate deploy && node src/server.js
+    startCommand: npx prisma migrate resolve --applied "0_init" || true && npx prisma migrate resolve --applied "20260321000001_enable_rls" || true && npx prisma migrate deploy && node src/server.js
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
