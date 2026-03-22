@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Loader2, Info, MailOpen } from 'lucide-react'
+import { Loader2, Info, MailOpen, ChevronLeft } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -254,8 +254,16 @@ export function RegisterPage() {
               </div>
             )}
 
-            {isOrgAdmin && (
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+            <div className={isOrgAdmin ? '' : 'hidden'}>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+                <button
+                  type="button"
+                  onClick={() => setSelectedIndex(null)}
+                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Back to role selection
+                </button>
                 <div className="space-y-3">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     Organization
@@ -402,7 +410,7 @@ export function RegisterPage() {
                   {isLoading ? 'Creating account…' : 'Create account'}
                 </Button>
               </form>
-            )}
+            </div>
           </div>
         </div>
 
