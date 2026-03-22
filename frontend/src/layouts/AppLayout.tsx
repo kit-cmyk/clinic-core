@@ -23,12 +23,15 @@ import {
   CreditCard,
   Database,
   Megaphone,
+  Sun,
+  Moon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { useAuth } from '@/hooks/useAuth'
 import { useIdleLogout } from '@/hooks/useIdleLogout'
+import { useTheme } from '@/hooks/useTheme'
 import { OnboardingChecklist } from '@/components/OnboardingChecklist'
 import { IdleWarningModal } from '@/components/IdleWarningModal'
 import type { Role } from '@/types'
@@ -372,6 +375,7 @@ export function AppLayout() {
     try { return localStorage.getItem('sidebar-collapsed') === 'true' } catch { return false }
   })
   const { isOnline } = useNetworkStatus()
+  const { isDark, toggle: toggleTheme } = useTheme()
 
   // Auto-logout after 15 minutes of inactivity (HIPAA § 164.312(a)(2)(iii))
   useIdleLogout()
@@ -416,10 +420,29 @@ export function AppLayout() {
             <Menu className="h-4 w-4" />
           </Button>
           <span className="ml-3 font-semibold text-foreground">ClinicAlly</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="ml-auto h-8 w-8"
+            onClick={toggleTheme}
+            title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </Button>
         </header>
 
         {/* Desktop header row */}
-        <div className="hidden lg:flex h-14 items-center border-b border-border px-6 bg-background" />
+        <div className="hidden lg:flex h-14 items-center justify-end border-b border-border px-6 bg-background">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={toggleTheme}
+            title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </Button>
+        </div>
 
         <Breadcrumbs />
 
