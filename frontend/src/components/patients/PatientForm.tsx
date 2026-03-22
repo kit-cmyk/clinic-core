@@ -63,13 +63,18 @@ function toValues(p?: Partial<Patient>): PatientFormValues {
   }
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const PHONE_RE = /^[0-9+\-\s()]{7,20}$/
+
 function validate(v: PatientFormValues): PatientFormErrors {
   const e: PatientFormErrors = {}
   if (!v.firstName.trim()) e.firstName = 'Required'
   if (!v.lastName.trim())  e.lastName  = 'Required'
   if (!v.gender.trim())    e.gender    = 'Required'
   if (!v.phone.trim())     e.phone     = 'Required'
+  else if (!PHONE_RE.test(v.phone.trim())) e.phone = 'Enter a valid phone number'
   if (!v.address.trim())   e.address   = 'Required'
+  if (v.email.trim() && !EMAIL_RE.test(v.email.trim())) e.email = 'Enter a valid email address'
   return e
 }
 
@@ -129,13 +134,13 @@ export function PatientForm({ open, onClose, onSave, initialValues }: PatientFor
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label htmlFor="firstName" className="text-xs">First Name *</Label>
-              <Input id="firstName" value={form.firstName} onChange={e => set('firstName', e.target.value)} placeholder="e.g. Maria" />
-              {errors.firstName && <p className="text-xs text-destructive">{errors.firstName}</p>}
+              <Input id="firstName" value={form.firstName} onChange={e => set('firstName', e.target.value)} placeholder="e.g. Maria" aria-describedby={errors.firstName ? 'firstName-error' : undefined} />
+              {errors.firstName && <p id="firstName-error" role="alert" className="text-xs text-destructive">{errors.firstName}</p>}
             </div>
             <div className="space-y-1">
               <Label htmlFor="lastName" className="text-xs">Last Name *</Label>
-              <Input id="lastName" value={form.lastName} onChange={e => set('lastName', e.target.value)} placeholder="e.g. Santos" />
-              {errors.lastName && <p className="text-xs text-destructive">{errors.lastName}</p>}
+              <Input id="lastName" value={form.lastName} onChange={e => set('lastName', e.target.value)} placeholder="e.g. Santos" aria-describedby={errors.lastName ? 'lastName-error' : undefined} />
+              {errors.lastName && <p id="lastName-error" role="alert" className="text-xs text-destructive">{errors.lastName}</p>}
             </div>
           </div>
 
@@ -164,8 +169,8 @@ export function PatientForm({ open, onClose, onSave, initialValues }: PatientFor
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label htmlFor="phone" className="text-xs">Phone *</Label>
-              <Input id="phone" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="09171234567" />
-              {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
+              <Input id="phone" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="09171234567" aria-describedby={errors.phone ? 'phone-error' : undefined} />
+              {errors.phone && <p id="phone-error" role="alert" className="text-xs text-destructive">{errors.phone}</p>}
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Blood Type</Label>
@@ -183,14 +188,15 @@ export function PatientForm({ open, onClose, onSave, initialValues }: PatientFor
           {/* Email */}
           <div className="space-y-1">
             <Label className="text-xs">Email (optional)</Label>
-            <Input type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="patient@email.com" />
+            <Input type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="patient@email.com" aria-describedby={errors.email ? 'patientEmail-error' : undefined} />
+            {errors.email && <p id="patientEmail-error" role="alert" className="text-xs text-destructive">{errors.email}</p>}
           </div>
 
           {/* Address */}
           <div className="space-y-1">
             <Label className="text-xs">Address *</Label>
-            <Input value={form.address} onChange={e => set('address', e.target.value)} placeholder="e.g. 12 Rizal St, Quezon City" />
-            {errors.address && <p className="text-xs text-destructive">{errors.address}</p>}
+            <Input value={form.address} onChange={e => set('address', e.target.value)} placeholder="e.g. 12 Rizal St, Quezon City" aria-describedby={errors.address ? 'address-error' : undefined} />
+            {errors.address && <p id="address-error" role="alert" className="text-xs text-destructive">{errors.address}</p>}
           </div>
 
           {/* Allergies */}
