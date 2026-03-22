@@ -5,6 +5,7 @@ import {
   UserCheck, UserPlus, ChevronRight, ClipboardCheck,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { SkeletonRow } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -827,7 +828,9 @@ export function DashboardPage() {
           <AppointmentStatusBar appts={effectiveAppts} />
           <CardContent className="p-0">
             {loadingAppts ? (
-              <p className="text-sm text-muted-foreground px-6 pb-4">Loading appointments…</p>
+              <div className="divide-y divide-border">
+                {Array.from({ length: 3 }).map((_, i) => <SkeletonRow key={i} />)}
+              </div>
             ) : (
               <div className="divide-y divide-border">
                 {effectiveAppts.map((appt) => (

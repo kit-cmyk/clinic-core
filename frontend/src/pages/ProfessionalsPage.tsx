@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Badge } from '@/components/ui/badge'
+import { SkeletonCard } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -417,11 +418,9 @@ export function ProfessionalsPage() {
       {/* Professional list */}
       <div className="space-y-2">
         {loading ? (
-          <Card>
-            <CardContent className="py-0">
-              <div className="py-16 text-center text-sm text-muted-foreground">Loading professionals…</div>
-            </CardContent>
-          </Card>
+          <div className="space-y-2">
+            {Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)}
+          </div>
         ) : (
           filtered.map(p => {
             const isExpanded = expandedId === p.id
