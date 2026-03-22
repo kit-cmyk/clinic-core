@@ -15,6 +15,16 @@ import {
 import { MoreHorizontal, Search, Users } from 'lucide-react'
 import { EmptyState } from '@/components/ui/empty-state'
 import { PatientForm } from '@/components/patients/PatientForm'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import api from '@/services/api'
 import type { Patient } from '@/types'
 import { toast } from 'sonner'
@@ -37,8 +47,9 @@ export function PatientManagementPage() {
   const [page,       setPage]       = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total,      setTotal]      = useState(0)
-  const [formOpen,   setFormOpen]   = useState(false)
-  const [editTarget, setEditTarget] = useState<Patient | undefined>(undefined)
+  const [formOpen,          setFormOpen]         = useState(false)
+  const [editTarget,        setEditTarget]       = useState<Patient | undefined>(undefined)
+  const [pendingDeactivate, setPendingDeactivate] = useState<Patient | null>(null)
 
   const fetchPatients = useCallback(async (searchVal = search, pageVal = page) => {
     setLoading(true)
@@ -198,7 +209,10 @@ export function PatientManagementPage() {
                           <Link to={`/patients/${p.id}/chart`}>View Chart</Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => toggleActive(p)}>
+                        <DropdownMenuItem
+                          className={p.isActive ? 'text-destructive focus:text-destructive' : ''}
+                          onClick={() => p.isActive ? setPendingDeactivate(p) : toggleActive(p)}
+                        >
                           {p.isActive ? 'Deactivate' : 'Activate'}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -232,6 +246,23 @@ export function PatientManagementPage() {
         onSave={handleSave}
         initialValues={editTarget}
       />
+
+      <AlertDialog open={!!pendingDeactivate} onOpenChange={(open) => !open && setPendingDeactivate(null)}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deactivate {pendingDeactivate?.fullName}? They will no longer appear in active patient lists.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={() => pendingDeactivate && toggleActive(pendingDeactivate)}>
+              Deactivate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
