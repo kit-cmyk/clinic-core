@@ -1,5 +1,5 @@
 /**
- * ClinicCore RBAC — Permission Scopes & Matrix
+ * ClinicAlly RBAC — Permission Scopes & Matrix
  *
  * Three access tiers (scopes) map to Prisma Role enum values:
  *
@@ -94,4 +94,15 @@ export const PERMISSIONS = {
   'invoices:read':   [...ORGANIZATION, 'SECRETARY', 'PATIENT'],
   'invoices:create': [...ORGANIZATION, 'SECRETARY'],
   'invoices:update': [...ORGANIZATION, 'SECRETARY'],
+
+  // Professionals — all clinical staff read; ORG_ADMIN manages
+  'professionals:read':   CLINICAL,
+  'professionals:update': ORGANIZATION,
+
+  // Notifications — any authenticated user reads their own
+  'notifications:read': [...CLINICAL, 'PATIENT'],
+
+  // Review queue — clinical staff who review uploaded documents
+  'review:read':   [...ORGANIZATION, 'DOCTOR', 'NURSE'],
+  'review:update': [...ORGANIZATION, 'DOCTOR', 'NURSE'],
 };

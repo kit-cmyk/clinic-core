@@ -1,16 +1,24 @@
+import { createStorageService } from './storage.js';
+import { getEmailService } from '../lib/email.js';
+import { env } from '../config/env.js';
+
 /**
  * Provisioning pipeline service (CC-122).
  * Orchestrates the 4-step tenant provisioning workflow:
  *   1. DB_RECORD    — create the Tenant row
  *   2. ROLES_SEED   — placeholder (roles derived from Role enum, no seeding needed yet)
- *   3. STORAGE_SETUP — placeholder (Supabase storage prefix)
- *   4. WELCOME_EMAIL — placeholder (email service)
+ *   3. STORAGE_SETUP — upload .tenant-init placeholder to initialise the tenant storage prefix
+ *   4. WELCOME_EMAIL — send onboarding email to request.contactEmail
  *
  * Each step updates the corresponding ProvisioningLog row.
  * If a step fails, it records the error and stops the pipeline so the caller
  * can surface it and allow a retry.
  */
-export function createProvisioningService({ prismaClient }) {
+export function createProvisioningService({
+  prismaClient,
+  storageServiceFactory = createStorageService,
+  emailServiceFactory = getEmailService,
+} = {}) {
   const STEPS = ['DB_RECORD', 'ROLES_SEED', 'STORAGE_SETUP', 'WELCOME_EMAIL'];
 
   /**
@@ -65,10 +73,6 @@ export function createProvisioningService({ prismaClient }) {
 
     await initLogs(tenantRequestId);
 
-    const logMap = Object.fromEntries(
-      request.provisioningLogs.map((l) => [l.step, l])
-    );
-
     // Reload after upsert
     const freshLogs = await prismaClient.provisioningLog.findMany({
       where: { tenantRequestId },
@@ -115,10 +119,22 @@ export function createProvisioningService({ prismaClient }) {
     }
 
     // ── Step 3: STORAGE_SETUP ────────────────────────────────────────────────
+    // Upload a .tenant-init placeholder to initialise the tenant's storage prefix
+    // so that the per-tenant path ({tenantId}/*) exists in the bucket before any
+    // real files are uploaded.
     if (logs['STORAGE_SETUP']?.status !== 'DONE') {
       try {
         await markRunning(tenantRequestId, 'STORAGE_SETUP');
-        // TODO: register Supabase storage prefix for tenantId
+        const storage = storageServiceFactory();
+        const meta = JSON.stringify({ tenantId, provisionedAt: new Date().toISOString() });
+        const { error: storageError } = await storage.upload(
+          tenantId,
+          '.system',
+          '.tenant-init',
+          Buffer.from(meta),
+          { contentType: 'application/json', upsert: true }
+        );
+        if (storageError) throw new Error(storageError.message);
         await markDone(tenantRequestId, 'STORAGE_SETUP');
       } catch (err) {
         await markFailed(tenantRequestId, 'STORAGE_SETUP', err.message);
@@ -130,7 +146,22 @@ export function createProvisioningService({ prismaClient }) {
     if (logs['WELCOME_EMAIL']?.status !== 'DONE') {
       try {
         await markRunning(tenantRequestId, 'WELCOME_EMAIL');
-        // TODO: send onboarding email to request.contactEmail
+        const email = emailServiceFactory();
+        await email.send({
+          to: request.contactEmail,
+          subject: `Welcome to ClinicAlly — ${request.orgName} is ready`,
+          text: [
+            `Hi ${request.contactName ?? 'there'},`,
+            '',
+            `Your ClinicAlly account for ${request.orgName} has been set up and is ready to use.`,
+            '',
+            `Get started: ${env.FRONTEND_URL}/login`,
+            '',
+            'If you have any questions, reply to this email and our team will be happy to help.',
+            '',
+            '— The ClinicAlly Team',
+          ].join('\n'),
+        });
         await markDone(tenantRequestId, 'WELCOME_EMAIL');
       } catch (err) {
         await markFailed(tenantRequestId, 'WELCOME_EMAIL', err.message);

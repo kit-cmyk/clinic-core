@@ -57,11 +57,15 @@ function buildAdminClient() {
 function buildApp({ prisma, role, inviteOverride } = {}) {
   const app = express();
   app.use(express.json());
+  // Stub req.audit so route handlers that call req.audit() don't throw
+  app.use((req, _res, next) => { req.audit = jest.fn(); next(); });
   const router = createPatientsRouter({
     prismaClient: prisma ?? buildPrisma({ inviteOverride }),
     authMiddlewareFactory: buildAuth({ role }),
     smsServiceFactory: buildSmsService(),
     adminClientFactory: buildAdminClient(),
+    storageServiceFactory: () => ({ upload: jest.fn() }),
+    malwareScanServiceFactory: () => ({ scan: jest.fn().mockResolvedValue({ clean: true, result: 'clean', fileHash: 'abc' }) }),
   });
   app.use('/patients', router);
   // eslint-disable-next-line no-unused-vars

@@ -37,7 +37,7 @@ export function SuperAdminLoginPage() {
           <div className="h-10 w-10 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center">
             <ShieldCheck className="h-5 w-5 text-zinc-300" />
           </div>
-          <h1 className="text-xl font-semibold text-zinc-100">ClinicCore</h1>
+          <h1 className="text-xl font-semibold text-zinc-100">ClinicAlly</h1>
           <p className="text-sm text-zinc-500">Platform Administration</p>
         </div>
 

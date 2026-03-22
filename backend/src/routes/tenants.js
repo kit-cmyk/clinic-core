@@ -1,7 +1,7 @@
 import express from 'express';
 import { createRequireAuth, requireRole } from '../middleware/auth.js';
 import { prisma as defaultPrisma } from '../models/prisma.js';
-import { getTenantStorageUsed, enforceStorageLimit } from '../middleware/storageLimit.js';
+import { getTenantStorageUsed } from '../middleware/storageLimit.js';
 import { createStorageService } from '../services/storage.js';
 
 /**
@@ -71,6 +71,7 @@ export function createTenantsRouter({
         prismaClient.tenant.count({ where }),
       ]);
 
+      req.audit({ action: 'tenant.listed', metadata: { search, page, limit } });
       return res.json({
         data: tenants.map(serialiseTenant),
         pagination: { page, limit, total, pages: Math.ceil(total / limit) },
@@ -94,6 +95,7 @@ export function createTenantsRouter({
         return res.status(404).json({ error: 'not_found', message: 'Tenant not found' });
       }
 
+      req.audit({ action: 'tenant.viewed', resourceType: 'Tenant', resourceId: req.params.id });
       return res.json(serialiseTenant(tenant));
     } catch (err) {
       return next(err);

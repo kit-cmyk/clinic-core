@@ -74,7 +74,7 @@ function buildApp({ adminClient, anonClient, prismaClient } = {}) {
 const VALID_SIGNUP = {
   email: 'doc@clinic.com',
   password: 'SecurePass123!',
-  tenantId: 'tenant-uuid-1',
+  tenantId: '550e8400-e29b-41d4-a716-446655440000',
   role: 'DOCTOR',
   firstName: 'Jane',
   lastName: 'Smith',
@@ -95,7 +95,7 @@ describe('POST /auth/signup', () => {
     const { email: _e, ...body } = VALID_SIGNUP;
     const res = await request(buildApp()).post('/auth/signup').send(body);
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe('bad_request');
+    expect(res.body.error).toBe('validation_error');
   });
 
   it('returns 400 when tenantId is missing', async () => {
@@ -128,7 +128,7 @@ describe('POST /auth/signup', () => {
     expect(prismaClient.user.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         supabaseUserId: 'supabase-uid-1',
-        tenantId: 'tenant-uuid-1',
+        tenantId: '550e8400-e29b-41d4-a716-446655440000',
         role: 'DOCTOR',
         firstName: 'Jane',
         lastName: 'Smith',
@@ -163,7 +163,7 @@ describe('POST /auth/login', () => {
   it('returns 400 when email is missing', async () => {
     const res = await request(buildApp()).post('/auth/login').send({ password: 'pass' });
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe('bad_request');
+    expect(res.body.error).toBe('validation_error');
   });
 
   it('returns 400 when password is missing', async () => {
@@ -230,7 +230,7 @@ describe('POST /auth/refresh', () => {
   it('returns 400 when refresh_token is missing', async () => {
     const res = await request(buildApp()).post('/auth/refresh').send({});
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe('bad_request');
+    expect(res.body.error).toBe('validation_error');
   });
 
   it('returns 401 on expired or invalid refresh token', async () => {

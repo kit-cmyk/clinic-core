@@ -1,5 +1,6 @@
 import { createStorageService } from '../services/storage.js';
 import { prisma as defaultPrisma } from '../models/prisma.js';
+import { logger } from '../lib/logger.js';
 
 /**
  * Storage limit enforcement middleware (CC-30).
@@ -66,7 +67,7 @@ export function enforceStorageLimit({
       return next();
     } catch (err) {
       // Storage check failure should not block the upload — log and continue
-      console.error('[storageLimit] check failed, skipping enforcement:', err.message);
+      logger.error({ err }, '[storageLimit] check failed, skipping enforcement');
       return next();
     }
   };

@@ -1,4 +1,6 @@
-# ClinicCore
+# ClinicAlly
+
+> Formerly ClinicCore. Rebranded 2026-03-21.
 
 Multi-tenant SaaS clinic management platform — manage multiple clinic branches, clinical staff, patients, appointments, lab records, and billing under a single unified platform.
 

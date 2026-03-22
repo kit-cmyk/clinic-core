@@ -15,34 +15,101 @@ const ROLE_OPTIONS = [
   {
     type: 'org_admin' as AccountType,
     label: 'Organization Admin',
-    description: 'Set up ClinicCore for your clinic or practice. You will manage staff, branches, and settings.',
+    description:
+      'Set up ClinicAlly for your clinic or practice. You will manage staff, branches, and settings.',
   },
   {
     type: 'staff' as AccountType,
     label: 'Doctor / Nurse',
-    description: 'Clinical staff. Accounts are created by your organization admin via an email invitation.',
+    description:
+      'Clinical staff. Accounts are created by your organization admin via an email invitation.',
   },
   {
     type: 'staff' as AccountType,
     label: 'Receptionist',
-    description: 'Front desk and scheduling staff. Accounts are created by your organization admin via an email invitation.',
+    description:
+      'Front desk and scheduling staff. Accounts are created by your organization admin via an email invitation.',
   },
   {
     type: 'staff' as AccountType,
     label: 'Lab Technician',
-    description: 'Laboratory and results management. Accounts are created by your organization admin via an email invitation.',
+    description:
+      'Laboratory and results management. Accounts are created by your organization admin via an email invitation.',
   },
   {
     type: 'staff' as AccountType,
     label: 'Branch Manager',
-    description: 'Manage a specific clinic branch. Accounts are created by your organization admin via an email invitation.',
+    description:
+      'Manage a specific clinic branch. Accounts are created by your organization admin via an email invitation.',
   },
   {
     type: 'staff' as AccountType,
     label: 'Other Staff',
-    description: 'Any other role within your organization. Accounts are created by your organization admin via an email invitation.',
+    description:
+      'Any other role within your organization. Accounts are created by your organization admin via an email invitation.',
   },
 ]
+
+function DecorativePanel() {
+  return (
+    <div
+      className="hidden lg:block lg:w-[44%] relative overflow-hidden rounded-3xl m-4"
+      style={{
+        background:
+          'linear-gradient(140deg, #6ee7b7 0%, #34d399 18%, #10b981 36%, #2dd4bf 52%, #a7f3d0 70%, #d1fae5 85%, #6ee7b7 100%)',
+      }}
+    >
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse at 28% 72%, rgba(180,240,160,0.38) 0%, transparent 52%), radial-gradient(ellipse at 74% 24%, rgba(20,180,160,0.36) 0%, transparent 52%)',
+        }}
+      />
+
+      {/* Subtle medical cross */}
+      <svg
+        className="absolute inset-0 w-full h-full opacity-[0.07]"
+        viewBox="0 0 400 400"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        <rect x="155" y="60" width="90" height="280" rx="18" fill="white" />
+        <rect x="60" y="155" width="280" height="90" rx="18" fill="white" />
+      </svg>
+
+      <div
+        className="absolute"
+        style={{
+          width: '320px',
+          height: '320px',
+          borderRadius: '50%',
+          background:
+            'radial-gradient(circle at 36% 33%, rgba(240,255,250,0.95) 0%, rgba(167,243,208,0.96) 28%, rgba(52,211,153,0.97) 58%, rgba(16,185,129,1) 80%, rgba(5,150,105,1) 100%)',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          boxShadow:
+            '0 32px 100px rgba(16,185,129,0.28), inset 0 -10px 36px rgba(5,120,80,0.15)',
+        }}
+      />
+      <div
+        className="absolute"
+        style={{
+          width: '66px',
+          height: '66px',
+          borderRadius: '50%',
+          background:
+            'radial-gradient(circle at 34% 30%, rgba(245,255,252,0.97) 0%, rgba(167,243,208,0.97) 44%, rgba(45,212,191,1) 100%)',
+          top: '21%',
+          right: '27%',
+          boxShadow: '0 10px 34px rgba(20,184,166,0.28)',
+        }}
+      />
+    </div>
+  )
+}
 
 export function RegisterPage() {
   const navigate = useNavigate()
@@ -85,28 +152,43 @@ export function RegisterPage() {
   const displayError = passwordError ?? error
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-6">
-      <div className="w-full max-w-3xl">
-
-        {/* Branding */}
-        <div className="flex items-center gap-2.5 mb-6">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
-            <span className="text-primary-foreground font-bold text-sm">C</span>
-          </div>
-          <span className="text-base font-semibold text-foreground">ClinicCore</span>
+    <div className="min-h-screen flex bg-slate-100/80 dark:bg-zinc-900">
+      {/* Left panel — form */}
+      <div className="flex-1 flex flex-col bg-white dark:bg-zinc-950 min-h-screen overflow-y-auto">
+        {/* Top nav */}
+        <div className="flex items-center justify-between px-8 py-5 shrink-0">
+          <Link to="/" className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
+              <span className="text-primary-foreground font-bold text-sm">C</span>
+            </div>
+            <span className="font-semibold text-foreground">ClinicAlly</span>
+          </Link>
+          <p className="text-sm text-muted-foreground">
+            Already have an account?{' '}
+            <Link
+              to="/login"
+              className="font-medium text-foreground hover:underline underline-offset-4"
+            >
+              Sign in
+            </Link>
+          </p>
         </div>
 
-        {/* Two-panel card */}
-        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col sm:flex-row min-h-[420px]">
-
-          {/* Left — role selection */}
-          <div className="w-full sm:w-64 shrink-0 border-b sm:border-b-0 sm:border-r border-border bg-secondary/40 flex flex-col p-5 gap-4">
+        {/* Form area */}
+        <div className="flex-1 flex items-start justify-center px-6 py-8">
+          <div className="w-full max-w-2xl space-y-6">
+            {/* Heading */}
             <div>
-              <h1 className="text-sm font-semibold text-foreground">Create your account</h1>
-              <p className="text-xs text-muted-foreground mt-0.5">Select your role to get started.</p>
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+                Create your account
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Select your role to get started.
+              </p>
             </div>
 
-            <div className="flex flex-col divide-y divide-border rounded-lg border border-border overflow-hidden">
+            {/* Role selector */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {ROLE_OPTIONS.map((option, idx) => {
                 const active = selectedIndex === idx
                 return (
@@ -115,21 +197,20 @@ export function RegisterPage() {
                     type="button"
                     onClick={() => setSelectedIndex(idx)}
                     className={cn(
-                      'group relative flex items-center justify-between px-3 py-2.5 text-left transition-colors',
-                      active ? 'bg-background' : 'bg-card hover:bg-background/60'
+                      'group relative flex items-center justify-between rounded-lg border px-3 py-2.5 text-left text-xs transition-all',
+                      active
+                        ? 'border-primary bg-primary/5 text-foreground font-medium'
+                        : 'border-border bg-card text-foreground/70 hover:border-primary/40 hover:bg-slate-50 dark:hover:bg-zinc-900'
                     )}
                   >
-                    <span className={cn('text-xs', active ? 'font-medium text-foreground' : 'text-foreground/70')}>
-                      {option.label}
-                    </span>
-
+                    <span>{option.label}</span>
                     <span className="relative ml-2 shrink-0">
                       <Info className="size-3 text-muted-foreground" />
                       <span
                         role="tooltip"
                         className={cn(
-                          'pointer-events-none absolute right-0 w-48 rounded-md border border-border bg-popover px-2.5 py-1.5 text-xs text-popover-foreground shadow-md opacity-0 transition-opacity group-hover:opacity-100 z-10',
-                          idx >= ROLE_OPTIONS.length - 2 ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
+                          'pointer-events-none absolute right-0 w-52 rounded-md border border-border bg-popover px-2.5 py-1.5 text-xs text-popover-foreground shadow-md opacity-0 transition-opacity group-hover:opacity-100 z-10',
+                          idx >= ROLE_OPTIONS.length - 3 ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
                         )}
                       >
                         {option.description}
@@ -140,31 +221,23 @@ export function RegisterPage() {
               })}
             </div>
 
-            <p className="text-xs text-muted-foreground mt-auto">
-              Already have an account?{' '}
-              <Link to="/login" className="text-foreground font-medium hover:underline underline-offset-4">
-                Sign in
-              </Link>
-            </p>
-          </div>
-
-          {/* Right — form or notice */}
-          <div className="flex-1 flex flex-col justify-center p-6">
+            {/* Right panel — form or notice */}
             {!selected && (
-              <p className="text-sm text-muted-foreground text-center">
-                Select your role on the left to continue.
+              <p className="text-sm text-muted-foreground py-4">
+                Select your role above to continue.
               </p>
             )}
 
             {isStaff && (
-              <div className="flex flex-col items-center gap-4 text-center max-w-xs mx-auto">
-                <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center">
+              <div className="flex flex-col items-center gap-4 text-center max-w-sm mx-auto py-6">
+                <div className="h-12 w-12 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center">
                   <MailOpen className="size-5 text-muted-foreground" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-foreground">Invitation required</p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Staff accounts are set up by your organization admin. Ask them to invite you from{' '}
+                    Staff accounts are set up by your organization admin. Ask them to invite you
+                    from{' '}
                     <span className="font-medium text-foreground">Staff → User Management</span>
                     {' '}— you'll receive a setup link by email.
                   </p>
@@ -173,77 +246,83 @@ export function RegisterPage() {
             )}
 
             {isOrgAdmin && (
-              <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+              <form onSubmit={handleSubmit} className="space-y-5" noValidate>
                 <div className="space-y-3">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Organization</p>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="clinicName">Clinic / practice name</Label>
-                    <Input
-                      id="clinicName"
-                      name="clinicName"
-                      type="text"
-                      placeholder="Sunridge Medical Centre"
-                      autoComplete="organization"
-                      disabled={isLoading}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="clinicAddress">Address</Label>
-                    <Input
-                      id="clinicAddress"
-                      name="clinicAddress"
-                      type="text"
-                      placeholder="123 Health St, Cape Town, 8001"
-                      autoComplete="street-address"
-                      disabled={isLoading}
-                      required
-                    />
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Organization
+                  </p>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="clinicName">Clinic / practice name</Label>
+                      <Input
+                        id="clinicName"
+                        name="clinicName"
+                        type="text"
+                        placeholder="Sunridge Medical Centre"
+                        autoComplete="organization"
+                        disabled={isLoading}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="clinicAddress">Address</Label>
+                      <Input
+                        id="clinicAddress"
+                        name="clinicAddress"
+                        type="text"
+                        placeholder="123 Health St, Cape Town, 8001"
+                        autoComplete="street-address"
+                        disabled={isLoading}
+                        required
+                      />
+                    </div>
                   </div>
                 </div>
 
                 <Separator />
 
                 <div className="space-y-3">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Your account</p>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="name">Full name</Label>
-                    <Input
-                      id="name"
-                      name="name"
-                      type="text"
-                      placeholder="Jane Smith"
-                      autoComplete="name"
-                      disabled={isLoading}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="email">Work email</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      placeholder="jane@clinic.com"
-                      autoComplete="email"
-                      disabled={isLoading}
-                      required
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Your account
+                  </p>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="name">Full name</Label>
+                      <Input
+                        id="name"
+                        name="name"
+                        type="text"
+                        placeholder="Jane Smith"
+                        autoComplete="name"
+                        disabled={isLoading}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="email">Work email</Label>
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        placeholder="jane@clinic.com"
+                        autoComplete="email"
+                        disabled={isLoading}
+                        required
+                      />
+                    </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="password">Password</Label>
                       <PasswordInput
                         id="password"
                         name="password"
-                        placeholder="Min. 8 chars"
+                        placeholder="Min. 8 characters"
                         autoComplete="new-password"
                         disabled={isLoading}
                         required
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="confirmPassword">Confirm</Label>
+                      <Label htmlFor="confirmPassword">Confirm password</Label>
                       <PasswordInput
                         id="confirmPassword"
                         name="confirmPassword"
@@ -262,7 +341,11 @@ export function RegisterPage() {
                   </p>
                 )}
 
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button
+                  type="submit"
+                  className="w-full h-11 text-sm font-medium"
+                  disabled={isLoading}
+                >
                   {isLoading && <Loader2 className="animate-spin" />}
                   {isLoading ? 'Creating account…' : 'Create account'}
                 </Button>
@@ -270,7 +353,17 @@ export function RegisterPage() {
             )}
           </div>
         </div>
+
+        {/* Footer */}
+        <div className="px-8 py-4 shrink-0">
+          <p className="text-xs text-muted-foreground">
+            © {new Date().getFullYear()} ClinicAlly
+          </p>
+        </div>
       </div>
+
+      {/* Right decorative gradient panel */}
+      <DecorativePanel />
     </div>
   )
 }

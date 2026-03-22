@@ -16,7 +16,7 @@ export function PatientPortalLayout() {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card px-4 py-3">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <span className="font-semibold text-foreground">ClinicCore Patient Portal</span>
+          <span className="font-semibold text-foreground">ClinicAlly Patient Portal</span>
           {user && <span className="text-sm text-muted-foreground">{user.name}</span>}
         </div>
       </header>

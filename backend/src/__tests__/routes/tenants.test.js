@@ -81,6 +81,7 @@ function buildStorageService({ usedBytes = 0 } = {}) {
 function buildApp({ prisma, role, storageService } = {}) {
   const app = express();
   app.use(express.json());
+  app.use((_req, _res, next) => { _req.audit = jest.fn(); next(); });
   const router = createTenantsRouter({
     prismaClient:          prisma ?? buildPrisma(),
     authMiddlewareFactory: buildAuth({ role }),

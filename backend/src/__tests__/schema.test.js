@@ -38,12 +38,12 @@ describe('schema.prisma — tenant isolation', () => {
 
   it('has tenantId field on every tenant-scoped model', () => {
     const matches = schema.match(/tenantId\s+String\b/g) || [];
-    expect(matches.length).toBe(16);
+    expect(matches.length).toBe(20);
   });
 
   it('indexes tenantId on every tenant-scoped model', () => {
     const indexes = schema.match(/@@index\(\[tenantId\]\)/g) || [];
-    expect(indexes.length).toBe(16);
+    expect(indexes.length).toBe(20);
   });
 });
 

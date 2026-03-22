@@ -47,10 +47,13 @@ export function OnboardingPage() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!logoFile) { setLogoPreview(null); return }
+    if (!logoFile) return
     const url = URL.createObjectURL(logoFile)
     setLogoPreview(url)
-    return () => URL.revokeObjectURL(url)
+    return () => {
+      URL.revokeObjectURL(url)
+      setLogoPreview(null)
+    }
   }, [logoFile])
 
   // Step 3

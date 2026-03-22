@@ -75,7 +75,7 @@ describe('LoginPage — form behaviour', () => {
     })
     render(<RouterProvider router={buildRouter()} />)
     await user.type(screen.getByLabelText(/email/i), 'user@test.com')
-    await user.type(screen.getByLabelText(/password/i), 'abc')
+    await user.type(screen.getByLabelText('Password'), 'abc')
     await user.click(screen.getByRole('button', { name: /sign in/i }))
     await waitFor(() =>
       expect(screen.getByRole('alert')).toHaveTextContent(/invalid email or password/i),
@@ -90,7 +90,7 @@ describe('LoginPage — form behaviour', () => {
     })
     render(<RouterProvider router={buildRouter()} />)
     await user.type(screen.getByLabelText(/email/i), 'user@test.com')
-    await user.type(screen.getByLabelText(/password/i), 'validpassword')
+    await user.type(screen.getByLabelText('Password'), 'validpassword')
     void user.click(screen.getByRole('button', { name: /sign in/i }))
     await waitFor(() => expect(screen.getByText(/signing in/i)).toBeInTheDocument())
   })

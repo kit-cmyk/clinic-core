@@ -3,6 +3,7 @@ import { AppLayout } from '@/layouts/AppLayout'
 import { AuthLayout } from '@/layouts/AuthLayout'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { PublicRoute } from '@/components/PublicRoute'
+import { ComingSoon } from '@/components/ComingSoon'
 import { LoginPage } from '@/pages/LoginPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
@@ -39,8 +40,20 @@ import { PatientManagementPage } from '@/pages/PatientManagementPage'
 import { AppointmentVisitPage } from '@/pages/AppointmentVisitPage'
 import { SuperAdminLoginPage } from '@/pages/SuperAdminLoginPage'
 import { SuperAdminPublicRoute } from '@/components/SuperAdminPublicRoute'
+import LandingPage from '@/pages/LandingPage'
+import ForgotPasswordPage from '@/pages/ForgotPasswordPage'
+import ResetPasswordPage from '@/pages/ResetPasswordPage'
 
 const router = createBrowserRouter([
+  // Landing page — redirects authenticated users to /dashboard
+  {
+    path: '/',
+    element: (
+      <PublicRoute>
+        <LandingPage />
+      </PublicRoute>
+    ),
+  },
   // Public auth routes — redirect to /dashboard if already authenticated
   {
     path: '/login',
@@ -92,6 +105,24 @@ const router = createBrowserRouter([
       </AuthLayout>
     ),
   },
+  {
+    path: '/forgot-password',
+    element: (
+      <PublicRoute>
+        <AuthLayout>
+          <ForgotPasswordPage />
+        </AuthLayout>
+      </PublicRoute>
+    ),
+  },
+  {
+    path: '/reset-password',
+    element: (
+      <AuthLayout>
+        <ResetPasswordPage />
+      </AuthLayout>
+    ),
+  },
   // Protected app routes — redirect to /login if not authenticated
   {
     element: <ProtectedRoute />,
@@ -99,7 +130,6 @@ const router = createBrowserRouter([
       {
         element: <AppLayout />,
         children: [
-          { index: true, element: <Navigate to="/dashboard" replace /> },
           { path: '/dashboard', element: <DashboardPage /> },
           { path: '/appointments', element: <AppointmentsPage /> },
           { path: '/patients', element: <PatientManagementPage /> },
@@ -107,7 +137,7 @@ const router = createBrowserRouter([
           { path: '/professionals', element: <ProfessionalsPage /> },
           { path: '/clinic-hours', element: <ClinicHoursPage /> },
           { path: '/users', element: <Navigate to="/settings" replace /> },
-          { path: '/lab', element: <ComingSoon label="Lab Records" /> },
+          { path: '/lab', element: <Navigate to="/dashboard" replace /> },
           { path: '/billing', element: <InvoicesPage /> },
           { path: '/organizations', element: <ComingSoon label="Organizations" /> },
           { path: '/settings', element: <SettingsPage /> },
@@ -132,13 +162,5 @@ const router = createBrowserRouter([
   { path: '*', element: <NotFoundPage /> },
 ])
 
-function ComingSoon({ label }: { label: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center h-64 gap-3 text-center">
-      <p className="text-2xl font-semibold text-foreground">{label}</p>
-      <p className="text-sm text-muted-foreground">This module is coming soon.</p>
-    </div>
-  )
-}
 
 export default router

@@ -11,83 +11,6 @@ import {
 } from '@/components/ui/sheet'
 import type { Patient } from '@/types'
 
-// ── Shared mock data ───────────────────────────────────────────────────────────
-
-export const MOCK_PATIENTS: Patient[] = [
-  {
-    id: 'pt1', tenantId: 't1', firstName: 'John', lastName: 'Doe', fullName: 'John Doe',
-    dob: '1985-03-12', gender: 'Male', phone: '09171234567', email: 'john.doe@email.com',
-    address: '12 Rizal St, Quezon City', bloodType: 'O+',
-    allergies: [], medicalHistory: 'Hypertension (2019). Managed with Amlodipine.',
-    knownConditions: 'Hypertension', previousPrescriptions: 'Amlodipine 5mg once daily',
-    isActive: true,
-  },
-  {
-    id: 'pt2', tenantId: 't1', firstName: 'Maria', lastName: 'Chen', fullName: 'Maria Chen',
-    dob: '1990-07-22', gender: 'Female', phone: '09181234567', email: 'maria.chen@email.com',
-    address: '45 Mabini Ave, Makati', bloodType: 'A-',
-    allergies: ['Penicillin'], medicalHistory: 'Allergic rhinitis. No hospitalizations.',
-    knownConditions: 'Allergic rhinitis', previousPrescriptions: 'Cetirizine 10mg as needed',
-    isActive: true,
-  },
-  {
-    id: 'pt3', tenantId: 't1', firstName: 'Carlos', lastName: 'Rivera', fullName: 'Carlos Rivera',
-    dob: '1978-11-05', gender: 'Male', phone: '09191234567', email: 'carlos.rivera@email.com',
-    address: '8 Luna Rd, Pasig', bloodType: 'B+',
-    allergies: [], medicalHistory: 'Type 2 Diabetes (2015). Diet-controlled.',
-    knownConditions: 'Type 2 Diabetes Mellitus', previousPrescriptions: 'Metformin 500mg twice daily',
-    isActive: true,
-  },
-  {
-    id: 'pt4', tenantId: 't1', firstName: 'Priya', lastName: 'Sharma', fullName: 'Priya Sharma',
-    dob: '1995-02-18', gender: 'Female', phone: '09201234567', email: 'priya.sharma@email.com',
-    address: '22 Aguinaldo Blvd, Taguig', bloodType: 'AB+',
-    allergies: ['Aspirin'], medicalHistory: 'No significant medical history.',
-    knownConditions: 'None', previousPrescriptions: 'None',
-    isActive: true,
-  },
-  {
-    id: 'pt5', tenantId: 't1', firstName: 'Tom', lastName: 'Wilson', fullName: 'Tom Wilson',
-    dob: '1982-09-30', gender: 'Male', phone: '09211234567', email: 'tom.wilson@email.com',
-    address: '5 Del Pilar St, Mandaluyong', bloodType: 'O-',
-    allergies: [], medicalHistory: 'Appendectomy (2010). No current conditions.',
-    knownConditions: 'None', previousPrescriptions: 'None',
-    isActive: true,
-  },
-  {
-    id: 'pt6', tenantId: 't1', firstName: 'Sara', lastName: 'Ahmed', fullName: 'Sara Ahmed',
-    dob: '1992-04-14', gender: 'Female', phone: '09221234567', email: 'sara.ahmed@email.com',
-    address: '31 Bonifacio St, Caloocan', bloodType: 'A+',
-    allergies: [], medicalHistory: 'Asthma (childhood, resolved).',
-    knownConditions: 'None active', previousPrescriptions: 'Salbutamol inhaler (PRN)',
-    isActive: true,
-  },
-  {
-    id: 'pt7', tenantId: 't1', firstName: 'James', lastName: 'Liu', fullName: 'James Liu',
-    dob: '1975-12-01', gender: 'Male', phone: '09231234567', email: 'james.liu@email.com',
-    address: '18 Burgos Ave, Las Piñas', bloodType: 'B-',
-    allergies: ['Sulfa'], medicalHistory: 'GERD. Managed with lifestyle changes.',
-    knownConditions: 'Gastroesophageal Reflux Disease', previousPrescriptions: 'Omeprazole 20mg once daily',
-    isActive: false,
-  },
-  {
-    id: 'pt8', tenantId: 't1', firstName: 'Anna', lastName: 'Kowalski', fullName: 'Anna Kowalski',
-    dob: '1988-06-25', gender: 'Female', phone: '09241234567', email: 'anna.kowalski@email.com',
-    address: '7 Jacinto Blvd, Paranaque', bloodType: 'O+',
-    allergies: [], medicalHistory: 'Migraine (chronic). Managed with preventive therapy.',
-    knownConditions: 'Chronic migraine', previousPrescriptions: 'Topiramate 25mg once daily',
-    isActive: true,
-  },
-  {
-    id: 'pt9', tenantId: 't1', firstName: 'Aisha', lastName: 'Patel', fullName: 'Aisha Patel',
-    dob: '1998-08-09', gender: 'Female', phone: '09251234567', email: 'aisha.patel@email.com',
-    address: '14 Roxas Blvd, Pasay', bloodType: 'AB-',
-    allergies: [], medicalHistory: 'No significant medical history.',
-    knownConditions: 'None', previousPrescriptions: 'None',
-    isActive: true,
-  },
-]
-
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type PatientFormValues = {
@@ -205,13 +128,13 @@ export function PatientForm({ open, onClose, onSave, initialValues }: PatientFor
           {/* Name */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label className="text-xs">First Name *</Label>
-              <Input value={form.firstName} onChange={e => set('firstName', e.target.value)} placeholder="e.g. Maria" />
+              <Label htmlFor="firstName" className="text-xs">First Name *</Label>
+              <Input id="firstName" value={form.firstName} onChange={e => set('firstName', e.target.value)} placeholder="e.g. Maria" />
               {errors.firstName && <p className="text-xs text-destructive">{errors.firstName}</p>}
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Last Name *</Label>
-              <Input value={form.lastName} onChange={e => set('lastName', e.target.value)} placeholder="e.g. Santos" />
+              <Label htmlFor="lastName" className="text-xs">Last Name *</Label>
+              <Input id="lastName" value={form.lastName} onChange={e => set('lastName', e.target.value)} placeholder="e.g. Santos" />
               {errors.lastName && <p className="text-xs text-destructive">{errors.lastName}</p>}
             </div>
           </div>
@@ -219,8 +142,8 @@ export function PatientForm({ open, onClose, onSave, initialValues }: PatientFor
           {/* DOB + Sex */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label className="text-xs">Date of Birth</Label>
-              <Input type="date" value={form.dob} onChange={e => set('dob', e.target.value)} />
+              <Label htmlFor="dob" className="text-xs">Date of Birth</Label>
+              <Input id="dob" type="date" value={form.dob} onChange={e => set('dob', e.target.value)} />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Sex *</Label>
@@ -240,8 +163,8 @@ export function PatientForm({ open, onClose, onSave, initialValues }: PatientFor
           {/* Phone + Blood Type */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label className="text-xs">Phone *</Label>
-              <Input value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="09171234567" />
+              <Label htmlFor="phone" className="text-xs">Phone *</Label>
+              <Input id="phone" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="09171234567" />
               {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
             </div>
             <div className="space-y-1">

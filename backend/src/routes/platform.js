@@ -2,6 +2,7 @@ import express from 'express';
 import { createRequireAuth } from '../middleware/auth.js';
 import { requireRole } from '../middleware/auth.js';
 import { prisma as defaultPrisma } from '../models/prisma.js';
+import { parsePagination, paginatedResponse } from '../lib/pagination.js';
 
 /**
  * Factory for /api/v1/platform — platform-wide announcements, feature flags,
@@ -22,11 +23,13 @@ export function createPlatformRouter({
   router.get('/announcements', requireAuth, async (req, res, next) => {
     try {
       const showArchived = req.query.archived === 'true';
-      const items = await prismaClient.announcement.findMany({
-        where: showArchived ? {} : { isArchived: false },
-        orderBy: { publishedAt: 'desc' },
-      });
-      return res.json(items);
+      const { page, limit, skip } = parsePagination(req.query);
+      const where = showArchived ? {} : { isArchived: false };
+      const [items, total] = await Promise.all([
+        prismaClient.announcement.findMany({ where, orderBy: { publishedAt: 'desc' }, skip, take: limit }),
+        prismaClient.announcement.count({ where }),
+      ]);
+      return res.json(paginatedResponse(items, total, page, limit));
     } catch (err) {
       return next(err);
     }
@@ -117,13 +120,15 @@ export function createPlatformRouter({
 
   // ── Maintenance Windows ────────────────────────────────────────────────────
 
-  router.get('/maintenance', requireAuth, async (_req, res, next) => {
+  router.get('/maintenance', requireAuth, async (req, res, next) => {
     try {
-      const items = await prismaClient.maintenanceWindow.findMany({
-        where: { isCancelled: false },
-        orderBy: { startsAt: 'asc' },
-      });
-      return res.json(items);
+      const { page, limit, skip } = parsePagination(req.query);
+      const where = { isCancelled: false };
+      const [items, total] = await Promise.all([
+        prismaClient.maintenanceWindow.findMany({ where, orderBy: { startsAt: 'asc' }, skip, take: limit }),
+        prismaClient.maintenanceWindow.count({ where }),
+      ]);
+      return res.json(paginatedResponse(items, total, page, limit));
     } catch (err) {
       return next(err);
     }

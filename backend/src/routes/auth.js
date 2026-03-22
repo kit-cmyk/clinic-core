@@ -1,6 +1,37 @@
 import express from 'express';
+import { z } from 'zod';
 import { createSupabaseAdminClient, createSupabaseAnonClient } from '../lib/supabase.js';
 import { prisma as defaultPrisma } from '../models/prisma.js';
+import { authLimiter, superAdminAuthLimiter } from '../middleware/rateLimiter.js';
+import { validate } from '../middleware/validate.js';
+import { writeAuditLog } from '../lib/auditLog.js';
+
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+});
+
+const signupSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  tenantId: z.string().uuid(),
+  role: z.enum(['SUPER_ADMIN', 'ORG_ADMIN', 'DOCTOR', 'NURSE', 'SECRETARY']).optional(),
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+});
+
+const registerOrgSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  clinicName: z.string().min(1),
+  clinicAddress: z.string().optional(),
+});
+
+const refreshSchema = z.object({
+  refresh_token: z.string().min(1),
+});
 
 /**
  * Factory for the auth router.
@@ -22,15 +53,8 @@ export function createAuthRouter({
   // ── POST /auth/signup ────────────────────────────────────────────────────────
   // Creates a Supabase user (email auto-confirmed — staff-only flow),
   // inserts a User row in Prisma, then signs in to return JWT tokens.
-  router.post('/signup', async (req, res, next) => {
+  router.post('/signup', authLimiter, validate(signupSchema), async (req, res, next) => {
     const { email, password, tenantId, role = 'SECRETARY', firstName, lastName } = req.body;
-
-    if (!email || !password || !tenantId || !firstName || !lastName) {
-      return res.status(400).json({
-        error: 'bad_request',
-        message: 'email, password, tenantId, firstName, and lastName are required',
-      });
-    }
 
     const adminClient = adminClientFactory();
     const anonClient = anonClientFactory();
@@ -87,27 +111,21 @@ export function createAuthRouter({
   });
 
   // ── POST /auth/login ─────────────────────────────────────────────────────────
-  router.post('/login', async (req, res, next) => {
+  router.post('/login', authLimiter, validate(loginSchema), async (req, res, next) => {
     const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({
-        error: 'bad_request',
-        message: 'email and password are required',
-      });
-    }
 
     const anonClient = anonClientFactory();
     const { data, error } = await anonClient.auth.signInWithPassword({ email, password });
 
     if (error) {
-      // Supabase returns 400 for invalid credentials
       if (error.status === 400 || error.message?.toLowerCase().includes('invalid')) {
+        writeAuditLog({ action: 'auth.login_failed', metadata: { email }, ip: req.ip });
         return res.status(401).json({ error: 'unauthorized', message: 'Invalid email or password' });
       }
       return next(error);
     }
 
+    writeAuditLog({ action: 'auth.login', actorId: data.user.id, ip: req.ip, metadata: { email } });
     return res.json({
       access_token: data.session.access_token,
       refresh_token: data.session.refresh_token,
@@ -118,15 +136,8 @@ export function createAuthRouter({
   // ── POST /auth/super-admin/login ─────────────────────────────────────────────
   // Like /auth/login but verifies the user has SUPER_ADMIN role before returning
   // tokens — non-super-admins get a 403 and their session is immediately revoked.
-  router.post('/super-admin/login', async (req, res, next) => {
+  router.post('/super-admin/login', superAdminAuthLimiter, validate(loginSchema), async (req, res, next) => {
     const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({
-        error: 'bad_request',
-        message: 'email and password are required',
-      });
-    }
 
     const anonClient = anonClientFactory();
     const { data, error } = await anonClient.auth.signInWithPassword({ email, password });
@@ -150,15 +161,16 @@ export function createAuthRouter({
     }
 
     if (!dbUser || dbUser.role !== 'SUPER_ADMIN' || !dbUser.isActive) {
-      // Revoke the Supabase session so the token can't be reused
       const adminClient = adminClientFactory();
       await adminClient.auth.admin.signOut(data.session.access_token).catch(() => {});
+      writeAuditLog({ action: 'auth.super_admin_login_denied', metadata: { email }, ip: req.ip });
       return res.status(403).json({
         error: 'forbidden',
         message: 'Access denied. This login is for platform administrators only.',
       });
     }
 
+    writeAuditLog({ action: 'auth.super_admin_login', actorId: data.user.id, actorRole: 'SUPER_ADMIN', ip: req.ip });
     return res.json({
       access_token: data.session.access_token,
       refresh_token: data.session.refresh_token,
@@ -191,15 +203,8 @@ export function createAuthRouter({
   // ── POST /auth/register-org ──────────────────────────────────────────────────
   // Creates a new organization account: Supabase user + Tenant + Organization +
   // ORG_ADMIN User row in one transaction. Returns JWT tokens on success.
-  router.post('/register-org', async (req, res, next) => {
+  router.post('/register-org', authLimiter, validate(registerOrgSchema), async (req, res, next) => {
     const { email, password, firstName, lastName, clinicName, clinicAddress } = req.body;
-
-    if (!email || !password || !firstName || !lastName || !clinicName) {
-      return res.status(400).json({
-        error: 'bad_request',
-        message: 'email, password, firstName, lastName, and clinicName are required',
-      });
-    }
 
     const adminClient = adminClientFactory();
     const anonClient = anonClientFactory();
@@ -275,15 +280,8 @@ export function createAuthRouter({
   });
 
   // ── POST /auth/refresh ───────────────────────────────────────────────────────
-  router.post('/refresh', async (req, res, next) => {
+  router.post('/refresh', authLimiter, validate(refreshSchema), async (req, res, _next) => {
     const { refresh_token } = req.body;
-
-    if (!refresh_token) {
-      return res.status(400).json({
-        error: 'bad_request',
-        message: 'refresh_token is required',
-      });
-    }
 
     const anonClient = anonClientFactory();
     const { data, error } = await anonClient.auth.refreshSession({ refresh_token });

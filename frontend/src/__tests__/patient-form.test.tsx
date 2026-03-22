@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { PatientForm, MOCK_PATIENTS } from '@/components/patients/PatientForm'
+import { PatientForm } from '@/components/patients/PatientForm'
+import { MOCK_PATIENTS } from '@/data/mockPatients'
 
 describe('PatientForm', () => {
   it('renders add patient form with all fields', () => {
@@ -26,6 +27,7 @@ describe('PatientForm', () => {
     fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'User' } })
     fireEvent.change(screen.getByLabelText(/date of birth/i), { target: { value: '1990-01-01' } })
     fireEvent.change(screen.getByLabelText(/phone/i), { target: { value: '09171234567' } })
+    fireEvent.change(screen.getByPlaceholderText(/rizal st/i), { target: { value: '123 Test St' } })
     fireEvent.click(screen.getByRole('button', { name: /add patient/i }))
     expect(onSave).toHaveBeenCalledOnce()
     const saved = onSave.mock.calls[0][0]

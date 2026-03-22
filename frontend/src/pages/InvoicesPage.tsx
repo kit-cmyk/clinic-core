@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -19,78 +19,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { MoreHorizontal } from 'lucide-react'
 import type { Invoice, InvoiceLineItem, InvoiceStatus } from '@/types'
-
-// ── Mock Data ──────────────────────────────────────────────────────────────────
-
-const MOCK_INVOICES: Invoice[] = [
-  {
-    id: 'inv1', tenantId: 't1', invoiceNumber: 'INV-2026-001',
-    patientId: 'p1', patientName: 'John Doe',
-    appointmentId: 'a10', appointmentDate: '2026-03-18',
-    status: 'paid',
-    lineItems: [
-      { id: 'li1', invoiceId: 'inv1', description: 'General Consultation', quantity: 1, unitPriceCents: 15000, totalCents: 15000 },
-      { id: 'li2', invoiceId: 'inv1', description: 'Blood Panel', quantity: 1, unitPriceCents: 8500, totalCents: 8500 },
-    ],
-    totalAmountCents: 23500, issuedAt: '2026-03-18', dueAt: '2026-04-01', paidAt: '2026-03-20',
-  },
-  {
-    id: 'inv2', tenantId: 't1', invoiceNumber: 'INV-2026-002',
-    patientId: 'p2', patientName: 'Maria Chen',
-    appointmentId: 'a11', appointmentDate: '2026-03-18',
-    status: 'sent',
-    lineItems: [
-      { id: 'li3', invoiceId: 'inv2', description: 'Cardiology Consultation', quantity: 1, unitPriceCents: 25000, totalCents: 25000 },
-      { id: 'li4', invoiceId: 'inv2', description: 'ECG Test', quantity: 1, unitPriceCents: 5000, totalCents: 5000 },
-    ],
-    totalAmountCents: 30000, issuedAt: '2026-03-18', dueAt: '2026-04-01',
-  },
-  {
-    id: 'inv3', tenantId: 't1', invoiceNumber: 'INV-2026-003',
-    patientId: 'p3', patientName: 'Carlos Rivera',
-    appointmentDate: '2026-03-17',
-    status: 'overdue',
-    lineItems: [
-      { id: 'li5', invoiceId: 'inv3', description: 'New Patient Consultation', quantity: 1, unitPriceCents: 18000, totalCents: 18000 },
-      { id: 'li6', invoiceId: 'inv3', description: 'X-Ray', quantity: 2, unitPriceCents: 6000, totalCents: 12000 },
-    ],
-    totalAmountCents: 30000, issuedAt: '2026-03-10', dueAt: '2026-03-17',
-  },
-  {
-    id: 'inv4', tenantId: 't1', invoiceNumber: 'INV-2026-004',
-    patientId: 'p4', patientName: 'Priya Sharma',
-    appointmentDate: '2026-03-18',
-    status: 'draft',
-    lineItems: [
-      { id: 'li7', invoiceId: 'inv4', description: 'Follow-up Consultation', quantity: 1, unitPriceCents: 12000, totalCents: 12000 },
-    ],
-    totalAmountCents: 12000, issuedAt: '2026-03-18', dueAt: '2026-04-02',
-  },
-  {
-    id: 'inv5', tenantId: 't1', invoiceNumber: 'INV-2026-005',
-    patientId: 'p5', patientName: 'Tom Wilson',
-    appointmentDate: '2026-03-16',
-    status: 'paid',
-    lineItems: [
-      { id: 'li8', invoiceId: 'inv5', description: 'Dermatology Consultation', quantity: 1, unitPriceCents: 20000, totalCents: 20000 },
-    ],
-    totalAmountCents: 20000, issuedAt: '2026-03-16', dueAt: '2026-03-30', paidAt: '2026-03-22',
-  },
-  {
-    id: 'inv6', tenantId: 't1', invoiceNumber: 'INV-2026-006',
-    patientId: 'p6', patientName: 'Aisha Patel',
-    appointmentDate: '2026-03-18',
-    status: 'draft',
-    lineItems: [],
-    totalAmountCents: 0, issuedAt: '2026-03-18', dueAt: '2026-04-02',
-  },
-]
-
-const MOCK_PATIENTS = [
-  { id: 'p1', name: 'John Doe' }, { id: 'p2', name: 'Maria Chen' },
-  { id: 'p3', name: 'Carlos Rivera' }, { id: 'p4', name: 'Priya Sharma' },
-  { id: 'p5', name: 'Tom Wilson' }, { id: 'p6', name: 'Aisha Patel' },
-]
+import api from '@/services/api'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -229,14 +158,50 @@ function InvoiceRow({
 type FilterTab = 'all' | InvoiceStatus
 
 export function InvoicesPage() {
-  const [invoices,   setInvoices]   = useState<Invoice[]>(MOCK_INVOICES)
-  const [filterTab,  setFilterTab]  = useState<FilterTab>('all')
-  const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [sheetOpen,  setSheetOpen]  = useState(false)
+  const [invoices,    setInvoices]    = useState<Invoice[]>([])
+  const [loading,    setLoading]     = useState(true)
+  const [error,      setError]       = useState<string | null>(null)
+  const [page,       setPage]        = useState(1)
+  const [totalPages, setTotalPages]  = useState(1)
+  const [filterTab,  setFilterTab]   = useState<FilterTab>('all')
+  const [expandedId, setExpandedId]  = useState<string | null>(null)
+  const [sheetOpen,  setSheetOpen]   = useState(false)
 
   // Create form
-  const [patientId, setPatientId] = useState(MOCK_PATIENTS[0].id)
+  const [patientId, setPatientId] = useState('')
   const [dueDate,   setDueDate]   = useState('')
+
+  useEffect(() => {
+    setLoading(true)
+    api.get('/api/v1/invoices', { params: { page, limit: 20 } })
+      .then(res => {
+        const mapped: Invoice[] = res.data.data.map((inv: Record<string, unknown>) => {
+          const p = inv.patient as { firstName: string; lastName: string } | null
+          return {
+            ...(inv as Invoice),
+            patientName: p ? `${p.firstName} ${p.lastName}` : '',
+            status: (inv.status as string).toLowerCase() as Invoice['status'],
+            appointmentDate: '',
+          }
+        })
+        setInvoices(mapped)
+        setTotalPages(res.data.pagination.pages)
+      })
+      .catch(() => setError('Failed to load invoices.'))
+      .finally(() => setLoading(false))
+  }, [page])
+
+  // Derive unique patients from fetched invoices for the create form dropdown
+  const patientOptions = useMemo(() => {
+    const seen = new Set<string>()
+    return invoices
+      .filter(i => {
+        if (seen.has(i.patientId)) return false
+        seen.add(i.patientId)
+        return true
+      })
+      .map(i => ({ id: i.patientId, name: i.patientName }))
+  }, [invoices])
 
   const filtered = useMemo(() =>
     filterTab === 'all' ? invoices : invoices.filter(i => i.status === filterTab),
@@ -250,7 +215,8 @@ export function InvoicesPage() {
   )
 
   const handleCreate = () => {
-    const patient = MOCK_PATIENTS.find(p => p.id === patientId)!
+    const patient = patientOptions.find(p => p.id === patientId) ?? patientOptions[0]
+    if (!patient) return
     const today = new Date().toISOString().slice(0, 10)
     const inv: Invoice = {
       id:               `inv-${Date.now()}`,
@@ -266,7 +232,7 @@ export function InvoicesPage() {
     }
     setInvoices(prev => [inv, ...prev])
     setSheetOpen(false)
-    setPatientId(MOCK_PATIENTS[0].id)
+    setPatientId('')
     setDueDate('')
   }
 
@@ -323,13 +289,22 @@ export function InvoicesPage() {
         ))}
       </div>
 
+      {/* Error banner */}
+      {error && (
+        <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+
       {/* Invoice list */}
       <Card>
         <CardContent className="p-0">
           <div className="hidden md:grid grid-cols-[8rem_1fr_8rem_7rem_7rem_10rem] gap-4 px-4 py-2 border-b bg-muted/40 text-xs font-medium text-muted-foreground">
             <span>Invoice #</span><span>Patient</span><span>Appt Date</span><span>Total</span><span>Status</span><span>Actions</span>
           </div>
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="py-16 text-center text-sm text-muted-foreground">Loading invoices…</div>
+          ) : filtered.length === 0 ? (
             <p className="py-10 text-center text-sm text-muted-foreground">No {filterTab === 'all' ? '' : filterTab} invoices.</p>
           ) : (
             filtered.map(inv => (
@@ -347,6 +322,31 @@ export function InvoicesPage() {
         </CardContent>
       </Card>
 
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={page === 1}
+          >
+            Previous
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            Page {page} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+          >
+            Next
+          </Button>
+        </div>
+      )}
+
       {/* Create Invoice Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent>
@@ -358,11 +358,11 @@ export function InvoicesPage() {
               <Label className="text-xs">Patient</Label>
               <select
                 className="border rounded-md px-3 py-2 text-sm bg-background w-full"
-                value={patientId}
+                value={patientId || patientOptions[0]?.id || ''}
                 onChange={e => setPatientId(e.target.value)}
                 aria-label="Select patient"
               >
-                {MOCK_PATIENTS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                {patientOptions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </div>
             <div className="space-y-1">

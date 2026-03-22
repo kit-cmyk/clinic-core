@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   CalendarDays, Users, FlaskConical, Receipt, Stethoscope, Plus,
-  UserCheck, UserPlus, Clock, ChevronRight, ClipboardCheck,
+  UserCheck, UserPlus, ChevronRight, ClipboardCheck,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -18,60 +18,38 @@ import {
 } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
-import { PatientForm, MOCK_PATIENTS } from '@/components/patients/PatientForm'
+import { PatientForm } from '@/components/patients/PatientForm'
+import api from '@/services/api'
 import type { Patient, Role } from '@/types'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type AppointmentStatus = 'booked' | 'confirmed' | 'checked-in' | 'completed' | 'no-show'
 
-// ── Shared mock data ───────────────────────────────────────────────────────────
-
-const PROFESSIONALS = [
-  { id: 'p1', name: 'Dr. Sarah Kim',    specialization: 'General Medicine', colorIdx: 0, slotMins: 30 },
-  { id: 'p2', name: 'Dr. James Park',   specialization: 'Cardiology',        colorIdx: 1, slotMins: 45 },
-  { id: 'p3', name: 'Dr. Liu Wei',      specialization: 'Pediatrics',        colorIdx: 2, slotMins: 30 },
-  { id: 'p4', name: 'Nurse Ana Santos', specialization: 'General Nursing',   colorIdx: 3, slotMins: 20 },
-  { id: 'p5', name: 'Dr. Priya Nair',   specialization: 'Dermatology',       colorIdx: 4, slotMins: 30 },
-]
-
-// Weekday schedule per professional: 0=Mon … 6=Sun
-const PROF_SCHEDULES = [
-  { professionalId: 'p1', weekday: 0, startTime: '08:00', endTime: '17:00' },
-  { professionalId: 'p1', weekday: 1, startTime: '08:00', endTime: '17:00' },
-  { professionalId: 'p1', weekday: 2, startTime: '08:00', endTime: '17:00' },
-  { professionalId: 'p1', weekday: 3, startTime: '08:00', endTime: '17:00' },
-  { professionalId: 'p1', weekday: 4, startTime: '08:00', endTime: '13:00' },
-  { professionalId: 'p2', weekday: 0, startTime: '09:00', endTime: '17:00' },
-  { professionalId: 'p2', weekday: 2, startTime: '09:00', endTime: '17:00' },
-  { professionalId: 'p2', weekday: 4, startTime: '09:00', endTime: '17:00' },
-  { professionalId: 'p3', weekday: 1, startTime: '08:00', endTime: '17:00' },
-  { professionalId: 'p3', weekday: 3, startTime: '08:00', endTime: '17:00' },
-  { professionalId: 'p4', weekday: 0, startTime: '07:00', endTime: '15:00' },
-  { professionalId: 'p4', weekday: 2, startTime: '07:00', endTime: '15:00' },
-  { professionalId: 'p4', weekday: 4, startTime: '07:00', endTime: '15:00' },
-  { professionalId: 'p5', weekday: 1, startTime: '10:00', endTime: '18:00' },
-  { professionalId: 'p5', weekday: 3, startTime: '10:00', endTime: '18:00' },
-]
-
-// Expanded with times and mixed statuses for CC-111/CC-112/CC-117
-const TODAY_APPTS: {
+// Internal shapes used by dashboard components
+type DashAppt = {
   id: string
   patientName: string
   professionalId: string
   status: AppointmentStatus
-  startTime: string
+  startTime: string     // 'HH:mm' derived from scheduledAt
   arrivedAt: string | null
-}[] = [
-  { id: 'a10', patientName: 'John Doe',       professionalId: 'p1', status: 'completed',  startTime: '08:00', arrivedAt: null },
-  { id: 'a11', patientName: 'Jane Smith',     professionalId: 'p2', status: 'checked-in', startTime: '09:00', arrivedAt: '08:52' },
-  { id: 'a12', patientName: 'Carlos Rivera',  professionalId: 'p3', status: 'confirmed',  startTime: '09:30', arrivedAt: null },
-  { id: 'a13', patientName: 'Priya Sharma',   professionalId: 'p4', status: 'checked-in', startTime: '09:40', arrivedAt: '09:35' },
-  { id: 'a14', patientName: 'Aisha Patel',    professionalId: 'p5', status: 'booked',     startTime: '10:30', arrivedAt: null },
-  { id: 'a15', patientName: 'Tom Wilson',     professionalId: 'p1', status: 'booked',     startTime: '11:00', arrivedAt: null },
-  { id: 'a16', patientName: 'Maria Lopez',    professionalId: 'p2', status: 'no-show',    startTime: '11:30', arrivedAt: null },
-  { id: 'a17', patientName: 'David Chen',     professionalId: 'p3', status: 'booked',     startTime: '13:00', arrivedAt: null },
-]
+}
+
+type DashProfessional = {
+  id: string
+  name: string            // firstName + ' ' + lastName from user
+  specialization: string
+  slotMins: number        // slotDurationMins from API
+  colorIdx: number        // index in professionals array
+}
+
+type DashSchedule = {
+  professionalId: string
+  weekday: number
+  startTime: string
+  endTime: string
+}
 
 // Pending actions mock data for CC-113
 const PENDING_ACTIONS: { label: string; count: number; href: string; roles: Role[] }[] = [
@@ -145,7 +123,7 @@ const STAT_CARDS = [
 
 // ── CC-117: Appointment Status Breakdown Bar ───────────────────────────────────
 
-function AppointmentStatusBar({ appts }: { appts: typeof TODAY_APPTS }) {
+function AppointmentStatusBar({ appts }: { appts: DashAppt[] }) {
   const total = appts.length
   if (total === 0) return null
 
@@ -203,77 +181,9 @@ function SlotUtilizationBar({ totalSlots, bookedSlots }: { totalSlots: number; b
   )
 }
 
-// ── CC-111: Appointment Timeline Strip ────────────────────────────────────────
-
-function AppointmentTimeline({ appts }: { appts: typeof TODAY_APPTS }) {
-  const sorted = [...appts].sort((a, b) => a.startTime.localeCompare(b.startTime))
-
-  if (sorted.length === 0) {
-    return (
-      <Card>
-        <CardHeader><CardTitle className="text-base flex items-center gap-2"><Clock className="h-4 w-4 text-muted-foreground" />Today's Timeline</CardTitle></CardHeader>
-        <CardContent><p className="text-sm text-muted-foreground">No appointments scheduled.</p></CardContent>
-      </Card>
-    )
-  }
-
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base flex items-center gap-2">
-          <Clock className="h-4 w-4 text-muted-foreground" />
-          Today's Timeline
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="px-4 pb-4">
-        <div className="relative">
-          {/* Vertical line */}
-          <div className="absolute left-[52px] top-2 bottom-2 w-px bg-border" />
-
-          {sorted.map((appt, i) => {
-            const prev = sorted[i - 1]
-            const gap = prev ? minutesBetween(prev.startTime, appt.startTime) : 0
-            const prof = PROFESSIONALS.find(p => p.id === appt.professionalId)
-
-            return (
-              <div key={appt.id}>
-                {/* Gap indicator */}
-                {gap > 60 && (
-                  <div className="flex items-center gap-2 pl-[68px] py-1">
-                    <span className="text-[10px] text-muted-foreground/60 italic">{gap} min gap</span>
-                  </div>
-                )}
-                <div className="flex items-start gap-3 py-1.5">
-                  {/* Time */}
-                  <span className="text-xs text-muted-foreground w-12 shrink-0 text-right pt-0.5 tabular-nums">
-                    {appt.startTime}
-                  </span>
-                  {/* Dot */}
-                  <div className={cn('h-3 w-3 rounded-full mt-1 shrink-0 ring-2 ring-background z-10', STATUS_COLORS[appt.status])} />
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium leading-tight">{appt.patientName}</p>
-                    <p className="text-xs text-muted-foreground truncate">{prof?.name}</p>
-                  </div>
-                  <Badge
-                    variant={STATUS_BADGE_VARIANT[appt.status]}
-                    className="text-[10px] capitalize shrink-0"
-                  >
-                    {appt.status}
-                  </Badge>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
 // ── CC-112: Check-In Queue ────────────────────────────────────────────────────
 
-function CheckInQueue({ appts }: { appts: typeof TODAY_APPTS }) {
+function CheckInQueue({ appts, professionals }: { appts: DashAppt[]; professionals: DashProfessional[] }) {
   // Mock current time as 10:15 for demo purposes
   const NOW = '10:15'
   const queue = appts
@@ -299,7 +209,7 @@ function CheckInQueue({ appts }: { appts: typeof TODAY_APPTS }) {
         ) : (
           <div className="divide-y divide-border">
             {queue.map(appt => {
-              const prof = PROFESSIONALS.find(p => p.id === appt.professionalId)
+              const prof = professionals.find(p => p.id === appt.professionalId)
               const wait = waitMins(appt.arrivedAt!)
               return (
                 <div key={appt.id} className="flex items-center justify-between px-6 py-3">
@@ -325,31 +235,6 @@ function CheckInQueue({ appts }: { appts: typeof TODAY_APPTS }) {
         )}
       </CardContent>
     </Card>
-  )
-}
-
-// ── CC-113: Pending Actions Bar ────────────────────────────────────────────────
-
-function PendingActionsBar({ role }: { role: Role }) {
-  const navigate = useNavigate()
-  const visible = PENDING_ACTIONS.filter(a => a.roles.includes(role) && a.count > 0)
-  if (visible.length === 0) return null
-
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="text-xs text-muted-foreground shrink-0">Pending:</span>
-      {visible.map(action => (
-        <button
-          key={action.label}
-          onClick={() => navigate(action.href)}
-          className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-3 py-1 text-xs font-medium text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors"
-        >
-          <span className="h-4 w-4 rounded-full bg-amber-400 text-white flex items-center justify-center text-[10px] font-bold">{action.count}</span>
-          {action.label}
-          <ChevronRight className="h-3 w-3 opacity-60" />
-        </button>
-      ))}
-    </div>
   )
 }
 
@@ -406,28 +291,34 @@ function QuickActionBar({ role, onBook }: { role: Role; onBook: () => void }) {
 function WalkInSlotFinder({
   todayWd,
   onBook,
+  professionals,
+  schedules,
+  todayAppts,
 }: {
   todayWd: number
   onBook: (profId: string, slot: string) => void
+  professionals: DashProfessional[]
+  schedules: DashSchedule[]
+  todayAppts: DashAppt[]
 }) {
-  const availableToday = PROFESSIONALS.filter(p =>
-    PROF_SCHEDULES.some(s => s.professionalId === p.id && s.weekday === todayWd)
+  const availableToday = professionals.filter(p =>
+    schedules.some(s => s.professionalId === p.id && s.weekday === todayWd)
   )
   const [selectedProfId, setSelectedProfId] = useState(availableToday[0]?.id ?? '')
 
   const nextSlot = useMemo(() => {
     if (!selectedProfId) return null
-    const prof = PROFESSIONALS.find(p => p.id === selectedProfId)
-    const sched = PROF_SCHEDULES.find(s => s.professionalId === selectedProfId && s.weekday === todayWd)
+    const prof = professionals.find(p => p.id === selectedProfId)
+    const sched = schedules.find(s => s.professionalId === selectedProfId && s.weekday === todayWd)
     if (!prof || !sched) return null
     const allSlots = generateSlots(sched.startTime, sched.endTime, prof.slotMins)
     const bookedSlots = new Set(
-      TODAY_APPTS
+      todayAppts
         .filter(a => a.professionalId === selectedProfId && a.status !== 'no-show' && a.status !== 'completed')
         .map(a => a.startTime)
     )
     return allSlots.find(s => !bookedSlots.has(s)) ?? null
-  }, [selectedProfId, todayWd])
+  }, [selectedProfId, todayWd, professionals, schedules, todayAppts])
 
   if (availableToday.length === 0) return null
 
@@ -497,13 +388,17 @@ function BookAppointmentSheet({
   onClose,
   prefillProfId,
   prefillSlot,
+  professionals,
+  schedules,
 }: {
   open: boolean
   onClose: () => void
   prefillProfId?: string
   prefillSlot?: string
+  professionals: DashProfessional[]
+  schedules: DashSchedule[]
 }) {
-  const [patients,        setPatients]        = useState<Patient[]>(MOCK_PATIENTS)
+  const [patients,        setPatients]        = useState<Patient[]>([])
   const [patientSearch,   setPatientSearch]   = useState('')
   const [patientDropOpen, setPatientDropOpen] = useState(false)
   const [showPatientForm, setShowPatientForm] = useState(false)
@@ -512,12 +407,28 @@ function BookAppointmentSheet({
   const [form, setForm] = useState<BookApptForm>({
     patientId: '',
     patientName: '',
-    professionalId: prefillProfId ?? PROFESSIONALS[0].id,
+    professionalId: prefillProfId ?? professionals[0]?.id ?? '',
     date: fmt(new Date()),
     startTime: '',
-    durationMins: PROFESSIONALS[0].slotMins,
+    durationMins: professionals[0]?.slotMins ?? 30,
     type: APPOINTMENT_TYPES[0],
   })
+
+  // Fetch patients when patientSearch changes (debounced 300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      api.get('/api/v1/patients', { params: { search: patientSearch, limit: 6 } })
+        .then(res => {
+          const mapped: Patient[] = res.data.data.map((p: Record<string, unknown>) => ({
+            ...p,
+            fullName: `${p.firstName as string} ${p.lastName as string}`,
+          })) as Patient[]
+          setPatients(mapped)
+        })
+        .catch(() => {})
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [patientSearch])
 
   // Derived: weekday of selected date (Mon=0)
   const dateWeekday = useMemo(() => {
@@ -526,26 +437,26 @@ function BookAppointmentSheet({
   }, [form.date])
 
   // Derived: prof object for selected professionalId
-  const selectedProf = PROFESSIONALS.find(p => p.id === form.professionalId)
+  const selectedProf = professionals.find(p => p.id === form.professionalId)
 
   // Derived: available slots for the selected professional + date
   const availableSlots = useMemo(() => {
     if (!selectedProf) return []
-    const sched = PROF_SCHEDULES.find(
+    const sched = schedules.find(
       s => s.professionalId === selectedProf.id && s.weekday === dateWeekday
     )
     if (!sched) return []
     return generateSlots(sched.startTime, sched.endTime, selectedProf.slotMins)
-  }, [selectedProf, dateWeekday])
+  }, [selectedProf, dateWeekday, schedules])
 
   // Reset form when sheet opens
   useEffect(() => {
     if (!open) return
-    const profId = prefillProfId ?? PROFESSIONALS[0].id
-    const prof = PROFESSIONALS.find(p => p.id === profId)
+    const profId = prefillProfId ?? professionals[0]?.id ?? ''
+    const prof = professionals.find(p => p.id === profId)
     const today = fmt(new Date())
     const wd = toWeekday(new Date())
-    const sched = PROF_SCHEDULES.find(s => s.professionalId === profId && s.weekday === wd)
+    const sched = schedules.find(s => s.professionalId === profId && s.weekday === wd)
     const slots = sched && prof ? generateSlots(sched.startTime, sched.endTime, prof.slotMins) : []
     const initialSlot = (prefillSlot && slots.includes(prefillSlot)) ? prefillSlot : (slots[0] ?? '')
     setForm({
@@ -559,7 +470,7 @@ function BookAppointmentSheet({
     })
     setPatientSearch('')
     setSuccess(false)
-  }, [open, prefillProfId, prefillSlot])
+  }, [open, prefillProfId, prefillSlot, professionals, schedules])
 
   // Update startTime when slots change
   useEffect(() => {
@@ -582,15 +493,26 @@ function BookAppointmentSheet({
   }
 
   const handleNewPatient = (p: Patient) => {
-    setPatients(prev => [...prev, p])
-    selectPatient(p)
+    api.post('/api/v1/patients', p)
+      .then(res => {
+        const created: Patient = {
+          ...res.data,
+          fullName: `${res.data.firstName as string} ${res.data.lastName as string}`,
+        } as Patient
+        setPatients(prev => [...prev, created])
+        selectPatient(created)
+      })
+      .catch(() => {
+        setPatients(prev => [...prev, p])
+        selectPatient(p)
+      })
     setShowPatientForm(false)
   }
 
   const handleProfessionalChange = (profId: string) => {
-    const prof = PROFESSIONALS.find(p => p.id === profId)
+    const prof = professionals.find(p => p.id === profId)
     const wd = toWeekday(new Date(form.date + 'T00:00:00'))
-    const sched = PROF_SCHEDULES.find(s => s.professionalId === profId && s.weekday === wd)
+    const sched = schedules.find(s => s.professionalId === profId && s.weekday === wd)
     const slots = sched && prof ? generateSlots(sched.startTime, sched.endTime, prof.slotMins) : []
     setForm(f => ({
       ...f,
@@ -602,7 +524,7 @@ function BookAppointmentSheet({
 
   const handleDateChange = (date: string) => {
     const wd = toWeekday(new Date(date + 'T00:00:00'))
-    const sched = PROF_SCHEDULES.find(s => s.professionalId === form.professionalId && s.weekday === wd)
+    const sched = schedules.find(s => s.professionalId === form.professionalId && s.weekday === wd)
     const slots = sched && selectedProf ? generateSlots(sched.startTime, sched.endTime, selectedProf.slotMins) : []
     setForm(f => ({ ...f, date, startTime: slots[0] ?? '' }))
   }
@@ -668,7 +590,7 @@ function BookAppointmentSheet({
                     value={form.professionalId}
                     onChange={e => handleProfessionalChange(e.target.value)}
                   >
-                    {PROFESSIONALS.map(p => (
+                    {professionals.map(p => (
                       <option key={p.id} value={p.id}>{p.name} — {p.slotMins} min slots</option>
                     ))}
                   </select>
@@ -748,25 +670,83 @@ function BookAppointmentSheet({
 
 export function DashboardPage() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const role: Role = user?.role ?? 'receptionist'
   const canBook = ['receptionist', 'branch_manager', 'org_admin'].includes(role) || !user
+  const canCheckIn = ['receptionist', 'branch_manager', 'org_admin', 'nurse'].includes(role) || !user
 
-  const [bookOpen,      setBookOpen]      = useState(false)
-  const [prefillProfId, setPrefillProfId] = useState<string | undefined>(undefined)
-  const [prefillSlot,   setPrefillSlot]   = useState<string | undefined>(undefined)
+  const [bookOpen,       setBookOpen]       = useState(false)
+  const [prefillProfId,  setPrefillProfId]  = useState<string | undefined>(undefined)
+  const [prefillSlot,    setPrefillSlot]    = useState<string | undefined>(undefined)
+  const [localStatuses,  setLocalStatuses]  = useState<Record<string, AppointmentStatus>>({})
+  const [localArrivedAt, setLocalArrivedAt] = useState<Record<string, string>>({})
+
+  const [todayAppts,    setTodayAppts]    = useState<DashAppt[]>([])
+  const [professionals, setProfessionals] = useState<DashProfessional[]>([])
+  const [schedules,     setSchedules]     = useState<DashSchedule[]>([])
+  const [loadingAppts,  setLoadingAppts]  = useState(true)
 
   const todayWd = toWeekday(new Date())
 
-  const profAvailability = PROFESSIONALS.map(p => {
-    const sched = PROF_SCHEDULES.find(s => s.professionalId === p.id && s.weekday === todayWd)
+  // Fetch today's appointments on mount
+  useEffect(() => {
+    const today = fmt(new Date())
+    api.get('/api/v1/appointments', { params: { date: today, limit: 100 } }).then(res => {
+      const appts: DashAppt[] = res.data.data.map((a: Record<string, unknown>, _: number) => {
+        const p = a.patient as { firstName: string; lastName: string } | null
+        const dt = new Date(a.scheduledAt as string)
+        const hh = String(dt.getHours()).padStart(2, '0')
+        const mm = String(dt.getMinutes()).padStart(2, '0')
+        return {
+          id: a.id as string,
+          patientName: p ? `${p.firstName} ${p.lastName}` : 'Unknown',
+          professionalId: a.professionalId as string,
+          status: (a.status as string).toLowerCase() as AppointmentStatus,
+          startTime: `${hh}:${mm}`,
+          arrivedAt: a.checkInAt ? (() => { const d = new Date(a.checkInAt as string); return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}` })() : null,
+        }
+      })
+      setTodayAppts(appts)
+    }).catch(() => {}).finally(() => setLoadingAppts(false))
+  }, [])
+
+  // Fetch professionals on mount
+  useEffect(() => {
+    api.get('/api/v1/professionals').then(res => {
+      const profs: DashProfessional[] = res.data.data.map((p: Record<string, unknown>, idx: number) => {
+        const u = p.user as { firstName: string; lastName: string }
+        return {
+          id: p.id as string,
+          name: `${u.firstName} ${u.lastName}`,
+          specialization: p.specialization as string,
+          slotMins: p.slotDurationMins as number,
+          colorIdx: idx,
+        }
+      })
+      setProfessionals(profs)
+      const allSchedules: DashSchedule[] = res.data.data.flatMap((p: Record<string, unknown>) =>
+        (p.schedules as DashSchedule[]).map(s => ({ ...s, professionalId: p.id as string }))
+      )
+      setSchedules(allSchedules)
+    }).catch(() => {})
+  }, [])
+
+  const effectiveAppts = todayAppts.map(a => ({
+    ...a,
+    status: (localStatuses[a.id] ?? a.status) as AppointmentStatus,
+    arrivedAt: localArrivedAt[a.id] ?? a.arrivedAt,
+  }))
+
+  const profAvailability = professionals.map(p => {
+    const sched = schedules.find(s => s.professionalId === p.id && s.weekday === todayWd)
     const totalSlots = sched ? generateSlots(sched.startTime, sched.endTime, p.slotMins).length : 0
-    const bookedSlots = TODAY_APPTS.filter(
+    const bookedSlots = todayAppts.filter(
       a => a.professionalId === p.id && a.status !== 'no-show'
     ).length
     return {
       ...p,
       available: !!sched,
-      todayApptCount: TODAY_APPTS.filter(a => a.professionalId === p.id).length,
+      todayApptCount: todayAppts.filter(a => a.professionalId === p.id).length,
       totalSlots,
       bookedSlots,
     }
@@ -778,24 +758,28 @@ export function DashboardPage() {
     setBookOpen(true)
   }
 
+  const handleCheckIn = (apptId: string) => {
+    const now = new Date()
+    const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+    setLocalStatuses(prev => ({ ...prev, [apptId]: 'checked-in' }))
+    setLocalArrivedAt(prev => ({ ...prev, [apptId]: time }))
+  }
+
+  const labPending     = PENDING_ACTIONS.find(a => a.label === 'lab results to publish')
+  const invoicePending = PENDING_ACTIONS.find(a => a.label === 'invoices unpaid')
+  const showLabCard     = !!(labPending     && labPending.roles.includes(role)     && labPending.count > 0)
+  const showInvoiceCard = !!(invoicePending && invoicePending.roles.includes(role) && invoicePending.count > 0)
+
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">
-            Good morning, {user?.name.split(' ')[0]}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Here's what's happening at your clinic today.
-          </p>
-        </div>
-        {canBook && (
-          <Button onClick={() => openBook()} className="shrink-0 gap-2">
-            <Plus className="h-4 w-4" />
-            New Appointment
-          </Button>
-        )}
+      <div>
+        <h1 className="text-2xl font-semibold text-foreground">
+          Good morning, {user?.name.split(' ')[0]}
+        </h1>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Here's what's happening at your clinic today.
+        </p>
       </div>
 
       {/* Stat cards */}
@@ -824,45 +808,77 @@ export function DashboardPage() {
       {/* CC-115: Quick-action bar */}
       <QuickActionBar role={role} onBook={() => openBook()} />
 
-      {/* CC-113: Pending actions */}
-      <PendingActionsBar role={role} />
-
       {/* CC-116: Walk-in slot finder */}
-      <WalkInSlotFinder todayWd={todayWd} onBook={openBook} />
+      <WalkInSlotFinder
+        todayWd={todayWd}
+        onBook={openBook}
+        professionals={professionals}
+        schedules={schedules}
+        todayAppts={effectiveAppts}
+      />
 
-      {/* Row 1: Today's Appointments + Professionals Today */}
+      {/* Row 1: Today's Appointments + Check-In Queue */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Today's Appointments — CC-117 status bar */}
         <Card>
           <CardHeader className="pb-1">
             <CardTitle className="text-base">Today's Appointments</CardTitle>
           </CardHeader>
-          <AppointmentStatusBar appts={TODAY_APPTS} />
+          <AppointmentStatusBar appts={effectiveAppts} />
           <CardContent className="p-0">
-            <div className="divide-y divide-border">
-              {TODAY_APPTS.map((appt) => (
-                <div key={appt.id} className="flex items-center justify-between px-6 py-3 hover:bg-muted/40 transition-colors">
-                  <div className="flex items-center gap-4">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <span className="text-primary text-xs font-medium">{appt.patientName.charAt(0)}</span>
+            {loadingAppts ? (
+              <p className="text-sm text-muted-foreground px-6 pb-4">Loading appointments…</p>
+            ) : (
+              <div className="divide-y divide-border">
+                {effectiveAppts.map((appt) => (
+                  <div
+                    key={appt.id}
+                    className="flex items-center justify-between px-6 py-3 hover:bg-muted/40 transition-colors cursor-pointer"
+                    onClick={() => navigate(`/appointments/${appt.id}/visit`)}
+                    role="button"
+                    aria-label={`View appointment for ${appt.patientName}`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <span className="text-primary text-xs font-medium">{appt.patientName.charAt(0)}</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{appt.patientName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {professionals.find(p => p.id === appt.professionalId)?.name}
+                          {appt.startTime && <span className="ml-1 tabular-nums">· {appt.startTime}</span>}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{appt.patientName}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {PROFESSIONALS.find(p => p.id === appt.professionalId)?.name}
-                        {appt.startTime && <span className="ml-1 tabular-nums">· {appt.startTime}</span>}
-                      </p>
+                    <div className="flex items-center gap-2">
+                      {canCheckIn && (appt.status === 'booked' || appt.status === 'confirmed') && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs gap-1"
+                          onClick={e => { e.stopPropagation(); handleCheckIn(appt.id) }}
+                        >
+                          <UserCheck className="h-3 w-3" />
+                          Check In
+                        </Button>
+                      )}
+                      <Badge variant={STATUS_BADGE_VARIANT[appt.status]} className="capitalize text-xs">
+                        {appt.status}
+                      </Badge>
                     </div>
                   </div>
-                  <Badge variant={STATUS_BADGE_VARIANT[appt.status]} className="capitalize text-xs">
-                    {appt.status}
-                  </Badge>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
+        {/* Check-In Queue — CC-112 */}
+        <CheckInQueue appts={effectiveAppts} professionals={professionals} />
+      </div>
+
+      {/* Row 2: Professionals Today + Pending Lab Results + Pending Invoices */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
         {/* Professionals Today — CC-114 utilization bars */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
@@ -909,12 +925,64 @@ export function DashboardPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
 
-      {/* Row 2: Timeline + Check-in queue — CC-111, CC-112 */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <AppointmentTimeline appts={TODAY_APPTS} />
-        <CheckInQueue appts={TODAY_APPTS} />
+        {/* Pending Lab Results */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <FlaskConical className="h-4 w-4 text-muted-foreground" />
+              Pending Lab Results
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {showLabCard ? (
+              <div>
+                <p className="text-3xl font-bold tabular-nums">{labPending!.count}</p>
+                <p className="text-sm text-muted-foreground mt-1">results to publish</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-4 w-full gap-1.5"
+                  onClick={() => navigate(labPending!.href)}
+                >
+                  <ChevronRight className="h-3.5 w-3.5" />
+                  View All
+                </Button>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No pending lab results.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Pending Invoices */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Receipt className="h-4 w-4 text-muted-foreground" />
+              Pending Invoices
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {showInvoiceCard ? (
+              <div>
+                <p className="text-3xl font-bold tabular-nums">{invoicePending!.count}</p>
+                <p className="text-sm text-muted-foreground mt-1">invoices unpaid</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-4 w-full gap-1.5"
+                  onClick={() => navigate(invoicePending!.href)}
+                >
+                  <ChevronRight className="h-3.5 w-3.5" />
+                  View All
+                </Button>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No pending invoices.</p>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <BookAppointmentSheet
@@ -922,6 +990,8 @@ export function DashboardPage() {
         onClose={() => setBookOpen(false)}
         prefillProfId={prefillProfId}
         prefillSlot={prefillSlot}
+        professionals={professionals}
+        schedules={schedules}
       />
     </div>
   )

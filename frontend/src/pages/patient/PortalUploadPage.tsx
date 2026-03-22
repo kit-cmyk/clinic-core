@@ -17,7 +17,6 @@ export function PortalUploadPage() {
   // Animate progress bar when uploading
   useEffect(() => {
     if (!uploading) return
-    setProgress(0)
     const interval = setInterval(() => {
       setProgress((p) => {
         if (p >= 100) {
@@ -37,6 +36,7 @@ export function PortalUploadPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!canUpload) return
+    setProgress(0)
     setUploading(true)
   }
 
