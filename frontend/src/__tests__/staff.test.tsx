@@ -12,14 +12,6 @@ const MOCK_BRANCHES = [
   { id: 'b2', name: 'Downtown Clinic' },
 ]
 
-const MOCK_STAFF = [
-  { id: 's1', firstName: 'Sarah',  lastName: 'Kim',   email: 'sarah@clinic.com',  role: 'DOCTOR',   isActive: true,  branch: { id: 'b1', name: 'Main Branch' } },
-  { id: 's2', firstName: 'John',   lastName: 'Davis', email: 'john@clinic.com',   role: 'SECRETARY', isActive: true,  branch: { id: 'b1', name: 'Main Branch' } },
-  { id: 's3', firstName: 'Maria',  lastName: 'Lopez', email: 'maria@clinic.com',  role: 'NURSE',    isActive: true,  branch: { id: 'b2', name: 'Downtown Clinic' } },
-  { id: 's4', firstName: 'James',  lastName: 'Park',  email: 'james@clinic.com',  role: 'DOCTOR',   isActive: true,  branch: { id: 'b2', name: 'Downtown Clinic' } },
-  { id: 's5', firstName: 'Emily',  lastName: 'Chen',  email: 'emily@clinic.com',  role: 'NURSE',    isActive: true,  branch: { id: 'b1', name: 'Main Branch' } },
-]
-
 // The test renders staff names with "Dr." prefix via the component's ROLE_LABELS display,
 // but the component only renders firstName + lastName — so mock data must carry the prefix
 // directly in the name fields to match the test assertions.
