@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -19,91 +19,141 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { MoreHorizontal } from 'lucide-react'
+import { SkeletonTableRow } from '@/components/ui/skeleton'
+import api from '@/services/api'
+import { toast } from 'sonner'
 
-type StaffRole = 'professional' | 'secretary' | 'clinic_manager'
+type StaffRole = 'DOCTOR' | 'NURSE' | 'SECRETARY' | 'ORG_ADMIN' | 'BRANCH_MANAGER'
+
+interface Branch { id: string; name: string }
 
 interface StaffMember {
   id: string
-  name: string
+  firstName: string
+  lastName: string
   email: string
   role: StaffRole
-  branch: string
-  lastLogin: string
-  active: boolean
+  isActive: boolean
+  branch: Branch | null
 }
 
-const MOCK_STAFF: StaffMember[] = [
-  { id: '1', name: 'Dr. Sarah Kim', email: 'sarah.kim@clinic.com', role: 'professional', branch: 'Main Branch', lastLogin: '2 hours ago', active: true },
-  { id: '2', name: 'John Davis', email: 'john.davis@clinic.com', role: 'secretary', branch: 'Main Branch', lastLogin: '1 day ago', active: true },
-  { id: '3', name: 'Maria Lopez', email: 'maria.lopez@clinic.com', role: 'clinic_manager', branch: 'Downtown Clinic', lastLogin: '3 hours ago', active: true },
-  { id: '4', name: 'Dr. James Park', email: 'james.park@clinic.com', role: 'professional', branch: 'Downtown Clinic', lastLogin: '5 days ago', active: true },
-  { id: '5', name: 'Emily Chen', email: 'emily.chen@clinic.com', role: 'secretary', branch: 'Westside Location', lastLogin: '10 days ago', active: false },
-]
+const INVITABLE_ROLES: StaffRole[] = ['DOCTOR', 'NURSE', 'SECRETARY']
 
-const BRANCHES = ['Main Branch', 'Downtown Clinic', 'Westside Location']
-const ROLES: StaffRole[] = ['professional', 'secretary', 'clinic_manager']
-
-const ROLE_LABELS: Record<StaffRole, string> = {
-  professional: 'Professional',
-  secretary: 'Secretary',
-  clinic_manager: 'Clinic Manager',
+const ROLE_LABELS: Record<string, string> = {
+  DOCTOR:         'Doctor',
+  NURSE:          'Nurse',
+  SECRETARY:      'Secretary',
+  ORG_ADMIN:      'Org Admin',
+  BRANCH_MANAGER: 'Branch Manager',
 }
 
 type SheetMode = 'invite' | 'reassign' | null
 
 export function StaffPage() {
-  const [staff, setStaff] = useState<StaffMember[]>(MOCK_STAFF)
-  const [roleFilter, setRoleFilter] = useState<'all' | StaffRole>('all')
+  const [staff, setStaff] = useState<StaffMember[]>([])
+  const [branches, setBranches] = useState<Branch[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const [roleFilter, setRoleFilter] = useState<string>('all')
   const [branchFilter, setBranchFilter] = useState('all')
 
   const [sheetMode, setSheetMode] = useState<SheetMode>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
 
   // Invite form
   const [inviteEmail, setInviteEmail] = useState('')
-  const [inviteRole, setInviteRole] = useState<StaffRole>('professional')
-  const [inviteBranch, setInviteBranch] = useState(BRANCHES[0])
+  const [inviteRole, setInviteRole] = useState<StaffRole>('DOCTOR')
+  const [inviteBranchId, setInviteBranchId] = useState('')
 
   // Reassign form
-  const [reassignBranch, setReassignBranch] = useState(BRANCHES[0])
+  const [reassignBranchId, setReassignBranchId] = useState('')
 
-  const filtered = staff.filter((s) => {
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    try {
+      const [staffRes, branchRes] = await Promise.all([
+        api.get('/api/v1/staff'),
+        api.get('/api/v1/branches'),
+      ])
+      setStaff(staffRes.data.data as StaffMember[])
+      const branchList = branchRes.data.data as Branch[]
+      setBranches(branchList)
+      if (branchList.length > 0) {
+        setInviteBranchId(branchList[0].id)
+        setReassignBranchId(branchList[0].id)
+      }
+    } catch {
+      toast.error('Failed to load staff')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchData() }, [fetchData])
+
+  const filtered = staff.filter(s => {
     const matchesRole = roleFilter === 'all' || s.role === roleFilter
-    const matchesBranch = branchFilter === 'all' || s.branch === branchFilter
+    const matchesBranch = branchFilter === 'all' || s.branch?.id === branchFilter
     return matchesRole && matchesBranch
   })
 
-  const handleDeactivate = (id: string) => {
-    setStaff(prev => prev.map(s => s.id === id ? { ...s, active: false } : s))
+  const handleDeactivate = async (id: string) => {
+    try {
+      await api.patch(`/api/v1/staff/${id}/deactivate`)
+      setStaff(prev => prev.map(s => s.id === id ? { ...s, isActive: false } : s))
+      toast.success('Staff member deactivated')
+    } catch {
+      toast.error('Failed to deactivate staff member')
+    }
   }
 
-  const handleReassign = () => {
-    if (!selectedId) return
-    setStaff(prev => prev.map(s => s.id === selectedId ? { ...s, branch: reassignBranch } : s))
-    setSheetMode(null)
+  const handleReactivate = async (id: string) => {
+    try {
+      await api.patch(`/api/v1/staff/${id}/reactivate`)
+      setStaff(prev => prev.map(s => s.id === id ? { ...s, isActive: true } : s))
+      toast.success('Staff member reactivated')
+    } catch {
+      toast.error('Failed to reactivate staff member')
+    }
   }
 
-  const handleInvite = () => {
+  const handleInvite = async () => {
     if (!inviteEmail.trim()) return
-    setStaff(prev => [...prev, {
-      id: Date.now().toString(),
-      name: inviteEmail.split('@')[0],
-      email: inviteEmail,
-      role: inviteRole,
-      branch: inviteBranch,
-      lastLogin: 'Never',
-      active: true,
-    }])
-    setSheetMode(null)
-    setInviteEmail('')
-    setInviteRole('professional')
-    setInviteBranch(BRANCHES[0])
+    setSaving(true)
+    try {
+      await api.post('/api/v1/invitations', {
+        email: inviteEmail,
+        role: inviteRole,
+        branchId: inviteBranchId || undefined,
+      })
+      toast.success(`Invitation sent to ${inviteEmail}`)
+      setSheetMode(null)
+      setInviteEmail('')
+      setInviteRole('DOCTOR')
+    } catch {
+      toast.error('Failed to send invitation')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const openReassign = (member: StaffMember) => {
     setSelectedId(member.id)
-    setReassignBranch(member.branch)
+    setReassignBranchId(member.branch?.id ?? (branches[0]?.id ?? ''))
     setSheetMode('reassign')
+  }
+
+  const handleReassign = async () => {
+    if (!selectedId) return
+    setSaving(true)
+    try {
+      // Branch reassignment via StaffAssignment — placeholder until backend endpoint exists
+      toast.info('Branch reassignment coming in a follow-up (requires StaffAssignment API)')
+      setSheetMode(null)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -121,10 +171,12 @@ export function StaffPage() {
             aria-label="Filter by role"
             className="border rounded-md px-2 py-1 text-sm bg-background"
             value={roleFilter}
-            onChange={e => setRoleFilter(e.target.value as 'all' | StaffRole)}
+            onChange={e => setRoleFilter(e.target.value)}
           >
             <option value="all">All roles</option>
-            {ROLES.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+            {Object.entries(ROLE_LABELS).map(([val, label]) => (
+              <option key={val} value={val}>{label}</option>
+            ))}
           </select>
         </div>
         <div>
@@ -136,12 +188,11 @@ export function StaffPage() {
             onChange={e => setBranchFilter(e.target.value)}
           >
             <option value="all">All branches</option>
-            {BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
+            {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
           </select>
         </div>
       </div>
 
-      {/* Staff table */}
       <Card>
         <CardContent className="p-0">
           <table className="w-full text-sm">
@@ -151,44 +202,53 @@ export function StaffPage() {
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Email</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Role</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Branch</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Last Login</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground"></th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map(member => (
-                <tr key={member.id} className={`border-b last:border-0 ${!member.active ? 'opacity-50' : ''}`}>
-                  <td className="px-4 py-3 font-medium">{member.name}</td>
+              {loading && Array.from({ length: 4 }).map((_, i) => (
+                <tr key={i}><td colSpan={5} className="px-4 py-2"><SkeletonTableRow /></td></tr>
+              ))}
+              {!loading && filtered.map(member => (
+                <tr key={member.id} className={`border-b last:border-0 ${!member.isActive ? 'opacity-50' : ''}`}>
+                  <td className="px-4 py-3 font-medium">
+                    {member.firstName} {member.lastName}
+                  </td>
                   <td className="px-4 py-3 text-muted-foreground">{member.email}</td>
                   <td className="px-4 py-3">
-                    <Badge variant={member.active ? 'default' : 'secondary'}>
-                      {member.active ? ROLE_LABELS[member.role] : 'Deactivated'}
+                    <Badge variant={member.isActive ? 'default' : 'secondary'}>
+                      {member.isActive ? (ROLE_LABELS[member.role] ?? member.role) : 'Deactivated'}
                     </Badge>
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">{member.branch}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{member.lastLogin}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {member.branch?.name ?? '—'}
+                  </td>
                   <td className="px-4 py-3">
-                    {member.active && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openReassign(member)}>
-                            Reassign Branch
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openReassign(member)}>
+                          Reassign Branch
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        {member.isActive ? (
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
                             onClick={() => handleDeactivate(member.id)}
                           >
                             Deactivate
                           </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
+                        ) : (
+                          <DropdownMenuItem onClick={() => handleReactivate(member.id)}>
+                            Reactivate
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
                 </tr>
               ))}
@@ -222,7 +282,9 @@ export function StaffPage() {
                 value={inviteRole}
                 onChange={e => setInviteRole(e.target.value as StaffRole)}
               >
-                {ROLES.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+                {INVITABLE_ROLES.map(r => (
+                  <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+                ))}
               </select>
             </div>
             <div className="space-y-1">
@@ -230,15 +292,17 @@ export function StaffPage() {
               <select
                 id="inv-branch"
                 className="border rounded-md px-3 py-2 text-sm bg-background w-full"
-                value={inviteBranch}
-                onChange={e => setInviteBranch(e.target.value)}
+                value={inviteBranchId}
+                onChange={e => setInviteBranchId(e.target.value)}
               >
-                {BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
+                {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
             </div>
           </div>
           <SheetFooter>
-            <Button onClick={handleInvite}>Send Invite</Button>
+            <Button onClick={handleInvite} disabled={saving || !inviteEmail.trim()}>
+              {saving ? 'Sending…' : 'Send Invite'}
+            </Button>
             <Button variant="outline" onClick={() => setSheetMode(null)}>Cancel</Button>
           </SheetFooter>
         </SheetContent>
@@ -253,7 +317,7 @@ export function StaffPage() {
           <div className="flex-1 px-4 space-y-4">
             <p className="text-sm text-muted-foreground">
               Reassigning: <span className="font-medium text-foreground">
-                {staff.find(s => s.id === selectedId)?.name}
+                {(() => { const m = staff.find(s => s.id === selectedId); return m ? `${m.firstName} ${m.lastName}` : '' })()}
               </span>
             </p>
             <div className="space-y-1">
@@ -261,15 +325,15 @@ export function StaffPage() {
               <select
                 id="re-branch"
                 className="border rounded-md px-3 py-2 text-sm bg-background w-full"
-                value={reassignBranch}
-                onChange={e => setReassignBranch(e.target.value)}
+                value={reassignBranchId}
+                onChange={e => setReassignBranchId(e.target.value)}
               >
-                {BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
+                {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
             </div>
           </div>
           <SheetFooter>
-            <Button onClick={handleReassign}>Save</Button>
+            <Button onClick={handleReassign} disabled={saving}>Save</Button>
             <Button variant="outline" onClick={() => setSheetMode(null)}>Cancel</Button>
           </SheetFooter>
         </SheetContent>

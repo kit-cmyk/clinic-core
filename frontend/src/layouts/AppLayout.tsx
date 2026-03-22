@@ -25,6 +25,8 @@ import {
   Megaphone,
   Sun,
   Moon,
+  ClipboardCheck,
+  ClipboardList,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -153,6 +155,18 @@ const NAV_ITEMS: NavItem[] = [
     to: '/clinic-hours',
     icon: Clock,
     roles: ['org_admin', 'branch_manager'],
+  },
+  {
+    label: 'Check-In',
+    to: '/check-in',
+    icon: ClipboardCheck,
+    roles: ['org_admin', 'branch_manager', 'receptionist'],
+  },
+  {
+    label: 'Review Queue',
+    to: '/review-queue',
+    icon: ClipboardList,
+    roles: ['org_admin', 'branch_manager', 'doctor', 'nurse', 'lab_technician'],
   },
   {
     label: 'Billing',

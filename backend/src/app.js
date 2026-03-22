@@ -90,6 +90,10 @@ import notificationsRoutes from './routes/notifications.js';
 import emrRoutes from './routes/emr.js';
 import professionalsRoutes from './routes/professionals.js';
 import invoicesRoutes from './routes/invoices.js';
+import staffRoutes from './routes/staff.js';
+import clinicHoursRoutes from './routes/clinicHours.js';
+import specialClosuresRoutes from './routes/specialClosures.js';
+import servicesRoutes from './routes/services.js';
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/me', meRoutes);
 app.use('/api/v1/invitations', invitationsRoutes);
@@ -112,6 +116,10 @@ app.use('/api/v1/notifications', notificationsRoutes);
 app.use('/api/v1/patients/:id/emr', emrRoutes);
 app.use('/api/v1/professionals', professionalsRoutes);
 app.use('/api/v1/invoices', invoicesRoutes);
+app.use('/api/v1/staff', staffRoutes);
+app.use('/api/v1/clinic-hours', clinicHoursRoutes);
+app.use('/api/v1/special-closures', specialClosuresRoutes);
+app.use('/api/v1/services', servicesRoutes);
 
 // ── 404 handler ───────────────────────────────────────────────────────────
 app.use((_req, res) => {

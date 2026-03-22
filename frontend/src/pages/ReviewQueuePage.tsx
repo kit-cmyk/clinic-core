@@ -1,47 +1,80 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { CheckCircle } from 'lucide-react'
 import { EmptyState } from '@/components/ui/empty-state'
-
-type Category = 'Lab Result' | 'Prescription' | 'Referral' | 'Other'
+import { SkeletonRow } from '@/components/ui/skeleton'
+import api from '@/services/api'
+import { toast } from 'sonner'
 
 interface QueueItem {
   id: string
   patientName: string
-  category: Category
+  testName: string
   uploadDate: string
   fileType: 'PDF' | 'Image'
 }
 
-const MOCK_QUEUE: QueueItem[] = [
-  { id: '1', patientName: 'John Doe', category: 'Lab Result', uploadDate: '2026-03-15', fileType: 'PDF' },
-  { id: '2', patientName: 'Jane Smith', category: 'Prescription', uploadDate: '2026-03-16', fileType: 'Image' },
-  { id: '3', patientName: 'Carlos Rivera', category: 'Referral', uploadDate: '2026-03-17', fileType: 'PDF' },
-  { id: '4', patientName: 'Priya Patel', category: 'Other', uploadDate: '2026-03-18', fileType: 'Image' },
-]
+const CATEGORIES = ['All', 'Lab Result', 'Prescription', 'Referral', 'Other'] as const
+type CategoryFilter = typeof CATEGORIES[number]
 
-const CATEGORIES: Array<'All' | Category> = ['All', 'Lab Result', 'Prescription', 'Referral', 'Other']
+function guessFileType(url: string | null): 'PDF' | 'Image' {
+  if (!url) return 'PDF'
+  return url.toLowerCase().endsWith('.pdf') ? 'PDF' : 'Image'
+}
 
 export function ReviewQueuePage() {
-  const [items, setItems] = useState<QueueItem[]>(MOCK_QUEUE)
-  const [categoryFilter, setCategoryFilter] = useState<'All' | Category>('All')
+  const [items, setItems] = useState<QueueItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('All')
   const [rejectId, setRejectId] = useState<string | null>(null)
   const [rejectReason, setRejectReason] = useState('')
   const [reviewConfirmId, setReviewConfirmId] = useState<string | null>(null)
 
-  const filtered = items.filter(
-    (i) => categoryFilter === 'All' || i.category === categoryFilter,
-  )
+  const fetchQueue = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await api.get('/api/v1/review-queue', { params: { limit: 100 } })
+      const mapped: QueueItem[] = (res.data.data as Record<string, unknown>[]).map(item => {
+        const p = item.patient as { firstName: string; lastName: string } | undefined
+        return {
+          id:          String(item.id),
+          patientName: p ? `${p.firstName} ${p.lastName}`.trim() : 'Unknown Patient',
+          testName:    String(item.testName),
+          uploadDate:  String(item.createdAt).substring(0, 10),
+          fileType:    guessFileType(item.resultFileUrl as string | null),
+        }
+      })
+      setItems(mapped)
+    } catch {
+      toast.error('Failed to load review queue')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
-  const handleReviewed = (id: string) => {
-    setItems((prev) => prev.filter((i) => i.id !== id))
+  useEffect(() => { fetchQueue() }, [fetchQueue])
+
+  const handleReviewed = async (id: string) => {
+    try {
+      await api.put(`/api/v1/review-queue/${id}/status`, { status: 'reviewed' })
+      setItems(prev => prev.filter(i => i.id !== id))
+      toast.success('Marked as reviewed')
+    } catch {
+      toast.error('Failed to mark as reviewed')
+    }
     setReviewConfirmId(null)
   }
 
-  const handleReject = (id: string) => {
-    setItems((prev) => prev.filter((i) => i.id !== id))
+  const handleReject = async (id: string) => {
+    try {
+      await api.put(`/api/v1/review-queue/${id}/status`, { status: 'rejected' })
+      setItems(prev => prev.filter(i => i.id !== id))
+      toast.success('Rejected')
+    } catch {
+      toast.error('Failed to reject')
+    }
     setRejectId(null)
     setRejectReason('')
   }
@@ -50,7 +83,7 @@ export function ReviewQueuePage() {
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <h1 className="text-2xl font-bold text-foreground">Review Queue</h1>
-        <Badge variant="default">{items.length} pending</Badge>
+        {!loading && <Badge variant="default">{items.length} pending</Badge>}
       </div>
 
       {/* Category filter */}
@@ -67,35 +100,40 @@ export function ReviewQueuePage() {
         ))}
       </div>
 
-      {/* Queue items */}
-      {filtered.length === 0 ? (
+      {loading && (
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => <SkeletonRow key={i} />)}
+        </div>
+      )}
+
+      {!loading && items.length === 0 && (
         <EmptyState
           icon={CheckCircle}
           heading="Queue is clear"
           subtext="All documents have been reviewed."
         />
-      ) : (
+      )}
+
+      {!loading && items.length > 0 && (
         <div className="space-y-3">
-          {filtered.map((item) => (
+          {items.map((item) => (
             <Card key={item.id}>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between flex-wrap gap-3">
                   <div className="flex gap-4 items-center">
-                    {/* Preview thumbnail placeholder */}
                     <div className="w-12 h-12 rounded bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground shrink-0">
                       {item.fileType === 'PDF' ? 'PDF' : 'IMG'}
                     </div>
                     <div>
                       <p className="font-semibold text-foreground">{item.patientName}</p>
                       <div className="flex gap-2 mt-1 flex-wrap">
-                        <Badge variant="outline">{item.category}</Badge>
+                        <Badge variant="outline">{item.testName}</Badge>
                         <span className="text-xs text-muted-foreground">{item.uploadDate}</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="flex gap-2 items-center flex-wrap">
-                    {/* Mark Reviewed */}
                     {reviewConfirmId === item.id ? (
                       <span className="flex gap-1 items-center text-xs">
                         <span>Confirm?</span>
@@ -108,7 +146,6 @@ export function ReviewQueuePage() {
                       </Button>
                     )}
 
-                    {/* Reject */}
                     <Button
                       size="sm"
                       variant="outline"
@@ -119,7 +156,6 @@ export function ReviewQueuePage() {
                   </div>
                 </div>
 
-                {/* Reject reason input */}
                 {rejectId === item.id && (
                   <div className="mt-3 border-t pt-3 space-y-2">
                     <p className="text-sm font-medium">Rejection reason:</p>

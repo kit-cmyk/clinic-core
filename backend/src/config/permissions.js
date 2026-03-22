@@ -105,4 +105,14 @@ export const PERMISSIONS = {
   // Review queue — clinical staff who review uploaded documents
   'review:read':   [...ORGANIZATION, 'DOCTOR', 'NURSE'],
   'review:update': [...ORGANIZATION, 'DOCTOR', 'NURSE'],
+
+  // Clinic hours & special closures — all staff read; ORG_ADMIN manages
+  'clinic-hours:read':   CLINICAL,
+  'clinic-hours:update': ORGANIZATION,
+
+  // Services catalog — all staff read; ORG_ADMIN manages
+  'services:read':   CLINICAL,
+  'services:create': ORGANIZATION,
+  'services:update': ORGANIZATION,
+  'services:delete': ORGANIZATION,
 };

@@ -95,6 +95,7 @@ model Tenant {
   timeOffs             TimeOff[]
   clinicHours          ClinicHours[]
   specialClosures      SpecialClosure[]
+  services             Service[]
   invoices             Invoice[]
   invoiceLineItems     InvoiceLineItem[]
   emrVisits            EmrVisit[]
@@ -448,6 +449,25 @@ model SpecialClosure {
   @@index([tenantId])
   @@index([branchId])
   @@map("special_closures")
+}
+
+// ── Services ──────────────────────────────────────────────────────────────────
+// Tenant-scoped service catalog with prices. Used for invoicing and scheduling.
+
+model Service {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  category    String
+  priceCents  Int      // stored in minor currency units (e.g. centavos)
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("services")
 }
 
 // ── Invoices ──────────────────────────────────────────────────────────────────
