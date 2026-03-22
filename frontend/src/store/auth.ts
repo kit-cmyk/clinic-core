@@ -47,7 +47,7 @@ interface AuthState {
   isInitialized:   boolean   // true once INITIAL_SESSION has resolved — used by route guards
   error:           string | null
 
-  login:             (email: string, password: string) => Promise<void>
+  login:             (email: string, password: string, rememberMe?: boolean) => Promise<void>
   loginSuperAdmin:   (email: string, password: string) => Promise<void>
   register:          (name: string, email: string, password: string, clinicName: string, clinicAddress: string) => Promise<void>
   acceptInvite:      (token: string, password: string) => Promise<void>
@@ -63,13 +63,23 @@ export const useAuthStore = create<AuthState>((set) => ({
   isInitialized:   false,    // false until INITIAL_SESSION resolves
   error:           null,
 
-  login: async (email, password) => {
+  login: async (email, password, rememberMe = false) => {
     set({ isLoading: true, error: null })
 
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
       set({ isLoading: false, error: 'Invalid email or password.' })
       return
+    }
+
+    // If "Remember me" is off, clear the Supabase localStorage entry so the
+    // session lives only in-memory and is discarded when the tab closes.
+    if (!rememberMe) {
+      try {
+        Object.keys(localStorage)
+          .filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
+          .forEach(k => localStorage.removeItem(k))
+      } catch { /* noop — storage may be blocked */ }
     }
 
     try {
