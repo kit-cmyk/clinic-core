@@ -1,4 +1,5 @@
 import { Outlet } from 'react-router-dom';
+import { Toaster } from 'sonner';
 
 function SentryTestButton() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
   return (
     <>
       <Outlet />
+      <Toaster position="bottom-right" richColors duration={4000} />
       {import.meta.env.DEV && <SentryTestButton />}
     </>
   );

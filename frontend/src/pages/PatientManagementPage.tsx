@@ -17,6 +17,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { PatientForm } from '@/components/patients/PatientForm'
 import api from '@/services/api'
 import type { Patient } from '@/types'
+import { toast } from 'sonner'
 
 function toPatient(raw: Record<string, unknown>): Patient {
   return {
@@ -78,13 +79,15 @@ export function PatientManagementPage() {
     try {
       if (patient.id && patients.find(p => p.id === patient.id)) {
         await api.put(`/api/v1/patients/${patient.id}`, patient)
+        toast.success('Patient updated successfully.')
       } else {
         await api.post('/api/v1/patients', patient)
+        toast.success('Patient added successfully.')
       }
       setFormOpen(false)
       fetchPatients(search, page)
     } catch {
-      // PatientForm surfaces its own errors; just close on success
+      toast.error('Failed to save patient. Please try again.')
     }
   }
 
@@ -92,7 +95,9 @@ export function PatientManagementPage() {
     try {
       await api.put(`/api/v1/patients/${p.id}`, { isActive: !p.isActive })
       fetchPatients(search, page)
+      toast.success(p.isActive ? 'Patient deactivated.' : 'Patient activated.')
     } catch {
+      toast.error('Failed to update patient status.')
       setError('Failed to update patient status.')
     }
   }

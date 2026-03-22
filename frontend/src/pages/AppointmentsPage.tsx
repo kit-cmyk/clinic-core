@@ -17,6 +17,7 @@ import { useAuthStore } from '@/store/auth'
 import { PatientForm } from '@/components/patients/PatientForm'
 import type { Patient } from '@/types'
 import api from '@/services/api'
+import { toast } from 'sonner'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -666,6 +667,7 @@ export function AppointmentsPage() {
       status:         'booked',
     }])
     setShowNewModal(false)
+    toast.success('Appointment booked successfully.')
   }
 
   const todayCount = filtered.filter(a => a.date === fmt(TODAY)).length
