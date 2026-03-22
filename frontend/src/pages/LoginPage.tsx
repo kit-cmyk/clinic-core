@@ -21,6 +21,7 @@ export function LoginPage() {
   const navigate = useNavigate()
   const { login, isLoading, error, clearError } = useAuthStore()
   const [formError, setFormError] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
 
   const {
     register,
@@ -31,7 +32,7 @@ export function LoginPage() {
   const onSubmit = async (data: LoginFields) => {
     setFormError('')
     clearError()
-    await login(data.email, data.password)
+    await login(data.email, data.password, rememberMe)
     if (!useAuthStore.getState().error) {
       navigate('/dashboard', { replace: true })
     }
@@ -107,6 +108,19 @@ export function LoginPage() {
               {errors.password.message}
             </p>
           )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input
+            id="remember-me"
+            type="checkbox"
+            checked={rememberMe}
+            onChange={e => setRememberMe(e.target.checked)}
+            className="h-4 w-4 rounded border-border accent-primary"
+          />
+          <Label htmlFor="remember-me" className="text-sm font-normal text-muted-foreground cursor-pointer">
+            Remember me
+          </Label>
         </div>
 
         {(formError || error) && (
