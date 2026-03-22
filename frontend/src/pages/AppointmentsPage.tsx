@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -12,8 +12,8 @@ import {
 } from '@/components/ui/sheet'
 import { useAuthStore } from '@/store/auth'
 import { PatientForm } from '@/components/patients/PatientForm'
-import { MOCK_PATIENTS } from '@/data/mockPatients'
 import type { Patient } from '@/types'
+import api from '@/services/api'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -50,52 +50,6 @@ const COLORS = [
   { bg: '#e0f2fe', border: '#0ea5e9', text: '#075985' }, // sky
   { bg: '#fef9c3', border: '#eab308', text: '#713f12' }, // amber
   { bg: '#ccfbf1', border: '#14b8a6', text: '#134e4a' }, // teal
-]
-
-// ── Professionals ─────────────────────────────────────────────────────────────
-
-const PROFESSIONALS: Professional[] = [
-  { id: 'p1', name: 'Dr. Sarah Kim',    role: 'Doctor', colorIdx: 0 },
-  { id: 'p2', name: 'Dr. James Park',   role: 'Doctor', colorIdx: 1 },
-  { id: 'p3', name: 'Dr. Liu Wei',      role: 'Doctor', colorIdx: 2 },
-  { id: 'p4', name: 'Nurse Ana Santos', role: 'Nurse',  colorIdx: 3 },
-  { id: 'p5', name: 'Dr. Priya Nair',   role: 'Doctor', colorIdx: 4 },
-]
-
-// ── Mock Appointments ─────────────────────────────────────────────────────────
-
-const MOCK_APPOINTMENTS: Appointment[] = [
-  // Mon 2026-03-16
-  { id: 'a01', patientId: 'pt1', patientName: 'John Doe',       professionalId: 'p1', date: '2026-03-16', startTime: '08:30', durationMins: 30, type: 'Consultation', status: 'completed' },
-  { id: 'a02', patientId: 'pt2', patientName: 'Maria Chen',     professionalId: 'p2', date: '2026-03-16', startTime: '09:00', durationMins: 30, type: 'Follow-up',    status: 'completed' },
-  { id: 'a03', patientId: 'pt3', patientName: 'Carlos Rivera',  professionalId: 'p3', date: '2026-03-16', startTime: '10:00', durationMins: 60, type: 'New Patient',  status: 'completed' },
-  { id: 'a04', patientId: 'pt4', patientName: 'Priya Sharma',   professionalId: 'p4', date: '2026-03-16', startTime: '11:30', durationMins: 30, type: 'Lab Review',   status: 'completed' },
-  { id: 'a05', patientId: 'pt5', patientName: 'Tom Wilson',     professionalId: 'p1', date: '2026-03-16', startTime: '14:00', durationMins: 30, type: 'Consultation', status: 'completed' },
-  { id: 'a06', patientId: 'pt6', patientName: 'Sara Ahmed',     professionalId: 'p5', date: '2026-03-16', startTime: '15:30', durationMins: 30, type: 'Follow-up',    status: 'completed' },
-  // Tue 2026-03-17
-  { id: 'a07', patientId: 'pt7', patientName: 'James Liu',      professionalId: 'p2', date: '2026-03-17', startTime: '09:00', durationMins: 30, type: 'Consultation', status: 'completed' },
-  { id: 'a08', patientId: 'pt8', patientName: 'Anna Kowalski',  professionalId: 'p1', date: '2026-03-17', startTime: '10:30', durationMins: 30, type: 'Follow-up',    status: 'completed' },
-  { id: 'a09', patientId: 'pt3', patientName: 'Carlos Rivera',  professionalId: 'p3', date: '2026-03-17', startTime: '14:00', durationMins: 60, type: 'Consultation', status: 'completed' },
-  // Wed 2026-03-18 (today)
-  { id: 'a10', patientId: 'pt1', patientName: 'John Doe',       professionalId: 'p1', date: '2026-03-18', startTime: '08:30', durationMins: 30, type: 'Follow-up',    status: 'booked' },
-  { id: 'a11', patientId: 'pt2', patientName: 'Jane Smith',     professionalId: 'p2', date: '2026-03-18', startTime: '09:30', durationMins: 30, type: 'Consultation', status: 'booked' },
-  { id: 'a12', patientId: 'pt3', patientName: 'Carlos Rivera',  professionalId: 'p3', date: '2026-03-18', startTime: '11:00', durationMins: 30, type: 'Lab Review',   status: 'booked' },
-  { id: 'a13', patientId: 'pt4', patientName: 'Priya Sharma',   professionalId: 'p4', date: '2026-03-18', startTime: '13:30', durationMins: 30, type: 'Consultation', status: 'booked' },
-  { id: 'a14', patientId: 'pt9', patientName: 'Aisha Patel',    professionalId: 'p5', date: '2026-03-18', startTime: '14:30', durationMins: 60, type: 'New Patient',  status: 'booked' },
-  { id: 'a15', patientId: 'pt5', patientName: 'Tom Wilson',     professionalId: 'p1', date: '2026-03-18', startTime: '16:00', durationMins: 30, type: 'Emergency',    status: 'booked' },
-  // Thu 2026-03-19
-  { id: 'a16', patientId: 'pt6', patientName: 'Sara Ahmed',     professionalId: 'p2', date: '2026-03-19', startTime: '09:00', durationMins: 30, type: 'Follow-up',    status: 'booked' },
-  { id: 'a17', patientId: 'pt7', patientName: 'James Liu',      professionalId: 'p5', date: '2026-03-19', startTime: '10:00', durationMins: 60, type: 'Consultation', status: 'booked' },
-  // Fri 2026-03-20
-  { id: 'a18', patientId: 'pt1', patientName: 'John Doe',       professionalId: 'p1', date: '2026-03-20', startTime: '08:30', durationMins: 30, type: 'Consultation', status: 'booked' },
-  { id: 'a19', patientId: 'pt8', patientName: 'Anna Kowalski',  professionalId: 'p3', date: '2026-03-20', startTime: '10:00', durationMins: 30, type: 'Lab Review',   status: 'booked' },
-  { id: 'a20', patientId: 'pt7', patientName: 'James Liu',      professionalId: 'p4', date: '2026-03-20', startTime: '11:30', durationMins: 30, type: 'Follow-up',    status: 'booked' },
-  { id: 'a21', patientId: 'pt2', patientName: 'Maria Chen',     professionalId: 'p2', date: '2026-03-20', startTime: '15:00', durationMins: 30, type: 'Consultation', status: 'booked' },
-  // Next week
-  { id: 'a22', patientId: 'pt9', patientName: 'Aisha Patel',    professionalId: 'p1', date: '2026-03-23', startTime: '09:00', durationMins: 30, type: 'Follow-up',    status: 'booked' },
-  { id: 'a23', patientId: 'pt4', patientName: 'Priya Sharma',   professionalId: 'p3', date: '2026-03-24', startTime: '10:30', durationMins: 60, type: 'Consultation', status: 'booked' },
-  { id: 'a24', patientId: 'pt6', patientName: 'Sara Ahmed',     professionalId: 'p5', date: '2026-03-25', startTime: '14:00', durationMins: 30, type: 'Lab Review',   status: 'booked' },
-  { id: 'a25', patientId: 'pt3', patientName: 'Carlos Rivera',  professionalId: 'p2', date: '2026-03-26', startTime: '08:30', durationMins: 30, type: 'Follow-up',    status: 'booked' },
 ]
 
 const APPOINTMENT_TYPES = ['Consultation', 'Follow-up', 'Lab Review', 'New Patient', 'Emergency']
@@ -169,13 +123,14 @@ function statusVariant(s: ApptStatus): 'default' | 'secondary' | 'destructive' |
 
 // ── Appointment Chip (shared across all views) ─────────────────────────────────
 
-function ApptChip({ appt, showTime = false, showProf = false, onClick }: {
+function ApptChip({ appt, professionals, showTime = false, showProf = false, onClick }: {
   appt: Appointment
+  professionals: Professional[]
   showTime?: boolean
   showProf?: boolean
   onClick?: () => void
 }) {
-  const prof = PROFESSIONALS.find(p => p.id === appt.professionalId)
+  const prof = professionals.find(p => p.id === appt.professionalId)
   const c    = COLORS[prof?.colorIdx ?? 0]
   const end  = minsToTime(timeToMins(appt.startTime) + appt.durationMins)
   return (
@@ -194,7 +149,7 @@ function ApptChip({ appt, showTime = false, showProf = false, onClick }: {
 
 // ── Agenda View ────────────────────────────────────────────────────────────────
 
-function AgendaView({ appointments, currentDate, onSelect }: { appointments: Appointment[]; currentDate: Date; onSelect: (a: Appointment) => void }) {
+function AgendaView({ appointments, professionals, currentDate, onSelect }: { appointments: Appointment[]; professionals: Professional[]; currentDate: Date; onSelect: (a: Appointment) => void }) {
   const today = new Date()
   const days  = Array.from({ length: 30 }, (_, i) => addDays(currentDate, i))
   const groups = days
@@ -220,7 +175,7 @@ function AgendaView({ appointments, currentDate, onSelect }: { appointments: App
             </p>
             <div className="space-y-1.5">
               {appts.map(a => {
-                const prof = PROFESSIONALS.find(p => p.id === a.professionalId)
+                const prof = professionals.find(p => p.id === a.professionalId)
                 const c    = COLORS[prof?.colorIdx ?? 0]
                 const end  = minsToTime(timeToMins(a.startTime) + a.durationMins)
                 return (
@@ -259,8 +214,9 @@ function AgendaView({ appointments, currentDate, onSelect }: { appointments: App
 
 // ── Day View ───────────────────────────────────────────────────────────────────
 
-function DayView({ appointments, currentDate, canBook, onBook, onSelect }: {
+function DayView({ appointments, professionals, currentDate, canBook, onBook, onSelect }: {
   appointments: Appointment[]
+  professionals: Professional[]
   currentDate: Date
   canBook: boolean
   onBook: (slot: string) => void
@@ -283,7 +239,7 @@ function DayView({ appointments, currentDate, canBook, onBook, onSelect }: {
             </span>
             <div className="flex-1 min-w-0">
               {appt ? (
-                <ApptChip appt={appt} showProf onClick={() => onSelect(appt)} />
+                <ApptChip appt={appt} professionals={professionals} showProf onClick={() => onSelect(appt)} />
               ) : (
                 <div className="flex items-center gap-2 h-6">
                   <div className="flex-1 border-t border-dashed border-border/40" />
@@ -307,7 +263,7 @@ function DayView({ appointments, currentDate, canBook, onBook, onSelect }: {
 
 // ── Week View ──────────────────────────────────────────────────────────────────
 
-function WeekView({ appointments, currentDate, onSelect }: { appointments: Appointment[]; currentDate: Date; onSelect: (a: Appointment) => void }) {
+function WeekView({ appointments, professionals, currentDate, onSelect }: { appointments: Appointment[]; professionals: Professional[]; currentDate: Date; onSelect: (a: Appointment) => void }) {
   const weekDays = getWeekDays(currentDate)
   const today    = new Date()
 
@@ -348,7 +304,7 @@ function WeekView({ appointments, currentDate, onSelect }: { appointments: Appoi
                   .sort((a, b) => a.startTime.localeCompare(b.startTime))
                 return (
                   <div key={fmt(d)} className="p-0.5 space-y-0.5 border-l border-border/20">
-                    {appts.map(a => <ApptChip key={a.id} appt={a} showTime onClick={() => onSelect(a)} />)}
+                    {appts.map(a => <ApptChip key={a.id} appt={a} professionals={professionals} showTime onClick={() => onSelect(a)} />)}
                   </div>
                 )
               })}
@@ -362,8 +318,9 @@ function WeekView({ appointments, currentDate, onSelect }: { appointments: Appoi
 
 // ── Month View ─────────────────────────────────────────────────────────────────
 
-function MonthView({ appointments, currentDate, onDayClick }: {
+function MonthView({ appointments, professionals, currentDate, onDayClick }: {
   appointments: Appointment[]
+  professionals: Professional[]
   currentDate: Date
   onDayClick: (d: Date) => void
 }) {
@@ -409,7 +366,7 @@ function MonthView({ appointments, currentDate, onDayClick }: {
                 </div>
                 <div className="space-y-0.5">
                   {dayAppts.slice(0, 3).map(a => {
-                    const prof = PROFESSIONALS.find(p => p.id === a.professionalId)
+                    const prof = professionals.find(p => p.id === a.professionalId)
                     const c    = COLORS[prof?.colorIdx ?? 0]
                     return (
                       <div
@@ -436,7 +393,7 @@ function MonthView({ appointments, currentDate, onDayClick }: {
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 
-const TODAY = new Date(2026, 2, 18) // 2026-03-18 (stub — replace with new Date() at API integration)
+const TODAY = new Date()
 
 type NewApptForm = {
   patientId: string
@@ -459,8 +416,72 @@ export function AppointmentsPage() {
   const [view,          setView]          = useState<ViewMode>('Day')
   const [currentDate,   setCurrentDate]   = useState<Date>(TODAY)
   const [selectedProfs, setSelectedProfs] = useState<string[]>([])
-  const [appointments,  setAppointments]  = useState<Appointment[]>(MOCK_APPOINTMENTS)
-  const [patients,      setPatients]      = useState<Patient[]>(MOCK_PATIENTS)
+  const [professionals,  setProfessionals] = useState<Professional[]>([])
+  const [appointments,   setAppointments]  = useState<Appointment[]>([])
+  const [loading,        setLoading]       = useState(true)
+  const [patients,       setPatients]      = useState<Patient[]>([])
+  const patientSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const fetchProfessionals = useCallback(async () => {
+    try {
+      const res = await api.get('/api/v1/professionals')
+      const mapped: Professional[] = (res.data.data as Record<string, unknown>[]).map((p, i) => ({
+        id:       String(p.id),
+        name:     `${(p.user as {firstName:string;lastName:string})?.firstName ?? ''} ${(p.user as {firstName:string;lastName:string})?.lastName ?? ''}`.trim(),
+        role:     String((p.user as {role:string})?.role ?? ''),
+        colorIdx: i % COLORS.length,
+      }))
+      setProfessionals(mapped)
+    } catch {
+      // silent — page still usable without professional colours
+    }
+  }, [])
+
+  const fetchAppointments = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await api.get('/api/v1/appointments', { params: { limit: 200 } })
+      const mapped: Appointment[] = (res.data.data as Record<string, unknown>[]).map(a => {
+        const iso = String(a.scheduledAt)
+        const d   = new Date(iso)
+        return {
+          id:             String(a.id),
+          patientId:      String(a.patientId),
+          patientName:    `${(a.patient as {firstName:string;lastName:string})?.firstName ?? ''} ${(a.patient as {firstName:string;lastName:string})?.lastName ?? ''}`.trim(),
+          professionalId: String(a.professionalId),
+          date:           iso.substring(0, 10),
+          startTime:      `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
+          durationMins:   Number(a.durationMins),
+          type:           String(a.type),
+          status:         (String(a.status).toLowerCase()) as ApptStatus,
+        }
+      })
+      setAppointments(mapped)
+    } catch {
+      // silent
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const searchPatients = useCallback((q: string) => {
+    if (patientSearchTimer.current) clearTimeout(patientSearchTimer.current)
+    if (!q.trim()) { setPatients([]); return }
+    patientSearchTimer.current = setTimeout(async () => {
+      try {
+        const res = await api.get('/api/v1/patients', { params: { search: q, limit: 6 } })
+        setPatients((res.data.data as Record<string, unknown>[]).map(p => ({
+          ...(p as Patient),
+          fullName: `${p.firstName} ${p.lastName}`,
+        })))
+      } catch { /* silent */ }
+    }, 300)
+  }, [])
+
+  useEffect(() => {
+    fetchProfessionals()
+    fetchAppointments()
+  }, [fetchProfessionals, fetchAppointments])
 
   // New appointment modal
   const [showNewModal,     setShowNewModal]     = useState(false)
@@ -470,20 +491,14 @@ export function AppointmentsPage() {
   const [newForm,          setNewForm]          = useState<NewApptForm>({
     patientId:      '',
     patientName:    '',
-    professionalId: PROFESSIONALS[0].id,
+    professionalId: professionals[0]?.id ?? '',
     date:           fmt(TODAY),
     startTime:      '08:00',
     durationMins:   30,
     type:           APPOINTMENT_TYPES[0],
   })
 
-  const patientSuggestions = useMemo(() => {
-    const q = patientSearch.toLowerCase().trim()
-    if (!q) return patients.slice(0, 6)
-    return patients.filter(p =>
-      p.fullName.toLowerCase().includes(q) || (p.phone ?? '').includes(q)
-    ).slice(0, 6)
-  }, [patients, patientSearch])
+  const patientSuggestions = patients
 
   const selectPatient = (p: Patient) => {
     setNewForm(f => ({ ...f, patientId: p.id, patientName: p.fullName }))
@@ -492,7 +507,6 @@ export function AppointmentsPage() {
   }
 
   const handleNewPatientSaved = (p: Patient) => {
-    setPatients(prev => [...prev, p])
     selectPatient(p)
     setShowPatientForm(false)
   }
@@ -617,7 +631,7 @@ export function AppointmentsPage() {
     setNewForm({
       patientId:      '',
       patientName:    '',
-      professionalId: prefillProfId ?? PROFESSIONALS[0].id,
+      professionalId: prefillProfId ?? (professionals[0]?.id ?? ''),
       date:           date ?? fmt(currentDate),
       startTime:      time ?? '08:00',
       durationMins:   30,
@@ -687,7 +701,7 @@ export function AppointmentsPage() {
         >
           All
         </button>
-        {PROFESSIONALS.map(p => {
+        {professionals.map(p => {
           const c      = COLORS[p.colorIdx]
           const active = selectedProfs.includes(p.id)
           return (
@@ -720,27 +734,35 @@ export function AppointmentsPage() {
       {/* ── Calendar ────────────────────────────────────────────────────────── */}
       <Card>
         <CardContent className="p-4">
-          {view === 'Agenda' && (
-            <AgendaView appointments={filtered} currentDate={currentDate} onSelect={openAppt} />
-          )}
-          {view === 'Day' && (
-            <DayView
-              appointments={filtered}
-              currentDate={currentDate}
-              canBook={canBook}
-              onBook={slot => openNewModal(fmt(currentDate), slot)}
-              onSelect={openAppt}
-            />
-          )}
-          {view === 'Week' && (
-            <WeekView appointments={filtered} currentDate={currentDate} onSelect={openAppt} />
-          )}
-          {view === 'Month' && (
-            <MonthView
-              appointments={filtered}
-              currentDate={currentDate}
-              onDayClick={d => { setCurrentDate(d); setView('Day') }}
-            />
+          {loading ? (
+            <div className="py-16 text-center text-sm text-muted-foreground">Loading appointments…</div>
+          ) : (
+            <>
+              {view === 'Agenda' && (
+                <AgendaView appointments={filtered} professionals={professionals} currentDate={currentDate} onSelect={openAppt} />
+              )}
+              {view === 'Day' && (
+                <DayView
+                  appointments={filtered}
+                  professionals={professionals}
+                  currentDate={currentDate}
+                  canBook={canBook}
+                  onBook={slot => openNewModal(fmt(currentDate), slot)}
+                  onSelect={openAppt}
+                />
+              )}
+              {view === 'Week' && (
+                <WeekView appointments={filtered} professionals={professionals} currentDate={currentDate} onSelect={openAppt} />
+              )}
+              {view === 'Month' && (
+                <MonthView
+                  appointments={filtered}
+                  professionals={professionals}
+                  currentDate={currentDate}
+                  onDayClick={d => { setCurrentDate(d); setView('Day') }}
+                />
+              )}
+            </>
           )}
         </CardContent>
       </Card>
@@ -762,6 +784,7 @@ export function AppointmentsPage() {
                   setPatientSearch(e.target.value)
                   setNewForm(f => ({ ...f, patientId: '', patientName: e.target.value }))
                   setPatientDropOpen(true)
+                  searchPatients(e.target.value)
                 }}
                 onFocus={() => setPatientDropOpen(true)}
               />
@@ -795,7 +818,7 @@ export function AppointmentsPage() {
                   onChange={e => setNewForm(f => ({ ...f, professionalId: e.target.value }))}
                   aria-label="Professional"
                 >
-                  {PROFESSIONALS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  {professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               </div>
               <div className="space-y-1">
@@ -882,7 +905,7 @@ export function AppointmentsPage() {
                   ))}
                   <div className="flex justify-between gap-4">
                     <dt className="text-muted-foreground shrink-0">Professional</dt>
-                    <dd className="font-medium text-right">{PROFESSIONALS.find(p => p.id === viewAppt.professionalId)?.name ?? '—'}</dd>
+                    <dd className="font-medium text-right">{professionals.find(p => p.id === viewAppt.professionalId)?.name ?? '—'}</dd>
                   </div>
                   <div className="flex justify-between gap-4">
                     <dt className="text-muted-foreground shrink-0">Status</dt>
@@ -943,7 +966,7 @@ export function AppointmentsPage() {
                     onChange={e => setApptEditForm(f => f ? { ...f, professionalId: e.target.value } : f)}
                     aria-label="Professional"
                   >
-                    {PROFESSIONALS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    {professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -1005,7 +1028,7 @@ export function AppointmentsPage() {
                       onChange={e => setApptEditForm(f => f ? { ...f, professionalId: e.target.value } : f)}
                       aria-label="Professional"
                     >
-                      {PROFESSIONALS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                      {professionals.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
                   </div>
                   <div className="space-y-1">

@@ -68,6 +68,69 @@ export function createPatientsRouter({
     ? authMiddlewareFactory({ prismaClient })
     : createRequireAuth({ prismaClient });
 
+  // ── GET /patients ─────────────────────────────────────────────────────────
+  // List all patients for the current tenant. Supports search and pagination.
+  // Auth: all clinical staff (not PATIENT role).
+  router.get('/', requireAuth, requirePermission('patients:read'), async (req, res, next) => {
+    try {
+      const page   = Math.max(1, parseInt(req.query.page) || 1);
+      const limit  = Math.min(100, parseInt(req.query.limit) || 20);
+      const skip   = (page - 1) * limit;
+      const search = (req.query.search ?? '').trim();
+      const isActive = req.query.isActive !== undefined
+        ? req.query.isActive === 'true'
+        : undefined;
+
+      const where = {
+        tenantId: req.tenantId,
+        ...(isActive !== undefined && { isActive }),
+        ...(search && {
+          OR: [
+            { firstName: { contains: search, mode: 'insensitive' } },
+            { lastName:  { contains: search, mode: 'insensitive' } },
+            { phone:     { contains: search, mode: 'insensitive' } },
+            { email:     { contains: search, mode: 'insensitive' } },
+          ],
+        }),
+      };
+
+      const [patients, total] = await Promise.all([
+        prismaClient.patient.findMany({
+          where,
+          skip,
+          take:    limit,
+          orderBy: { lastName: 'asc' },
+          select: {
+            id:                   true,
+            tenantId:             true,
+            firstName:            true,
+            lastName:             true,
+            dob:                  true,
+            gender:               true,
+            bloodType:            true,
+            phone:                true,
+            email:                true,
+            address:              true,
+            allergies:            true,
+            medicalHistory:       true,
+            knownConditions:      true,
+            previousPrescriptions: true,
+            isActive:             true,
+            createdAt:            true,
+          },
+        }),
+        prismaClient.patient.count({ where }),
+      ]);
+
+      return res.json({
+        data:       patients,
+        pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+      });
+    } catch (err) {
+      return next(err);
+    }
+  });
+
   // ── POST /patients/invite ─────────────────────────────────────────────────
   // Sends an SMS registration link to the given phone number.
   // Auth: staff who can manage patients (secretary, nurse, doctor, org_admin, super_admin).

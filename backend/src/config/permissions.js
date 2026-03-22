@@ -95,6 +95,10 @@ export const PERMISSIONS = {
   'invoices:create': [...ORGANIZATION, 'SECRETARY'],
   'invoices:update': [...ORGANIZATION, 'SECRETARY'],
 
+  // Professionals — all clinical staff read; ORG_ADMIN manages
+  'professionals:read':   CLINICAL,
+  'professionals:update': ORGANIZATION,
+
   // Notifications — any authenticated user reads their own
   'notifications:read': [...CLINICAL, 'PATIENT'],
 

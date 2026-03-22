@@ -88,6 +88,8 @@ import appointmentsRoutes from './routes/appointments.js';
 import prescriptionsRoutes from './routes/prescriptions.js';
 import notificationsRoutes from './routes/notifications.js';
 import emrRoutes from './routes/emr.js';
+import professionalsRoutes from './routes/professionals.js';
+import invoicesRoutes from './routes/invoices.js';
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/me', meRoutes);
 app.use('/api/v1/invitations', invitationsRoutes);
@@ -108,6 +110,8 @@ app.use('/api/v1/prescriptions', prescriptionsRoutes);
 app.use('/api/v1/notifications', notificationsRoutes);
 // EMR routes are nested under patients: /api/v1/patients/:id/emr
 app.use('/api/v1/patients/:id/emr', emrRoutes);
+app.use('/api/v1/professionals', professionalsRoutes);
+app.use('/api/v1/invoices', invoicesRoutes);
 
 // ── 404 handler ───────────────────────────────────────────────────────────
 app.use((_req, res) => {
