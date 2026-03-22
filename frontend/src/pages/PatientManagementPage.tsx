@@ -20,7 +20,7 @@ import type { Patient } from '@/types'
 
 function toPatient(raw: Record<string, unknown>): Patient {
   return {
-    ...(raw as Patient),
+    ...(raw as unknown as Patient),
     fullName: `${raw.firstName} ${raw.lastName}`,
     dob: raw.dob ? String(raw.dob).substring(0, 10) : undefined,
   }
@@ -156,69 +156,51 @@ export function PatientManagementPage() {
               />
             )
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-xs font-medium text-muted-foreground">
-                    <th className="text-left px-4 py-3">Name</th>
-                    <th className="text-left px-4 py-3 hidden sm:table-cell">DOB</th>
-                    <th className="text-left px-4 py-3 hidden md:table-cell">Phone</th>
-                    <th className="text-left px-4 py-3 hidden lg:table-cell">Email</th>
-                    <th className="text-left px-4 py-3">Status</th>
-                    <th className="px-4 py-3" />
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {patients.map(p => (
-                    <tr
-                      key={p.id}
-                      className="hover:bg-muted/30 transition-colors cursor-pointer"
-                      onClick={() => navigate(`/patients/${p.id}/chart`)}
-                    >
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                            <span className="text-xs font-medium text-primary">
-                              {p.firstName.charAt(0)}{p.lastName.charAt(0)}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="font-medium">{p.fullName}</p>
-                            <p className="text-xs text-muted-foreground">{p.gender}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">{p.dob ?? '—'}</td>
-                      <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{p.phone ?? '—'}</td>
-                      <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">{p.email ?? '—'}</td>
-                      <td className="px-4 py-3">
-                        <Badge variant={p.isActive ? 'default' : 'secondary'}>
-                          {p.isActive ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => openEdit(p)}>Edit</DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link to={`/patients/${p.id}/chart`}>View Chart</Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => toggleActive(p)}>
-                              {p.isActive ? 'Deactivate' : 'Activate'}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="divide-y divide-border">
+              {patients.map(p => (
+                <div
+                  key={p.id}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
+                  onClick={() => navigate(`/patients/${p.id}/chart`)}
+                >
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <span className="text-xs font-medium text-primary">
+                      {p.firstName.charAt(0)}{p.lastName.charAt(0)}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">{p.fullName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {p.gender}
+                      <span className="hidden sm:inline">{p.dob ? ` · ${p.dob}` : ''}</span>
+                      <span className="hidden md:inline">{p.phone ? ` · ${p.phone}` : ''}</span>
+                      <span className="hidden lg:inline">{p.email ? ` · ${p.email}` : ''}</span>
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
+                    <Badge variant={p.isActive ? 'default' : 'secondary'}>
+                      {p.isActive ? 'Active' : 'Inactive'}
+                    </Badge>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openEdit(p)}>Edit</DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to={`/patients/${p.id}/chart`}>View Chart</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => toggleActive(p)}>
+                          {p.isActive ? 'Deactivate' : 'Activate'}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>

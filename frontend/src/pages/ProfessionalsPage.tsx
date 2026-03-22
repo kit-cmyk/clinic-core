@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Badge } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/empty-state'
 import { SkeletonCard } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -19,7 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MoreHorizontal } from 'lucide-react'
+import { MoreHorizontal, Users } from 'lucide-react'
 import type { Professional, ProfessionalSchedule, TimeOff } from '@/types'
 import api from '@/services/api'
 
@@ -283,7 +284,7 @@ export function ProfessionalsPage() {
     api.get('/api/v1/professionals', { params: { isActive: false } })
       .then(res => {
         const profs: Professional[] = res.data.data.map((p: Record<string, unknown>) => ({
-          ...(p as Professional),
+          ...(p as unknown as Professional),
           name: `${(p.user as { firstName: string; lastName: string }).firstName} ${(p.user as { firstName: string; lastName: string }).lastName}`,
           branch: '', // branch not returned in list endpoint
         }))
@@ -528,11 +529,16 @@ export function ProfessionalsPage() {
       </div>
 
       {!loading && filtered.length === 0 && (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground text-sm">
-            No professionals found for the selected branch.
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Users}
+          heading="No professionals found"
+          subtext={branchFilter !== 'all' || specializationFilter !== 'all'
+            ? 'Try adjusting the filters.'
+            : 'Add your first professional to get started.'}
+          action={branchFilter === 'all' && specializationFilter === 'all'
+            ? { label: '+ Add Professional', onClick: () => { setAddForm(EMPTY_ADD); setSheetMode('add') } }
+            : undefined}
+        />
       )}
 
       {/* Add Sheet */}
