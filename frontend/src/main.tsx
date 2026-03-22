@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
 import './index.css';
 import router from './router/index';
+import { ErrorFallback } from './components/ErrorFallback';
 
 const PHI_FIELDS = ['password', 'phone', 'dob', 'allergies', 'bloodType', 'refresh_token', 'access_token'];
 
@@ -33,6 +34,10 @@ if (import.meta.env.VITE_SENTRY_DSN) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <Sentry.ErrorBoundary fallback={({ error, resetError }) => (
+      <ErrorFallback error={error} resetError={resetError} />
+    )}>
+      <RouterProvider router={router} />
+    </Sentry.ErrorBoundary>
   </StrictMode>,
 );

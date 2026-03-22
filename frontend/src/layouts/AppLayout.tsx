@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import * as Sentry from '@sentry/react'
 import { NavLink, Outlet, useNavigate, useLocation, Link } from 'react-router-dom'
+import { ErrorFallback } from '@/components/ErrorFallback'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useSyncStatus } from '@/hooks/useSyncStatus'
 import { SyncStatusBadge } from '@/components/SyncStatusBadge'
@@ -7,7 +9,6 @@ import {
   LayoutDashboard,
   Users,
   CalendarDays,
-  FlaskConical,
   Receipt,
   Building2,
   Settings,
@@ -150,12 +151,6 @@ const NAV_ITEMS: NavItem[] = [
     to: '/clinic-hours',
     icon: Clock,
     roles: ['org_admin', 'branch_manager'],
-  },
-  {
-    label: 'Lab Records',
-    to: '/lab',
-    icon: FlaskConical,
-    roles: ['org_admin', 'branch_manager', 'doctor', 'nurse', 'lab_technician'],
   },
   {
     label: 'Billing',
@@ -436,7 +431,11 @@ export function AppLayout() {
         <Breadcrumbs />
 
         <main className="flex-1 overflow-y-auto p-6">
-          <Outlet />
+          <Sentry.ErrorBoundary fallback={({ error, resetError }) => (
+            <ErrorFallback error={error} resetError={resetError} />
+          )}>
+            <Outlet />
+          </Sentry.ErrorBoundary>
         </main>
       </div>
 
