@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
+import { SkeletonTableRow } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -133,7 +134,11 @@ export function PatientManagementPage() {
       <Card>
         <CardContent className="p-0">
           {loading ? (
-            <div className="py-16 text-center text-sm text-muted-foreground">Loading patients…</div>
+            <table className="w-full text-sm">
+              <tbody className="divide-y divide-border">
+                {Array.from({ length: 6 }).map((_, i) => <SkeletonTableRow key={i} cols={5} />)}
+              </tbody>
+            </table>
           ) : patients.length === 0 ? (
             <div className="py-16 text-center text-sm text-muted-foreground">
               {search ? `No patients match "${search}"` : 'No patients yet. Click "Add Patient" to get started.'}

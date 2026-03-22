@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
+import { SkeletonRow } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -735,7 +736,9 @@ export function AppointmentsPage() {
       <Card>
         <CardContent className="p-4">
           {loading ? (
-            <div className="py-16 text-center text-sm text-muted-foreground">Loading appointments…</div>
+            <div className="divide-y divide-border">
+              {Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)}
+            </div>
           ) : (
             <>
               {view === 'Agenda' && (

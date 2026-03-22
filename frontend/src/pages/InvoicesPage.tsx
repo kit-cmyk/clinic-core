@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -303,7 +304,18 @@ export function InvoicesPage() {
             <span>Invoice #</span><span>Patient</span><span>Appt Date</span><span>Total</span><span>Status</span><span>Actions</span>
           </div>
           {loading ? (
-            <div className="py-16 text-center text-sm text-muted-foreground">Loading invoices…</div>
+            <div className="divide-y divide-border">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="grid grid-cols-6 gap-4 px-4 py-3 items-center">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                  <Skeleton className="h-4 w-12" />
+                </div>
+              ))}
+            </div>
           ) : filtered.length === 0 ? (
             <p className="py-10 text-center text-sm text-muted-foreground">No {filterTab === 'all' ? '' : filterTab} invoices.</p>
           ) : (
