@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/auth'
+import { PasswordStrengthMeter, getPasswordStrength } from '@/components/ui/password-strength-meter'
 
 const registerSchema = z.object({
   name:            z.string().min(1, 'Full name is required'),
@@ -140,11 +141,19 @@ export function RegisterPage() {
   const {
     register,
     handleSubmit,
+    watch,
+    setError,
     formState: { errors },
   } = useForm<RegisterFields>({ resolver: zodResolver(registerSchema) })
 
+  const watchedPassword = watch('password') ?? ''
+
   const onSubmit = async (data: RegisterFields) => {
     clearError()
+    if (getPasswordStrength(data.password).label === 'Weak') {
+      setError('password', { message: 'Password is too weak. Add uppercase, numbers, or special characters.' })
+      return
+    }
     await authRegister(data.name, data.email, data.password, data.clinicName, data.clinicAddress)
     if (!useAuthStore.getState().error) {
       navigate('/onboarding', { replace: true })
@@ -350,6 +359,7 @@ export function RegisterPage() {
                         aria-describedby={errors.password ? 'password-error' : undefined}
                         {...register('password')}
                       />
+                      <PasswordStrengthMeter password={watchedPassword} />
                       {errors.password && (
                         <p id="password-error" role="alert" className="text-xs text-destructive">
                           {errors.password.message}
