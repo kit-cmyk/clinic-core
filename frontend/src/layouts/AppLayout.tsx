@@ -87,7 +87,7 @@ function Breadcrumbs() {
   return (
     <nav
       aria-label="Breadcrumb"
-      className="flex items-center gap-1.5 px-6 py-2 text-xs bg-background shrink-0"
+      className="hidden md:flex items-center gap-1.5 px-6 py-2 text-xs bg-background shrink-0"
     >
       {crumbs.map((crumb, i) => (
         <span key={crumb.to} className="flex items-center gap-1.5">
