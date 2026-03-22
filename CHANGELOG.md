@@ -13,6 +13,10 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 ## [Unreleased]
 
 ### Fixed
+- CI: `npx prisma generate` added as explicit step before `npm test` in `ci.yml` so the Prisma client is compiled for the Linux runner platform; `--forceExit` added to Jest to prevent process hang caused by open Prisma connection pools after tests complete
+- CI: `/health` endpoint skips `prisma.$queryRaw` in `NODE_ENV=test` to avoid 503 responses when `DATABASE_URL` is a placeholder — `server.test.js` now passes in CI
+- Tests: resolved 17 failing frontend Vitest tests — `getByLabelText('Password')` exact match avoids collision with `PasswordInput` toggle `aria-label`; monitoring page API calls mocked with `vi.mock`; `TenantsPage` no longer pre-selects first tenant; `PatientForm` inputs wired with `id`/`htmlFor`; appointment-visit billing section correctly targeted via `getAllByRole` index
+- Tests: resolved 19 failing backend Jest tests — rate limiters skip in `NODE_ENV=test`; `VALID_SIGNUP.tenantId` updated to valid UUID; `req.audit` mock added to test `buildApp()` helpers; `paginatedResponse()` wrapper accounted for in assertions; `schema.test.js` tenant-scoped model count updated to 20
 - CI: backend ESLint config now declares Node.js globals (`process`, `Buffer`) and fetch globals (`fetch`, `FormData`, `Blob`, `AbortSignal`) so all 895 false-positive `no-undef` errors are resolved; Jest globals (`describe`, `it`, `expect`) added for test files
 - CI: removed unused imports and variables in backend — `writeAuditLog` (organization.js, tenants.js), `enforceStorageLimit` (tenants.js), `logMap` (provisioning.js), unused `next` arg (auth.js)
 - CI: frontend ESLint config disables React Compiler-specific rules introduced by `eslint-plugin-react-hooks` v7 (not applicable without the React Compiler); `.vite/deps/**` and `src/components/ui/**` (shadcn generated files) added to ignore list
