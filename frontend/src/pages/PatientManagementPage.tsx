@@ -12,7 +12,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MoreHorizontal, Search } from 'lucide-react'
+import { MoreHorizontal, Search, Users } from 'lucide-react'
+import { EmptyState } from '@/components/ui/empty-state'
 import { PatientForm } from '@/components/patients/PatientForm'
 import api from '@/services/api'
 import type { Patient } from '@/types'
@@ -140,9 +141,20 @@ export function PatientManagementPage() {
               </tbody>
             </table>
           ) : patients.length === 0 ? (
-            <div className="py-16 text-center text-sm text-muted-foreground">
-              {search ? `No patients match "${search}"` : 'No patients yet. Click "Add Patient" to get started.'}
-            </div>
+            search ? (
+              <EmptyState
+                icon={Users}
+                heading={`No patients match "${search}"`}
+                subtext="Try a different name, phone number, or email."
+              />
+            ) : (
+              <EmptyState
+                icon={Users}
+                heading="No patients yet"
+                subtext="Add your first patient to get started."
+                action={{ label: '+ Add Patient', onClick: openAdd }}
+              />
+            )
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
