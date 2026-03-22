@@ -127,6 +127,24 @@ CREATE POLICY "read_own_tenant_audit_logs" ON audit_logs
 -- No INSERT/UPDATE/DELETE policy for authenticated role — only service_role writes.
 
 
+CREATE POLICY "tenant_isolation" ON emr_visits
+  FOR ALL TO authenticated
+  USING (tenant_id = get_my_tenant_id());
+
+CREATE POLICY "tenant_isolation" ON prescriptions
+  FOR ALL TO authenticated
+  USING (tenant_id = get_my_tenant_id());
+
+CREATE POLICY "tenant_isolation" ON notifications
+  FOR ALL TO authenticated
+  USING (tenant_id = get_my_tenant_id());
+
+ALTER TABLE services ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "tenant_isolation" ON services
+  FOR ALL TO authenticated
+  USING (tenant_id = get_my_tenant_id());
+
+
 -- ── Global tables (no RLS needed — read-only reference data) ─────────────
 -- subscription_tiers, specialties, appointment_types, service_categories,
 -- announcements, feature_flags, maintenance_windows are not tenant-scoped.

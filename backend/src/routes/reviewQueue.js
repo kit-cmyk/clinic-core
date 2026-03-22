@@ -55,6 +55,7 @@ export function createReviewQueueRouter({
           select: {
             id:              true,
             patientId:       true,
+            patient:         { select: { firstName: true, lastName: true } },
             testName:        true,
             result:          true,
             resultFileUrl:   true,

@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Pencil } from 'lucide-react'
 import type { ClinicHours, SpecialClosure } from '@/types'
+import api from '@/services/api'
+import { toast } from 'sonner'
 
 // ── Holiday sync ───────────────────────────────────────────────────────────────
 
@@ -27,39 +29,11 @@ async function fetchPublicHolidays(countryCode: string, year: number): Promise<N
   return res.json()
 }
 
-// ── Mock Data ──────────────────────────────────────────────────────────────────
-
-const BRANCHES = [
-  { id: 'b1', name: 'Main Branch' },
-  { id: 'b2', name: 'Downtown Clinic' },
-  { id: 'b3', name: 'Westside Location' },
-]
+// ── Constants ──────────────────────────────────────────────────────────────────
 
 const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
-function makeHours(branchId: string, closedDays: number[] = [5, 6]): ClinicHours[] {
-  return WEEKDAYS.map((_, idx) => ({
-    id:        `ch-${branchId}-${idx}`,
-    tenantId:  't1',
-    branchId,
-    weekday:   idx,
-    openTime:  '08:00',
-    closeTime: '18:00',
-    isClosed:  closedDays.includes(idx),
-  }))
-}
-
-const INITIAL_HOURS: Record<string, ClinicHours[]> = {
-  b1: makeHours('b1', [6]),
-  b2: makeHours('b2', [5, 6]),
-  b3: makeHours('b3', [3, 5, 6]),
-}
-
-const INITIAL_CLOSURES: SpecialClosure[] = [
-  { id: 'sc1', tenantId: 't1', branchId: 'b1', date: '2026-04-07', reason: 'Public Holiday — Good Friday' },
-  { id: 'sc2', tenantId: 't1', branchId: 'b1', date: '2026-04-10', reason: 'Public Holiday — Easter Monday' },
-  { id: 'sc3', tenantId: 't1', branchId: 'b2', date: '2026-04-07', reason: 'Public Holiday — Good Friday' },
-]
+interface Branch { id: string; name: string }
 
 // ── Read-only Hours View ───────────────────────────────────────────────────────
 
@@ -161,7 +135,7 @@ function SpecialClosuresList({
   branchId: string
   closures: SpecialClosure[]
   editing: boolean
-  onAdd: (c: SpecialClosure) => void
+  onAdd: (c: Omit<SpecialClosure, 'id' | 'tenantId'>) => void
   onRemove: (id: string) => void
 }) {
   const mine = closures.filter(c => c.branchId === branchId).sort((a, b) => a.date.localeCompare(b.date))
@@ -170,7 +144,7 @@ function SpecialClosuresList({
 
   const handleAdd = () => {
     if (!date) return
-    onAdd({ id: `sc-${Date.now()}`, tenantId: 't1', branchId, date, reason })
+    onAdd({ branchId, date, reason })
     setDate(''); setReason('')
   }
 
@@ -216,17 +190,109 @@ function SpecialClosuresList({
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export function ClinicHoursPage() {
-  const [activeBranch, setActiveBranch] = useState(BRANCHES[0].id)
-  const [hours,        setHours]        = useState(INITIAL_HOURS)
-  const [closures,     setClosures]     = useState<SpecialClosure[]>(INITIAL_CLOSURES)
+  const [branches,     setBranches]     = useState<Branch[]>([])
+  const [activeBranch, setActiveBranch] = useState('')
+  const [hours,        setHours]        = useState<ClinicHours[]>([])
+  const [closures,     setClosures]     = useState<SpecialClosure[]>([])
+  const [loading,      setLoading]      = useState(true)
   const [editing,      setEditing]      = useState(false)
-  // Draft state for edits that haven't been saved yet
-  const [draftHours,   setDraftHours]   = useState(INITIAL_HOURS)
+  const [draftHours,   setDraftHours]   = useState<ClinicHours[]>([])
+  const [saving,       setSaving]       = useState(false)
 
   // Holiday sync
   const [holidayCountry, setHolidayCountry] = useState('PH')
   const [syncing,        setSyncing]        = useState(false)
   const [syncMessage,    setSyncMessage]    = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  // Fetch branches on mount
+  useEffect(() => {
+    const init = async () => {
+      setLoading(true)
+      try {
+        const res = await api.get('/api/v1/branches')
+        const branchList = res.data.data as Branch[]
+        setBranches(branchList)
+        if (branchList.length > 0) setActiveBranch(branchList[0].id)
+      } catch {
+        toast.error('Failed to load branches')
+      } finally {
+        setLoading(false)
+      }
+    }
+    init()
+  }, [])
+
+  // Fetch hours + closures whenever active branch changes
+  const fetchBranchData = useCallback(async (branchId: string) => {
+    try {
+      const [hoursRes, closuresRes] = await Promise.all([
+        api.get(`/api/v1/clinic-hours?branchId=${branchId}`),
+        api.get(`/api/v1/special-closures?branchId=${branchId}`),
+      ])
+      setHours(hoursRes.data.data as ClinicHours[])
+      setClosures(closuresRes.data.data as SpecialClosure[])
+    } catch {
+      toast.error('Failed to load clinic hours')
+    }
+  }, [])
+
+  useEffect(() => {
+    if (activeBranch) fetchBranchData(activeBranch)
+  }, [activeBranch, fetchBranchData])
+
+  const startEdit = () => {
+    setDraftHours([...hours])
+    setEditing(true)
+  }
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await api.put('/api/v1/clinic-hours', {
+        branchId: activeBranch,
+        hours: draftHours.map(h => ({
+          weekday:   h.weekday,
+          openTime:  h.openTime,
+          closeTime: h.closeTime,
+          isClosed:  h.isClosed,
+        })),
+      })
+      setHours([...draftHours])
+      setEditing(false)
+      toast.success('Hours saved')
+    } catch {
+      toast.error('Failed to save hours')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleCancel = () => {
+    setDraftHours([...hours])
+    setEditing(false)
+  }
+
+  const handleAddClosure = async (c: Omit<SpecialClosure, 'id' | 'tenantId'>) => {
+    try {
+      const res = await api.post('/api/v1/special-closures', {
+        branchId: c.branchId,
+        date:     c.date,
+        reason:   c.reason,
+      })
+      setClosures(prev => [...prev, res.data.data as SpecialClosure])
+    } catch {
+      toast.error('Failed to add closure')
+    }
+  }
+
+  const handleRemoveClosure = async (id: string) => {
+    try {
+      await api.delete(`/api/v1/special-closures/${id}`)
+      setClosures(prev => prev.filter(c => c.id !== id))
+    } catch {
+      toast.error('Failed to remove closure')
+    }
+  }
 
   const handleSyncHolidays = async () => {
     setSyncing(true)
@@ -234,14 +300,17 @@ export function ClinicHoursPage() {
     try {
       const year = new Date().getFullYear()
       const holidays = await fetchPublicHolidays(holidayCountry, year)
-      // Compute new holidays outside the state updater to avoid side-effect duplication
       const existing = closures.filter(c => c.branchId === activeBranch)
       const toAdd = holidays.filter(h => !existing.some(c => c.date === h.date))
       if (toAdd.length > 0) {
-        setClosures(prev => [
-          ...prev,
-          ...toAdd.map(h => ({ id: `hol-${h.date}-${activeBranch}`, tenantId: 't1', branchId: activeBranch, date: h.date, reason: h.localName || h.name })),
-        ])
+        const created = await Promise.all(
+          toAdd.map(h => api.post('/api/v1/special-closures', {
+            branchId: activeBranch,
+            date:     h.date,
+            reason:   h.localName || h.name,
+          }).then(r => r.data.data as SpecialClosure))
+        )
+        setClosures(prev => [...prev, ...created])
       }
       setSyncMessage({ type: 'success', text: `Synced ${toAdd.length} holiday${toAdd.length !== 1 ? 's' : ''} for ${year}` })
     } catch {
@@ -251,28 +320,11 @@ export function ClinicHoursPage() {
     }
   }
 
-  const startEdit = () => {
-    setDraftHours({ ...hours })
-    setEditing(true)
-  }
-
-  const handleSave = () => {
-    setHours({ ...draftHours })
-    setEditing(false)
-  }
-
-  const handleCancel = () => {
-    setDraftHours({ ...hours })
-    setEditing(false)
-  }
-
-  const handleHoursChange = (updated: ClinicHours[]) => {
-    setDraftHours(prev => ({ ...prev, [activeBranch]: updated }))
-  }
-
-  const branchName = BRANCHES.find(b => b.id === activeBranch)?.name ?? ''
+  const branchName = branches.find(b => b.id === activeBranch)?.name ?? ''
   const displayHours = editing ? draftHours : hours
-  const openDays = (displayHours[activeBranch] ?? []).filter(h => !h.isClosed).length
+  const openDays = displayHours.filter(h => !h.isClosed).length
+
+  if (loading) return null
 
   return (
     <div className="space-y-6">
@@ -284,10 +336,10 @@ export function ClinicHoursPage() {
 
       {/* Branch tabs */}
       <div className="flex gap-1 border-b">
-        {BRANCHES.map(b => (
+        {branches.map(b => (
           <button
             key={b.id}
-            onClick={() => { setActiveBranch(b.id); if (editing) { setDraftHours(prev => ({ ...hours, ...prev })) } }}
+            onClick={() => { setActiveBranch(b.id); setEditing(false) }}
             className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
               activeBranch === b.id
                 ? 'border-primary text-primary'
@@ -319,18 +371,20 @@ export function ClinicHoursPage() {
             <>
               <HoursGrid
                 branchId={activeBranch}
-                hours={draftHours[activeBranch] ?? []}
-                onChange={handleHoursChange}
+                hours={draftHours}
+                onChange={setDraftHours}
               />
               <div className="flex items-center gap-3 mt-4">
-                <Button size="sm" onClick={handleSave}>Save Hours</Button>
+                <Button size="sm" onClick={handleSave} disabled={saving}>
+                  {saving ? 'Saving…' : 'Save Hours'}
+                </Button>
                 <Button size="sm" variant="outline" onClick={handleCancel}>Cancel</Button>
               </div>
             </>
           ) : (
             <HoursView
               branchId={activeBranch}
-              hours={hours[activeBranch] ?? []}
+              hours={hours}
             />
           )}
         </CardContent>
@@ -378,8 +432,8 @@ export function ClinicHoursPage() {
             branchId={activeBranch}
             closures={closures}
             editing={editing}
-            onAdd={c => setClosures(prev => [...prev, c])}
-            onRemove={id => setClosures(prev => prev.filter(c => c.id !== id))}
+            onAdd={handleAddClosure}
+            onRemove={handleRemoveClosure}
           />
         </CardContent>
       </Card>

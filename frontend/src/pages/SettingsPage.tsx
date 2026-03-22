@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -32,22 +32,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { type ClinicService, INITIAL_SERVICES } from '@/data/clinicServices'
+import { type ClinicService } from '@/data/clinicServices'
+import api from '@/services/api'
 
 type Section = 'General' | 'Branding' | 'Patient Permissions' | 'Branches' | 'Users' | 'Services & Prices'
 
 const SECTIONS: Section[] = ['General', 'Branding', 'Patient Permissions', 'Branches', 'Users', 'Services & Prices']
 
 const TIMEZONES = ['UTC', 'America/New_York', 'America/Los_Angeles', 'Europe/London', 'Asia/Tokyo', 'Asia/Taipei']
-
-function useSaveSuccess(): [boolean, () => void] {
-  const [saved, setSaved] = useState(false)
-  const trigger = () => {
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-  }
-  return [saved, trigger]
-}
 
 // ── Branches Section ───────────────────────────────────────────────────────────
 
@@ -242,12 +234,24 @@ interface ServiceForm { name: string; category: string; price: string; descripti
 const emptyServiceForm: ServiceForm = { name: '', category: 'Consultation', price: '', description: '' }
 
 function ServicesSection() {
-  const [services,    setServices]    = useState<ClinicService[]>(INITIAL_SERVICES)
+  const [services,    setServices]    = useState<ClinicService[]>([])
   const [sheetOpen,   setSheetOpen]   = useState(false)
   const [editService, setEditService] = useState<ClinicService | null>(null)
   const [form,        setForm]        = useState<ServiceForm>(emptyServiceForm)
   const [formError,   setFormError]   = useState('')
   const [filterCat,   setFilterCat]   = useState('All')
+  const [saving,      setSaving]      = useState(false)
+
+  const fetchServices = useCallback(async () => {
+    try {
+      const res = await api.get('/api/v1/services')
+      setServices(res.data.data as ClinicService[])
+    } catch {
+      toast.error('Failed to load services')
+    }
+  }, [])
+
+  useEffect(() => { fetchServices() }, [fetchServices])
 
   const setField = (field: keyof ServiceForm, value: string) => {
     setForm(f => ({ ...f, [field]: value }))
@@ -268,27 +272,41 @@ function ServicesSection() {
     setSheetOpen(true)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.name.trim())         { setFormError('Name is required.'); return }
     const price = Number(form.price)
     if (!form.price || isNaN(price) || price < 0) { setFormError('Enter a valid price (0 or more).'); return }
 
-    if (editService) {
-      setServices(prev => prev.map(s => s.id === editService.id
-        ? { ...s, name: form.name.trim(), category: form.category, price, description: form.description.trim() }
-        : s,
-      ))
-    } else {
-      setServices(prev => [...prev, {
-        id: `s-${Date.now()}`, name: form.name.trim(), category: form.category,
-        price, description: form.description.trim(), isActive: true,
-      }])
+    setSaving(true)
+    try {
+      if (editService) {
+        const res = await api.put(`/api/v1/services/${editService.id}`, {
+          name: form.name.trim(), category: form.category, price, description: form.description.trim(),
+        })
+        setServices(prev => prev.map(s => s.id === editService.id ? res.data.data : s))
+      } else {
+        const res = await api.post('/api/v1/services', {
+          name: form.name.trim(), category: form.category, price, description: form.description.trim(),
+        })
+        setServices(prev => [...prev, res.data.data])
+      }
+      setSheetOpen(false)
+    } catch {
+      toast.error(editService ? 'Failed to update service' : 'Failed to create service')
+    } finally {
+      setSaving(false)
     }
-    setSheetOpen(false)
   }
 
-  const toggleActive = (id: string) =>
-    setServices(prev => prev.map(s => s.id === id ? { ...s, isActive: !s.isActive } : s))
+  const toggleActive = async (id: string, currentlyActive: boolean) => {
+    try {
+      const endpoint = currentlyActive ? 'deactivate' : 'reactivate'
+      const res = await api.patch(`/api/v1/services/${id}/${endpoint}`)
+      setServices(prev => prev.map(s => s.id === id ? res.data.data : s))
+    } catch {
+      toast.error('Failed to update service status')
+    }
+  }
 
   const categories = ['All', ...SERVICE_CATEGORIES]
   const displayed = filterCat === 'All' ? services : services.filter(s => s.category === filterCat)
@@ -351,7 +369,7 @@ function ServicesSection() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className={s.isActive ? 'text-destructive focus:text-destructive' : ''}
-                    onClick={() => toggleActive(s.id)}
+                    onClick={() => toggleActive(s.id, s.isActive)}
                   >
                     {s.isActive ? 'Deactivate' : 'Reactivate'}
                   </DropdownMenuItem>
@@ -402,7 +420,7 @@ function ServicesSection() {
             {formError && <p className="text-xs text-destructive">{formError}</p>}
           </div>
           <SheetFooter className="mt-4">
-            <Button onClick={handleSave}>{editService ? 'Save Changes' : 'Add Service'}</Button>
+            <Button onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : editService ? 'Save Changes' : 'Add Service'}</Button>
             <Button variant="outline" onClick={() => setSheetOpen(false)}>Cancel</Button>
           </SheetFooter>
         </SheetContent>
@@ -417,19 +435,72 @@ export function SettingsPage() {
   const [activeSection, setActiveSection] = useState<Section>('General')
 
   // General
-  const [orgName,       setOrgName]       = useState('City Medical Clinic')
-  const [contactEmail,  setContactEmail]  = useState('admin@citymedical.com')
-  const [timezone,      setTimezone]      = useState('UTC')
-  const [generalSaved,  triggerGeneralSave] = useSaveSuccess()
+  const [orgName,      setOrgName]      = useState('')
+  const [contactEmail, setContactEmail] = useState('')
+  const [timezone,     setTimezone]     = useState('UTC')
+  const [generalSaving, setGeneralSaving] = useState(false)
 
   // Branding
   const [logoFile,     setLogoFile]     = useState<File | null>(null)
   const [primaryColor, setPrimaryColor] = useState('#2563eb')
-  const [brandingSaved, triggerBrandingSave] = useSaveSuccess()
+  const [brandingSaving, setBrandingSaving] = useState(false)
 
   // Patient Permissions
   const [allowPatientUploads, setAllowPatientUploads] = useState(false)
-  const [permissionsSaved, triggerPermissionsSave] = useSaveSuccess()
+  const [permissionsSaving, setPermissionsSaving] = useState(false)
+
+  // Load org profile + settings on mount
+  useEffect(() => {
+    Promise.all([
+      api.get('/api/v1/organization'),
+      api.get('/api/v1/organization/settings'),
+    ]).then(([orgRes, settingsRes]) => {
+      const org = orgRes.data
+      setOrgName(org.name ?? '')
+      setContactEmail(org.email ?? '')
+      const settings = settingsRes.data
+      setPrimaryColor(settings.brandColor ?? '#2563eb')
+      setAllowPatientUploads(Boolean(settings.patientSelfUploadEnabled))
+    }).catch(() => {
+      toast.error('Failed to load settings')
+    })
+  }, [])
+
+  const saveGeneral = async () => {
+    setGeneralSaving(true)
+    try {
+      await api.put('/api/v1/organization', { name: orgName, email: contactEmail })
+      toast.success('General settings saved')
+    } catch {
+      toast.error('Failed to save general settings')
+    } finally {
+      setGeneralSaving(false)
+    }
+  }
+
+  const saveBranding = async () => {
+    setBrandingSaving(true)
+    try {
+      await api.put('/api/v1/organization/settings', { brandColor: primaryColor })
+      toast.success('Branding saved')
+    } catch {
+      toast.error('Failed to save branding')
+    } finally {
+      setBrandingSaving(false)
+    }
+  }
+
+  const savePermissions = async () => {
+    setPermissionsSaving(true)
+    try {
+      await api.put('/api/v1/organization/settings', { patientSelfUploadEnabled: allowPatientUploads })
+      toast.success('Permissions saved')
+    } catch {
+      toast.error('Failed to save permissions')
+    } finally {
+      setPermissionsSaving(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -476,10 +547,9 @@ export function SettingsPage() {
                 {TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
               </select>
             </div>
-            <div className="flex items-center gap-3">
-              <Button onClick={triggerGeneralSave}>Save</Button>
-              {generalSaved && <span className="text-sm text-green-600 font-medium">Saved!</span>}
-            </div>
+            <Button onClick={saveGeneral} disabled={generalSaving}>
+              {generalSaving ? 'Saving…' : 'Save'}
+            </Button>
           </CardContent>
         </Card>
       )}
@@ -508,10 +578,9 @@ export function SettingsPage() {
                 <div className="h-8 w-8 rounded-md border border-border shrink-0" style={{ backgroundColor: primaryColor }} aria-label="Color preview" />
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Button onClick={triggerBrandingSave}>Save</Button>
-              {brandingSaved && <span className="text-sm text-green-600 font-medium">Saved!</span>}
-            </div>
+            <Button onClick={saveBranding} disabled={brandingSaving}>
+              {brandingSaving ? 'Saving…' : 'Save'}
+            </Button>
           </CardContent>
         </Card>
       )}
@@ -535,10 +604,9 @@ export function SettingsPage() {
                 <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg transform transition-transform ${allowPatientUploads ? 'translate-x-5' : 'translate-x-0'}`} />
               </button>
             </div>
-            <div className="flex items-center gap-3">
-              <Button onClick={triggerPermissionsSave}>Save</Button>
-              {permissionsSaved && <span className="text-sm text-green-600 font-medium">Saved!</span>}
-            </div>
+            <Button onClick={savePermissions} disabled={permissionsSaving}>
+              {permissionsSaving ? 'Saving…' : 'Save'}
+            </Button>
           </CardContent>
         </Card>
       )}
