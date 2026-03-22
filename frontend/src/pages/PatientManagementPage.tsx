@@ -20,7 +20,7 @@ import type { Patient } from '@/types'
 
 function toPatient(raw: Record<string, unknown>): Patient {
   return {
-    ...(raw as Patient),
+    ...(raw as unknown as Patient),
     fullName: `${raw.firstName} ${raw.lastName}`,
     dob: raw.dob ? String(raw.dob).substring(0, 10) : undefined,
   }

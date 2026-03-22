@@ -283,7 +283,7 @@ export function ProfessionalsPage() {
     api.get('/api/v1/professionals', { params: { isActive: false } })
       .then(res => {
         const profs: Professional[] = res.data.data.map((p: Record<string, unknown>) => ({
-          ...(p as Professional),
+          ...(p as unknown as Professional),
           name: `${(p.user as { firstName: string; lastName: string }).firstName} ${(p.user as { firstName: string; lastName: string }).lastName}`,
           branch: '', // branch not returned in list endpoint
         }))

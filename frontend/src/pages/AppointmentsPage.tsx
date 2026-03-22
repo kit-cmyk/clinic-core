@@ -481,7 +481,7 @@ export function AppointmentsPage() {
       try {
         const res = await api.get('/api/v1/patients', { params: { search: q, limit: 6 } })
         setPatients((res.data.data as Record<string, unknown>[]).map(p => ({
-          ...(p as Patient),
+          ...(p as unknown as Patient),
           fullName: `${p.firstName} ${p.lastName}`,
         })))
       } catch { /* silent */ }

@@ -180,7 +180,7 @@ export function InvoicesPage() {
         const mapped: Invoice[] = res.data.data.map((inv: Record<string, unknown>) => {
           const p = inv.patient as { firstName: string; lastName: string } | null
           return {
-            ...(inv as Invoice),
+            ...(inv as unknown as Invoice),
             patientName: p ? `${p.firstName} ${p.lastName}` : '',
             status: (inv.status as string).toLowerCase() as Invoice['status'],
             appointmentDate: '',
