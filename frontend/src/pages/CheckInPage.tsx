@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { CalendarX } from 'lucide-react'
 import { EmptyState } from '@/components/ui/empty-state'
 import { useAuthStore } from '@/store/auth'
+import { toast } from 'sonner'
 
 type CheckInStatus = 'Scheduled' | 'Checked In' | 'No Show'
 
@@ -45,18 +46,22 @@ export function CheckInPage() {
   const [noShowReason, setNoShowReason] = useState('')
 
   const handleCheckIn = (id: string) => {
+    const appt = appointments.find(a => a.id === id)
     setAppointments((prev) =>
       prev.map((a) => a.id === id ? { ...a, status: 'Checked In' } : a),
     )
     setConfirmId(null)
+    toast.success(`${appt?.patientName ?? 'Patient'} checked in.`)
   }
 
   const handleNoShow = (id: string) => {
+    const appt = appointments.find(a => a.id === id)
     setAppointments((prev) =>
       prev.map((a) => a.id === id ? { ...a, status: 'No Show' } : a),
     )
     setNoShowId(null)
     setNoShowReason('')
+    toast.warning(`${appt?.patientName ?? 'Patient'} marked as no show.`)
   }
 
   return (

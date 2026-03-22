@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -80,8 +81,10 @@ function BranchesSection() {
     if (!form.name.trim()) return
     if (editBranch) {
       setBranches(prev => prev.map(b => b.id === editBranch.id ? { ...b, ...form } : b))
+      toast.success('Branch updated.')
     } else {
       setBranches(prev => [...prev, { id: Date.now().toString(), name: form.name, address: form.address, city: form.city, phone: form.phone, status: 'Active' }])
+      toast.success('Branch created.')
     }
     setSheetOpen(false)
   }
@@ -212,11 +215,13 @@ function ServicesSection() {
         ? { ...s, name: form.name.trim(), category: form.category, price, description: form.description.trim() }
         : s,
       ))
+      toast.success('Service updated.')
     } else {
       setServices(prev => [...prev, {
         id: `s-${Date.now()}`, name: form.name.trim(), category: form.category,
         price, description: form.description.trim(), isActive: true,
       }])
+      toast.success('Service added.')
     }
     setSheetOpen(false)
   }
