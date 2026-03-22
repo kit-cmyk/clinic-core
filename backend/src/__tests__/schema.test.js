@@ -29,7 +29,7 @@ describe('schema.prisma — tenant isolation', () => {
       'users', 'organizations', 'branches', 'staff_assignments', 'invitations',
       'patients', 'appointments', 'lab_results', 'professionals',
       'professional_schedules', 'time_offs', 'clinic_hours',
-      'special_closures', 'invoices', 'invoice_line_items',
+      'special_closures', 'invoices', 'invoice_line_items', 'services',
     ];
     for (const table of tenantScopedTables) {
       expect(schema).toContain(`@@map("${table}")`);
@@ -38,12 +38,12 @@ describe('schema.prisma — tenant isolation', () => {
 
   it('has tenantId field on every tenant-scoped model', () => {
     const matches = schema.match(/tenantId\s+String\b/g) || [];
-    expect(matches.length).toBe(20);
+    expect(matches.length).toBe(21);
   });
 
   it('indexes tenantId on every tenant-scoped model', () => {
     const indexes = schema.match(/@@index\(\[tenantId\]\)/g) || [];
-    expect(indexes.length).toBe(20);
+    expect(indexes.length).toBe(21);
   });
 });
 
