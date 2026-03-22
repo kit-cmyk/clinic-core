@@ -56,6 +56,10 @@ export function ReviewQueuePage() {
 
   useEffect(() => { fetchQueue() }, [fetchQueue])
 
+  const filtered = items.filter(
+    i => categoryFilter === 'All' || i.testName === categoryFilter,
+  )
+
   const handleReviewed = async (id: string) => {
     try {
       await api.put(`/api/v1/review-queue/${id}/status`, { status: 'reviewed' })
@@ -106,7 +110,7 @@ export function ReviewQueuePage() {
         </div>
       )}
 
-      {!loading && items.length === 0 && (
+      {!loading && filtered.length === 0 && (
         <EmptyState
           icon={CheckCircle}
           heading="Queue is clear"
@@ -114,9 +118,9 @@ export function ReviewQueuePage() {
         />
       )}
 
-      {!loading && items.length > 0 && (
+      {!loading && filtered.length > 0 && (
         <div className="space-y-3">
-          {items.map((item) => (
+          {filtered.map((item) => (
             <Card key={item.id}>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between flex-wrap gap-3">

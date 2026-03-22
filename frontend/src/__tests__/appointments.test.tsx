@@ -7,7 +7,9 @@ import { useAuthStore } from '@/store/auth'
 
 // ── API mock ───────────────────────────────────────────────────────────────────
 
-const TODAY_STR = new Date().toISOString().slice(0, 10)
+// Use local date (same as component's fmt() which uses getFullYear/getMonth/getDate)
+const _now = new Date()
+const TODAY_STR = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, '0')}-${String(_now.getDate()).padStart(2, '0')}`
 
 const MOCK_APPTS = [
   {
