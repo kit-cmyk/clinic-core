@@ -32,6 +32,7 @@ import { Separator } from '@/components/ui/separator'
 import { useAuth } from '@/hooks/useAuth'
 import { useIdleLogout } from '@/hooks/useIdleLogout'
 import { OnboardingChecklist } from '@/components/OnboardingChecklist'
+import { IdleWarningModal } from '@/components/IdleWarningModal'
 import type { Role } from '@/types'
 
 // ── Breadcrumbs ────────────────────────────────────────────────────────────────
@@ -440,6 +441,7 @@ export function AppLayout() {
       </div>
 
       <OnboardingChecklist />
+      <IdleWarningModal />
     </div>
   )
 }
