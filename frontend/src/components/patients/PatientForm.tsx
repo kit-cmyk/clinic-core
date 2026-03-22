@@ -9,6 +9,16 @@ import {
   SheetTitle,
   SheetFooter,
 } from '@/components/ui/sheet'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import type { Patient } from '@/types'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -82,15 +92,22 @@ function validate(v: PatientFormValues): PatientFormErrors {
 
 export function PatientForm({ open, onClose, onSave, initialValues }: PatientFormProps) {
   const isEdit = !!initialValues?.id
-  const [form,   setForm]   = useState<PatientFormValues>(() => toValues(initialValues))
-  const [errors, setErrors] = useState<PatientFormErrors>({})
+  const [form,           setForm]           = useState<PatientFormValues>(() => toValues(initialValues))
+  const [errors,         setErrors]         = useState<PatientFormErrors>({})
+  const [initialSnapshot, setInitialSnapshot] = useState<PatientFormValues>(() => toValues(initialValues))
+  const [pendingClose,   setPendingClose]   = useState(false)
 
   useEffect(() => {
     if (open) {
-      setForm(toValues(initialValues))
+      const vals = toValues(initialValues)
+      setInitialSnapshot(vals)
+      setForm(vals)
       setErrors({})
+      setPendingClose(false)
     }
   }, [open, initialValues])
+
+  const isDirty = JSON.stringify(form) !== JSON.stringify(initialSnapshot)
 
   const set = (field: keyof PatientFormValues, value: string) => {
     setForm(f => ({ ...f, [field]: value }))
@@ -122,8 +139,13 @@ export function PatientForm({ open, onClose, onSave, initialValues }: PatientFor
     onSave(patient)
   }
 
+  const requestClose = () => {
+    if (isDirty) { setPendingClose(true) } else { onClose() }
+  }
+
   return (
-    <Sheet open={open} onOpenChange={open => !open && onClose()}>
+    <>
+    <Sheet open={open} onOpenChange={isOpen => !isOpen && requestClose()}>
       <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
         <SheetHeader>
           <SheetTitle>{isEdit ? 'Edit Patient' : 'Add Patient'}</SheetTitle>
@@ -238,9 +260,27 @@ export function PatientForm({ open, onClose, onSave, initialValues }: PatientFor
 
         <SheetFooter className="px-4 pb-4">
           <Button onClick={handleSubmit}>{isEdit ? 'Save Changes' : 'Add Patient'}</Button>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" onClick={requestClose}>Cancel</Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>
+
+    <AlertDialog open={pendingClose} onOpenChange={(open) => !open && setPendingClose(false)}>
+      <AlertDialogContent size="sm">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Discard changes?</AlertDialogTitle>
+          <AlertDialogDescription>
+            You have unsaved changes. They will be lost if you close now.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => setPendingClose(false)}>Keep Editing</AlertDialogCancel>
+          <AlertDialogAction variant="destructive" onClick={() => { setPendingClose(false); onClose() }}>
+            Discard Changes
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   )
 }

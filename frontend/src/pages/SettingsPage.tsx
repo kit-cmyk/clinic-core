@@ -74,18 +74,29 @@ function BranchesSection() {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editBranch, setEditBranch] = useState<Branch | null>(null)
   const [form, setForm] = useState<BranchForm>(emptyBranchForm)
+  const [formSnapshot, setFormSnapshot] = useState<BranchForm>(emptyBranchForm)
   const [pendingDeactivateBranchId, setPendingDeactivateBranchId] = useState<string | null>(null)
+  const [pendingBranchClose, setPendingBranchClose] = useState(false)
+
+  const isBranchFormDirty = JSON.stringify(form) !== JSON.stringify(formSnapshot)
 
   const openAdd = () => {
     setEditBranch(null)
     setForm(emptyBranchForm)
+    setFormSnapshot(emptyBranchForm)
     setSheetOpen(true)
   }
 
   const openEdit = (b: Branch) => {
     setEditBranch(b)
-    setForm({ name: b.name, address: b.address, city: b.city, phone: b.phone, timezone: 'UTC' })
+    const vals = { name: b.name, address: b.address, city: b.city, phone: b.phone, timezone: 'UTC' }
+    setForm(vals)
+    setFormSnapshot(vals)
     setSheetOpen(true)
+  }
+
+  const requestCloseSheet = () => {
+    if (isBranchFormDirty) { setPendingBranchClose(true) } else { setSheetOpen(false) }
   }
 
   const handleSave = () => {
@@ -143,7 +154,7 @@ function BranchesSection() {
         ))}
       </div>
 
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+      <Sheet open={sheetOpen} onOpenChange={isOpen => !isOpen && requestCloseSheet()}>
         <SheetContent>
           <SheetHeader>
             <SheetTitle>{editBranch ? 'Edit Branch' : 'New Branch'}</SheetTitle>
@@ -172,10 +183,27 @@ function BranchesSection() {
           </div>
           <SheetFooter>
             <Button onClick={handleSave}>{editBranch ? 'Save Changes' : 'Create Branch'}</Button>
-            <Button variant="outline" onClick={() => setSheetOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={requestCloseSheet}>Cancel</Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      <AlertDialog open={pendingBranchClose} onOpenChange={(open) => !open && setPendingBranchClose(false)}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes. They will be lost if you close now.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingBranchClose(false)}>Keep Editing</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={() => { setPendingBranchClose(false); setSheetOpen(false) }}>
+              Discard Changes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!pendingDeactivateBranchId} onOpenChange={(open) => !open && setPendingDeactivateBranchId(null)}>
         <AlertDialogContent size="sm">
