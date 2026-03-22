@@ -18,7 +18,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MoreHorizontal } from 'lucide-react'
+import { MoreHorizontal, FileX } from 'lucide-react'
+import { EmptyState } from '@/components/ui/empty-state'
 import type { Invoice, InvoiceLineItem, InvoiceStatus } from '@/types'
 import api from '@/services/api'
 
@@ -107,10 +108,11 @@ function InvoiceRow({
         role="button"
         aria-expanded={expanded}
       >
-        <div className="flex-1 grid grid-cols-[8rem_1fr_8rem_7rem_7rem] gap-4 items-center min-w-0">
+        {/* Responsive layout — stacks on mobile, grid on desktop */}
+        <div className="flex-1 min-w-0 flex flex-col md:grid md:grid-cols-[8rem_1fr_8rem_7rem_7rem] md:items-center gap-0.5 md:gap-4">
           <span className="font-mono text-xs text-muted-foreground">{invoice.invoiceNumber}</span>
           <span className="text-sm font-medium">{invoice.patientName}</span>
-          <span className="text-xs text-muted-foreground">{invoice.appointmentDate ?? '—'}</span>
+          <span className="text-xs text-muted-foreground hidden md:inline">{invoice.appointmentDate ?? '—'}</span>
           <span className="text-sm font-semibold">{centsToDisplay(invoice.totalAmountCents)}</span>
           <Badge variant={statusVariant(invoice.status)} className="capitalize w-fit">{invoice.status}</Badge>
         </div>
@@ -179,7 +181,7 @@ export function InvoicesPage() {
         const mapped: Invoice[] = res.data.data.map((inv: Record<string, unknown>) => {
           const p = inv.patient as { firstName: string; lastName: string } | null
           return {
-            ...(inv as Invoice),
+            ...(inv as unknown as Invoice),
             patientName: p ? `${p.firstName} ${p.lastName}` : '',
             status: (inv.status as string).toLowerCase() as Invoice['status'],
             appointmentDate: '',
@@ -317,7 +319,12 @@ export function InvoicesPage() {
               ))}
             </div>
           ) : filtered.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">No {filterTab === 'all' ? '' : filterTab} invoices.</p>
+            <EmptyState
+              icon={FileX}
+              heading={filterTab === 'all' ? 'No invoices yet' : `No ${filterTab} invoices`}
+              subtext={filterTab === 'all' ? 'Create your first invoice to get started.' : undefined}
+              action={filterTab === 'all' ? { label: '+ New Invoice', onClick: () => setSheetOpen(true) } : undefined}
+            />
           ) : (
             filtered.map(inv => (
               <InvoiceRow

@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { CheckCircle } from 'lucide-react'
+import { EmptyState } from '@/components/ui/empty-state'
 
 type Category = 'Lab Result' | 'Prescription' | 'Referral' | 'Other'
 
@@ -68,11 +69,11 @@ export function ReviewQueuePage() {
 
       {/* Queue items */}
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-          <CheckCircle className="h-12 w-12 text-green-500" />
-          <p className="text-lg font-semibold text-foreground">Queue is clear</p>
-          <p className="text-sm text-muted-foreground">All documents have been reviewed.</p>
-        </div>
+        <EmptyState
+          icon={CheckCircle}
+          heading="Queue is clear"
+          subtext="All documents have been reviewed."
+        />
       ) : (
         <div className="space-y-3">
           {filtered.map((item) => (

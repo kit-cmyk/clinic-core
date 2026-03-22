@@ -19,6 +19,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { MoreHorizontal } from 'lucide-react'
+import { toast } from 'sonner'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import type { ManagedUser, Role } from '@/types'
 
 // ── Mock Data ──────────────────────────────────────────────────────────────────
@@ -55,13 +66,18 @@ export function UserManagementPage() {
   const [search,     setSearch]     = useState('')
   const [sheetMode,  setSheetMode]  = useState<SheetMode>(null)
   const [selected,   setSelected]   = useState<ManagedUser | null>(null)
-  const [editForm,   setEditForm]   = useState<EditFormState>({ name: '', email: '', role: 'doctor', branch: '', isActive: true })
-  const [inviteForm, setInviteForm] = useState({ name: '', email: '', role: 'doctor' as Role, branch: BRANCHES[0] })
-  const [toast,      setToast]      = useState<string | null>(null)
+  const [editForm,       setEditForm]       = useState<EditFormState>({ name: '', email: '', role: 'doctor', branch: '', isActive: true })
+  const [editSnapshot,   setEditSnapshot]   = useState<EditFormState>({ name: '', email: '', role: 'doctor', branch: '', isActive: true })
+  const [inviteForm,     setInviteForm]     = useState({ name: '', email: '', role: 'doctor' as Role, branch: BRANCHES[0] })
+  const [localToast,     setLocalToast]     = useState<string | null>(null)
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const [pendingEditClose, setPendingEditClose] = useState(false)
+
+  const isEditFormDirty = JSON.stringify(editForm) !== JSON.stringify(editSnapshot)
 
   const showToast = (msg: string) => {
-    setToast(msg)
-    setTimeout(() => setToast(null), 2500)
+    setLocalToast(msg)
+    setTimeout(() => setLocalToast(null), 2500)
   }
 
   const filtered = useMemo(() => {
@@ -76,8 +92,14 @@ export function UserManagementPage() {
 
   const openEdit = (u: ManagedUser) => {
     setSelected(u)
-    setEditForm({ name: u.name, email: u.email, role: u.role as Role, branch: u.branch ?? BRANCHES[0], isActive: u.isActive })
+    const vals = { name: u.name, email: u.email, role: u.role as Role, branch: u.branch ?? BRANCHES[0], isActive: u.isActive }
+    setEditForm(vals)
+    setEditSnapshot(vals)
     setSheetMode('edit')
+  }
+
+  const requestCloseEdit = () => {
+    if (isEditFormDirty) { setPendingEditClose(true) } else { setSheetMode(null) }
   }
 
   const saveEdit = () => {
@@ -90,7 +112,8 @@ export function UserManagementPage() {
   const handleDelete = (id: string) => {
     setStaff(prev => prev.filter(u => u.id !== id))
     setSheetMode(null)
-    showToast('User removed')
+    setPendingDeleteId(null)
+    toast.success('User removed.')
   }
 
   const handleInvite = () => {
@@ -124,9 +147,9 @@ export function UserManagementPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {toast && (
+          {localToast && (
             <div className="bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-2 rounded-md">
-              {toast}
+              {localToast}
             </div>
           )}
           <Button size="sm" onClick={() => setSheetMode('invite')}>+ Invite User</Button>
@@ -188,7 +211,7 @@ export function UserManagementPage() {
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
-                            onClick={() => handleDelete(u.id)}
+                            onClick={() => setPendingDeleteId(u.id)}
                           >
                             Remove
                           </DropdownMenuItem>
@@ -242,7 +265,7 @@ export function UserManagementPage() {
       </Sheet>
 
       {/* Edit Sheet */}
-      <Sheet open={sheetMode === 'edit'} onOpenChange={open => !open && setSheetMode(null)}>
+      <Sheet open={sheetMode === 'edit'} onOpenChange={isOpen => !isOpen && requestCloseEdit()}>
         <SheetContent>
           <SheetHeader>
             <SheetTitle>Edit User</SheetTitle>
@@ -298,7 +321,7 @@ export function UserManagementPage() {
           </div>
           <SheetFooter>
             <Button onClick={saveEdit}>Save Changes</Button>
-            <Button variant="outline" onClick={() => setSheetMode(null)}>Cancel</Button>
+            <Button variant="outline" onClick={requestCloseEdit}>Cancel</Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>
@@ -356,6 +379,40 @@ export function UserManagementPage() {
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      <AlertDialog open={pendingEditClose} onOpenChange={(open) => !open && setPendingEditClose(false)}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes. If you close now, they will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingEditClose(false)}>Keep Editing</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={() => { setPendingEditClose(false); setSheetMode(null) }}>
+              Discard Changes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!pendingDeleteId} onOpenChange={(open) => !open && setPendingDeleteId(null)}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Remove this user? They will lose access to ClinicAlly immediately. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={() => pendingDeleteId && handleDelete(pendingDeleteId)}>
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

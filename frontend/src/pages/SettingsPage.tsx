@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -21,6 +22,16 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { MoreHorizontal } from 'lucide-react'
 import { UserManagementPage } from '@/pages/UserManagementPage'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { type ClinicService, INITIAL_SERVICES } from '@/data/clinicServices'
 
 type Section = 'General' | 'Branding' | 'Patient Permissions' | 'Branches' | 'Users' | 'Services & Prices'
@@ -63,25 +74,39 @@ function BranchesSection() {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editBranch, setEditBranch] = useState<Branch | null>(null)
   const [form, setForm] = useState<BranchForm>(emptyBranchForm)
+  const [formSnapshot, setFormSnapshot] = useState<BranchForm>(emptyBranchForm)
+  const [pendingBranchClose, setPendingBranchClose] = useState(false)
+  const [pendingDeactivateBranchId, setPendingDeactivateBranchId] = useState<string | null>(null)
+
+  const isBranchFormDirty = JSON.stringify(form) !== JSON.stringify(formSnapshot)
 
   const openAdd = () => {
     setEditBranch(null)
     setForm(emptyBranchForm)
+    setFormSnapshot(emptyBranchForm)
     setSheetOpen(true)
   }
 
   const openEdit = (b: Branch) => {
     setEditBranch(b)
-    setForm({ name: b.name, address: b.address, city: b.city, phone: b.phone, timezone: 'UTC' })
+    const vals = { name: b.name, address: b.address, city: b.city, phone: b.phone, timezone: 'UTC' }
+    setForm(vals)
+    setFormSnapshot(vals)
     setSheetOpen(true)
+  }
+
+  const requestCloseSheet = () => {
+    if (isBranchFormDirty) { setPendingBranchClose(true) } else { setSheetOpen(false) }
   }
 
   const handleSave = () => {
     if (!form.name.trim()) return
     if (editBranch) {
       setBranches(prev => prev.map(b => b.id === editBranch.id ? { ...b, ...form } : b))
+      toast.success('Branch updated.')
     } else {
       setBranches(prev => [...prev, { id: Date.now().toString(), name: form.name, address: form.address, city: form.city, phone: form.phone, status: 'Active' }])
+      toast.success('Branch created.')
     }
     setSheetOpen(false)
   }
@@ -120,7 +145,7 @@ function BranchesSection() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className={b.status === 'Active' ? 'text-destructive focus:text-destructive' : ''}
-                    onClick={() => toggleStatus(b.id)}
+                    onClick={() => b.status === 'Active' ? setPendingDeactivateBranchId(b.id) : toggleStatus(b.id)}
                   >
                     {b.status === 'Active' ? 'Deactivate' : 'Reactivate'}
                   </DropdownMenuItem>
@@ -131,7 +156,7 @@ function BranchesSection() {
         ))}
       </div>
 
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+      <Sheet open={sheetOpen} onOpenChange={isOpen => !isOpen && requestCloseSheet()}>
         <SheetContent>
           <SheetHeader>
             <SheetTitle>{editBranch ? 'Edit Branch' : 'New Branch'}</SheetTitle>
@@ -160,10 +185,53 @@ function BranchesSection() {
           </div>
           <SheetFooter>
             <Button onClick={handleSave}>{editBranch ? 'Save Changes' : 'Create Branch'}</Button>
-            <Button variant="outline" onClick={() => setSheetOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={requestCloseSheet}>Cancel</Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      <AlertDialog open={pendingBranchClose} onOpenChange={(open) => !open && setPendingBranchClose(false)}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes. If you close now, they will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingBranchClose(false)}>Keep Editing</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={() => { setPendingBranchClose(false); setSheetOpen(false) }}>
+              Discard Changes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!pendingDeactivateBranchId} onOpenChange={(open) => !open && setPendingDeactivateBranchId(null)}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deactivate this branch? It will be marked inactive and hidden from active lists.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                if (pendingDeactivateBranchId) {
+                  toggleStatus(pendingDeactivateBranchId)
+                  toast.success('Branch deactivated.')
+                  setPendingDeactivateBranchId(null)
+                }
+              }}
+            >
+              Deactivate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
@@ -212,11 +280,13 @@ function ServicesSection() {
         ? { ...s, name: form.name.trim(), category: form.category, price, description: form.description.trim() }
         : s,
       ))
+      toast.success('Service updated.')
     } else {
       setServices(prev => [...prev, {
         id: `s-${Date.now()}`, name: form.name.trim(), category: form.category,
         price, description: form.description.trim(), isActive: true,
       }])
+      toast.success('Service added.')
     }
     setSheetOpen(false)
   }

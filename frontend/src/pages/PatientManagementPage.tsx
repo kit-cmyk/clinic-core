@@ -12,14 +12,26 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MoreHorizontal, Search } from 'lucide-react'
+import { MoreHorizontal, Search, Users } from 'lucide-react'
+import { EmptyState } from '@/components/ui/empty-state'
 import { PatientForm } from '@/components/patients/PatientForm'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import api from '@/services/api'
 import type { Patient } from '@/types'
+import { toast } from 'sonner'
 
 function toPatient(raw: Record<string, unknown>): Patient {
   return {
-    ...(raw as Patient),
+    ...(raw as unknown as Patient),
     fullName: `${raw.firstName} ${raw.lastName}`,
     dob: raw.dob ? String(raw.dob).substring(0, 10) : undefined,
   }
@@ -35,8 +47,9 @@ export function PatientManagementPage() {
   const [page,       setPage]       = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total,      setTotal]      = useState(0)
-  const [formOpen,   setFormOpen]   = useState(false)
-  const [editTarget, setEditTarget] = useState<Patient | undefined>(undefined)
+  const [formOpen,          setFormOpen]         = useState(false)
+  const [editTarget,        setEditTarget]       = useState<Patient | undefined>(undefined)
+  const [pendingDeactivate, setPendingDeactivate] = useState<Patient | null>(null)
 
   const fetchPatients = useCallback(async (searchVal = search, pageVal = page) => {
     setLoading(true)
@@ -77,13 +90,15 @@ export function PatientManagementPage() {
     try {
       if (patient.id && patients.find(p => p.id === patient.id)) {
         await api.put(`/api/v1/patients/${patient.id}`, patient)
+        toast.success('Patient updated successfully.')
       } else {
         await api.post('/api/v1/patients', patient)
+        toast.success('Patient added successfully.')
       }
       setFormOpen(false)
       fetchPatients(search, page)
     } catch {
-      // PatientForm surfaces its own errors; just close on success
+      toast.error('Failed to save patient. Please try again.')
     }
   }
 
@@ -91,7 +106,9 @@ export function PatientManagementPage() {
     try {
       await api.put(`/api/v1/patients/${p.id}`, { isActive: !p.isActive })
       fetchPatients(search, page)
+      toast.success(p.isActive ? 'Patient deactivated.' : 'Patient activated.')
     } catch {
+      toast.error('Failed to update patient status.')
       setError('Failed to update patient status.')
     }
   }
@@ -140,73 +157,69 @@ export function PatientManagementPage() {
               </tbody>
             </table>
           ) : patients.length === 0 ? (
-            <div className="py-16 text-center text-sm text-muted-foreground">
-              {search ? `No patients match "${search}"` : 'No patients yet. Click "Add Patient" to get started.'}
-            </div>
+            search ? (
+              <EmptyState
+                icon={Users}
+                heading={`No patients match "${search}"`}
+                subtext="Try a different name, phone number, or email."
+              />
+            ) : (
+              <EmptyState
+                icon={Users}
+                heading="No patients yet"
+                subtext="Add your first patient to get started."
+                action={{ label: '+ Add Patient', onClick: openAdd }}
+              />
+            )
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-xs font-medium text-muted-foreground">
-                    <th className="text-left px-4 py-3">Name</th>
-                    <th className="text-left px-4 py-3 hidden sm:table-cell">DOB</th>
-                    <th className="text-left px-4 py-3 hidden md:table-cell">Phone</th>
-                    <th className="text-left px-4 py-3 hidden lg:table-cell">Email</th>
-                    <th className="text-left px-4 py-3">Status</th>
-                    <th className="px-4 py-3" />
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {patients.map(p => (
-                    <tr
-                      key={p.id}
-                      className="hover:bg-muted/30 transition-colors cursor-pointer"
-                      onClick={() => navigate(`/patients/${p.id}/chart`)}
-                    >
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                            <span className="text-xs font-medium text-primary">
-                              {p.firstName.charAt(0)}{p.lastName.charAt(0)}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="font-medium">{p.fullName}</p>
-                            <p className="text-xs text-muted-foreground">{p.gender}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">{p.dob ?? '—'}</td>
-                      <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{p.phone ?? '—'}</td>
-                      <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">{p.email ?? '—'}</td>
-                      <td className="px-4 py-3">
-                        <Badge variant={p.isActive ? 'default' : 'secondary'}>
-                          {p.isActive ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => openEdit(p)}>Edit</DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link to={`/patients/${p.id}/chart`}>View Chart</Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => toggleActive(p)}>
-                              {p.isActive ? 'Deactivate' : 'Activate'}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="divide-y divide-border">
+              {patients.map(p => (
+                <div
+                  key={p.id}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
+                  onClick={() => navigate(`/patients/${p.id}/chart`)}
+                >
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <span className="text-xs font-medium text-primary">
+                      {p.firstName.charAt(0)}{p.lastName.charAt(0)}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">{p.fullName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {p.gender}
+                      <span className="hidden sm:inline">{p.dob ? ` · ${p.dob}` : ''}</span>
+                      <span className="hidden md:inline">{p.phone ? ` · ${p.phone}` : ''}</span>
+                      <span className="hidden lg:inline">{p.email ? ` · ${p.email}` : ''}</span>
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
+                    <Badge variant={p.isActive ? 'default' : 'secondary'}>
+                      {p.isActive ? 'Active' : 'Inactive'}
+                    </Badge>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openEdit(p)}>Edit</DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to={`/patients/${p.id}/chart`}>View Chart</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className={p.isActive ? 'text-destructive focus:text-destructive' : ''}
+                          onClick={() => p.isActive ? setPendingDeactivate(p) : toggleActive(p)}
+                        >
+                          {p.isActive ? 'Deactivate' : 'Activate'}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>
@@ -233,6 +246,23 @@ export function PatientManagementPage() {
         onSave={handleSave}
         initialValues={editTarget}
       />
+
+      <AlertDialog open={!!pendingDeactivate} onOpenChange={(open) => !open && setPendingDeactivate(null)}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deactivate {pendingDeactivate?.fullName}? They will no longer appear in active patient lists.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={() => pendingDeactivate && toggleActive(pendingDeactivate)}>
+              Deactivate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

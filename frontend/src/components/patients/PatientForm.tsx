@@ -9,6 +9,16 @@ import {
   SheetTitle,
   SheetFooter,
 } from '@/components/ui/sheet'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import type { Patient } from '@/types'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -63,13 +73,18 @@ function toValues(p?: Partial<Patient>): PatientFormValues {
   }
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const PHONE_RE = /^[0-9+\-\s()]{7,20}$/
+
 function validate(v: PatientFormValues): PatientFormErrors {
   const e: PatientFormErrors = {}
   if (!v.firstName.trim()) e.firstName = 'Required'
   if (!v.lastName.trim())  e.lastName  = 'Required'
   if (!v.gender.trim())    e.gender    = 'Required'
   if (!v.phone.trim())     e.phone     = 'Required'
+  else if (!PHONE_RE.test(v.phone.trim())) e.phone = 'Enter a valid phone number'
   if (!v.address.trim())   e.address   = 'Required'
+  if (v.email.trim() && !EMAIL_RE.test(v.email.trim())) e.email = 'Enter a valid email address'
   return e
 }
 
@@ -77,15 +92,25 @@ function validate(v: PatientFormValues): PatientFormErrors {
 
 export function PatientForm({ open, onClose, onSave, initialValues }: PatientFormProps) {
   const isEdit = !!initialValues?.id
-  const [form,   setForm]   = useState<PatientFormValues>(() => toValues(initialValues))
-  const [errors, setErrors] = useState<PatientFormErrors>({})
+  const [form,           setForm]           = useState<PatientFormValues>(() => toValues(initialValues))
+  const [errors,         setErrors]         = useState<PatientFormErrors>({})
+  const [initialSnapshot, setInitialSnapshot] = useState<PatientFormValues>(() => toValues(initialValues))
+  const [pendingClose,   setPendingClose]   = useState(false)
+
+  const isDirty = JSON.stringify(form) !== JSON.stringify(initialSnapshot)
 
   useEffect(() => {
     if (open) {
-      setForm(toValues(initialValues))
+      const vals = toValues(initialValues)
+      setForm(vals)
+      setInitialSnapshot(vals)
       setErrors({})
     }
   }, [open, initialValues])
+
+  const requestClose = () => {
+    if (isDirty) { setPendingClose(true) } else { onClose() }
+  }
 
   const set = (field: keyof PatientFormValues, value: string) => {
     setForm(f => ({ ...f, [field]: value }))
@@ -118,7 +143,8 @@ export function PatientForm({ open, onClose, onSave, initialValues }: PatientFor
   }
 
   return (
-    <Sheet open={open} onOpenChange={open => !open && onClose()}>
+    <>
+    <Sheet open={open} onOpenChange={isOpen => !isOpen && requestClose()}>
       <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
         <SheetHeader>
           <SheetTitle>{isEdit ? 'Edit Patient' : 'Add Patient'}</SheetTitle>
@@ -129,13 +155,13 @@ export function PatientForm({ open, onClose, onSave, initialValues }: PatientFor
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label htmlFor="firstName" className="text-xs">First Name *</Label>
-              <Input id="firstName" value={form.firstName} onChange={e => set('firstName', e.target.value)} placeholder="e.g. Maria" />
-              {errors.firstName && <p className="text-xs text-destructive">{errors.firstName}</p>}
+              <Input id="firstName" value={form.firstName} onChange={e => set('firstName', e.target.value)} placeholder="e.g. Maria" aria-describedby={errors.firstName ? 'firstName-error' : undefined} />
+              {errors.firstName && <p id="firstName-error" role="alert" className="text-xs text-destructive">{errors.firstName}</p>}
             </div>
             <div className="space-y-1">
               <Label htmlFor="lastName" className="text-xs">Last Name *</Label>
-              <Input id="lastName" value={form.lastName} onChange={e => set('lastName', e.target.value)} placeholder="e.g. Santos" />
-              {errors.lastName && <p className="text-xs text-destructive">{errors.lastName}</p>}
+              <Input id="lastName" value={form.lastName} onChange={e => set('lastName', e.target.value)} placeholder="e.g. Santos" aria-describedby={errors.lastName ? 'lastName-error' : undefined} />
+              {errors.lastName && <p id="lastName-error" role="alert" className="text-xs text-destructive">{errors.lastName}</p>}
             </div>
           </div>
 
@@ -164,8 +190,8 @@ export function PatientForm({ open, onClose, onSave, initialValues }: PatientFor
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label htmlFor="phone" className="text-xs">Phone *</Label>
-              <Input id="phone" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="09171234567" />
-              {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
+              <Input id="phone" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="09171234567" aria-describedby={errors.phone ? 'phone-error' : undefined} />
+              {errors.phone && <p id="phone-error" role="alert" className="text-xs text-destructive">{errors.phone}</p>}
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Blood Type</Label>
@@ -183,14 +209,15 @@ export function PatientForm({ open, onClose, onSave, initialValues }: PatientFor
           {/* Email */}
           <div className="space-y-1">
             <Label className="text-xs">Email (optional)</Label>
-            <Input type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="patient@email.com" />
+            <Input type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="patient@email.com" aria-describedby={errors.email ? 'patientEmail-error' : undefined} />
+            {errors.email && <p id="patientEmail-error" role="alert" className="text-xs text-destructive">{errors.email}</p>}
           </div>
 
           {/* Address */}
           <div className="space-y-1">
             <Label className="text-xs">Address *</Label>
-            <Input value={form.address} onChange={e => set('address', e.target.value)} placeholder="e.g. 12 Rizal St, Quezon City" />
-            {errors.address && <p className="text-xs text-destructive">{errors.address}</p>}
+            <Input value={form.address} onChange={e => set('address', e.target.value)} placeholder="e.g. 12 Rizal St, Quezon City" aria-describedby={errors.address ? 'address-error' : undefined} />
+            {errors.address && <p id="address-error" role="alert" className="text-xs text-destructive">{errors.address}</p>}
           </div>
 
           {/* Allergies */}
@@ -232,9 +259,27 @@ export function PatientForm({ open, onClose, onSave, initialValues }: PatientFor
 
         <SheetFooter className="px-4 pb-4">
           <Button onClick={handleSubmit}>{isEdit ? 'Save Changes' : 'Add Patient'}</Button>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" onClick={requestClose}>Cancel</Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>
+
+    <AlertDialog open={pendingClose} onOpenChange={(isOpen) => !isOpen && setPendingClose(false)}>
+      <AlertDialogContent size="sm">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Discard changes?</AlertDialogTitle>
+          <AlertDialogDescription>
+            You have unsaved changes. If you close now, they will be lost.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => setPendingClose(false)}>Keep Editing</AlertDialogCancel>
+          <AlertDialogAction variant="destructive" onClick={() => { setPendingClose(false); onClose() }}>
+            Discard Changes
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   )
 }

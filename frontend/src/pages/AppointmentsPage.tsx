@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
+import { CalendarX } from 'lucide-react'
+import { EmptyState } from '@/components/ui/empty-state'
 import { SkeletonRow } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -15,6 +17,7 @@ import { useAuthStore } from '@/store/auth'
 import { PatientForm } from '@/components/patients/PatientForm'
 import type { Patient } from '@/types'
 import api from '@/services/api'
+import { toast } from 'sonner'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -150,7 +153,7 @@ function ApptChip({ appt, professionals, showTime = false, showProf = false, onC
 
 // ── Agenda View ────────────────────────────────────────────────────────────────
 
-function AgendaView({ appointments, professionals, currentDate, onSelect }: { appointments: Appointment[]; professionals: Professional[]; currentDate: Date; onSelect: (a: Appointment) => void }) {
+function AgendaView({ appointments, professionals, currentDate, onSelect, onBook }: { appointments: Appointment[]; professionals: Professional[]; currentDate: Date; onSelect: (a: Appointment) => void; onBook?: () => void }) {
   const today = new Date()
   const days  = Array.from({ length: 30 }, (_, i) => addDays(currentDate, i))
   const groups = days
@@ -161,7 +164,14 @@ function AgendaView({ appointments, professionals, currentDate, onSelect }: { ap
     .filter(g => g.appts.length > 0)
 
   if (groups.length === 0) {
-    return <p className="text-sm text-muted-foreground py-10 text-center">No appointments in the next 30 days.</p>
+    return (
+      <EmptyState
+        icon={CalendarX}
+        heading="No appointments in the next 30 days"
+        subtext="Nothing scheduled yet."
+        action={onBook ? { label: '+ New Appointment', onClick: onBook } : undefined}
+      />
+    )
   }
 
   return (
@@ -472,7 +482,7 @@ export function AppointmentsPage() {
       try {
         const res = await api.get('/api/v1/patients', { params: { search: q, limit: 6 } })
         setPatients((res.data.data as Record<string, unknown>[]).map(p => ({
-          ...(p as Patient),
+          ...(p as unknown as Patient),
           fullName: `${p.firstName} ${p.lastName}`,
         })))
       } catch { /* silent */ }
@@ -657,6 +667,7 @@ export function AppointmentsPage() {
       status:         'booked',
     }])
     setShowNewModal(false)
+    toast.success('Appointment booked successfully.')
   }
 
   const todayCount = filtered.filter(a => a.date === fmt(TODAY)).length
@@ -742,7 +753,7 @@ export function AppointmentsPage() {
           ) : (
             <>
               {view === 'Agenda' && (
-                <AgendaView appointments={filtered} professionals={professionals} currentDate={currentDate} onSelect={openAppt} />
+                <AgendaView appointments={filtered} professionals={professionals} currentDate={currentDate} onSelect={openAppt} onBook={canBook ? () => openNewModal() : undefined} />
               )}
               {view === 'Day' && (
                 <DayView

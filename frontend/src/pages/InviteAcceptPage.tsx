@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { useAuthStore } from '@/store/auth'
+import { PasswordStrengthMeter, getPasswordStrength } from '@/components/ui/password-strength-meter'
 
 interface InviteDetails {
   email: string
@@ -63,6 +64,10 @@ export function InviteAcceptPage() {
     }
     if (password !== confirmPassword) {
       setFormError('Passwords do not match.')
+      return
+    }
+    if (getPasswordStrength(password).label === 'Weak') {
+      setFormError('Password is too weak. Add uppercase, numbers, or special characters.')
       return
     }
 
@@ -136,6 +141,7 @@ export function InviteAcceptPage() {
               onChange={(e) => setPassword(e.target.value)}
               disabled={isLoading}
             />
+            <PasswordStrengthMeter password={password} />
           </div>
 
           <div className="space-y-1.5">
