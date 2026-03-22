@@ -20,7 +20,18 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { MoreHorizontal } from 'lucide-react'
+import { toast } from 'sonner'
 import { UserManagementPage } from '@/pages/UserManagementPage'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { type ClinicService, INITIAL_SERVICES } from '@/data/clinicServices'
 
 type Section = 'General' | 'Branding' | 'Patient Permissions' | 'Branches' | 'Users' | 'Services & Prices'
@@ -63,6 +74,7 @@ function BranchesSection() {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editBranch, setEditBranch] = useState<Branch | null>(null)
   const [form, setForm] = useState<BranchForm>(emptyBranchForm)
+  const [pendingDeactivateBranchId, setPendingDeactivateBranchId] = useState<string | null>(null)
 
   const openAdd = () => {
     setEditBranch(null)
@@ -120,7 +132,7 @@ function BranchesSection() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className={b.status === 'Active' ? 'text-destructive focus:text-destructive' : ''}
-                    onClick={() => toggleStatus(b.id)}
+                    onClick={() => b.status === 'Active' ? setPendingDeactivateBranchId(b.id) : toggleStatus(b.id)}
                   >
                     {b.status === 'Active' ? 'Deactivate' : 'Reactivate'}
                   </DropdownMenuItem>
@@ -164,6 +176,32 @@ function BranchesSection() {
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      <AlertDialog open={!!pendingDeactivateBranchId} onOpenChange={(open) => !open && setPendingDeactivateBranchId(null)}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deactivate this branch? It will be marked inactive and hidden from active lists.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                if (pendingDeactivateBranchId) {
+                  toggleStatus(pendingDeactivateBranchId)
+                  toast.success('Branch deactivated.')
+                  setPendingDeactivateBranchId(null)
+                }
+              }}
+            >
+              Deactivate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
