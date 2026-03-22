@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Loader2, User, Mail } from 'lucide-react'
 import { useForm } from 'react-hook-form'
@@ -19,6 +20,7 @@ type LoginFields = z.infer<typeof loginSchema>
 export function LoginPage() {
   const navigate = useNavigate()
   const { login, isLoading, error, clearError } = useAuthStore()
+  const [formError, setFormError] = useState('')
 
   const {
     register,
@@ -27,11 +29,16 @@ export function LoginPage() {
   } = useForm<LoginFields>({ resolver: zodResolver(loginSchema) })
 
   const onSubmit = async (data: LoginFields) => {
+    setFormError('')
     clearError()
     await login(data.email, data.password)
     if (!useAuthStore.getState().error) {
       navigate('/dashboard', { replace: true })
     }
+  }
+
+  const onInvalid = () => {
+    setFormError('Please enter your email and password.')
   }
 
   return (
@@ -50,7 +57,7 @@ export function LoginPage() {
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+      <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-4" noValidate>
         <div className="space-y-1.5">
           <div className="flex items-center gap-1">
             <Label htmlFor="email">Email</Label>
@@ -70,7 +77,7 @@ export function LoginPage() {
             />
           </div>
           {errors.email && (
-            <p id="email-error" role="alert" className="text-xs text-destructive">
+            <p id="email-error" className="text-xs text-destructive">
               {errors.email.message}
             </p>
           )}
@@ -96,15 +103,15 @@ export function LoginPage() {
             {...register('password')}
           />
           {errors.password && (
-            <p id="password-error" role="alert" className="text-xs text-destructive">
+            <p id="password-error" className="text-xs text-destructive">
               {errors.password.message}
             </p>
           )}
         </div>
 
-        {error && (
+        {(formError || error) && (
           <p role="alert" className="text-sm text-destructive">
-            {error}
+            {formError || error}
           </p>
         )}
 
@@ -114,7 +121,7 @@ export function LoginPage() {
           disabled={isLoading}
         >
           {isLoading && <Loader2 className="animate-spin" />}
-          {isLoading ? 'Signing in…' : 'Login'}
+          {isLoading ? 'Signing in…' : 'Sign in'}
         </Button>
 
         <p className="text-center text-sm text-muted-foreground">
