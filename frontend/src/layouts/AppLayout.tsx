@@ -3,8 +3,6 @@ import * as Sentry from '@sentry/react'
 import { NavLink, Outlet, useNavigate, useLocation, Link } from 'react-router-dom'
 import { ErrorFallback } from '@/components/ErrorFallback'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
-import { useSyncStatus } from '@/hooks/useSyncStatus'
-import { SyncStatusBadge } from '@/components/SyncStatusBadge'
 import {
   LayoutDashboard,
   Users,
@@ -374,7 +372,6 @@ export function AppLayout() {
     try { return localStorage.getItem('sidebar-collapsed') === 'true' } catch { return false }
   })
   const { isOnline } = useNetworkStatus()
-  const sync = useSyncStatus()
 
   // Auto-logout after 15 minutes of inactivity (HIPAA § 164.312(a)(2)(iii))
   useIdleLogout()
@@ -419,15 +416,10 @@ export function AppLayout() {
             <Menu className="h-4 w-4" />
           </Button>
           <span className="ml-3 font-semibold text-foreground">ClinicAlly</span>
-          <div className="ml-auto">
-            <SyncStatusBadge sync={sync} />
-          </div>
         </header>
 
-        {/* Desktop header row for sync badge */}
-        <div className="hidden lg:flex h-14 items-center justify-end border-b border-border px-6 bg-background">
-          <SyncStatusBadge sync={sync} />
-        </div>
+        {/* Desktop header row */}
+        <div className="hidden lg:flex h-14 items-center border-b border-border px-6 bg-background" />
 
         <Breadcrumbs />
 
