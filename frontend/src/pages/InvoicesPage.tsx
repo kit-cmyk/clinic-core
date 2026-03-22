@@ -18,7 +18,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MoreHorizontal } from 'lucide-react'
+import { MoreHorizontal, FileX } from 'lucide-react'
+import { EmptyState } from '@/components/ui/empty-state'
 import type { Invoice, InvoiceLineItem, InvoiceStatus } from '@/types'
 import api from '@/services/api'
 
@@ -317,7 +318,12 @@ export function InvoicesPage() {
               ))}
             </div>
           ) : filtered.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">No {filterTab === 'all' ? '' : filterTab} invoices.</p>
+            <EmptyState
+              icon={FileX}
+              heading={filterTab === 'all' ? 'No invoices yet' : `No ${filterTab} invoices`}
+              subtext={filterTab === 'all' ? 'Create your first invoice to get started.' : undefined}
+              action={filterTab === 'all' ? { label: '+ New Invoice', onClick: () => setSheetOpen(true) } : undefined}
+            />
           ) : (
             filtered.map(inv => (
               <InvoiceRow
