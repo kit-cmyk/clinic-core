@@ -3,7 +3,7 @@ import { AppLayout } from '@/layouts/AppLayout'
 import { AuthLayout } from '@/layouts/AuthLayout'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { PublicRoute } from '@/components/PublicRoute'
-import { ComingSoon } from '@/components/ComingSoon'
+import { FeatureUnavailablePage } from '@/pages/FeatureUnavailablePage'
 import { LoginPage } from '@/pages/LoginPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
@@ -139,7 +139,7 @@ const router = createBrowserRouter([
           { path: '/users', element: <Navigate to="/settings" replace /> },
           { path: '/lab', element: <Navigate to="/dashboard" replace /> },
           { path: '/billing', element: <InvoicesPage /> },
-          { path: '/organizations', element: <ComingSoon label="Organizations" /> },
+          { path: '/organizations', element: <FeatureUnavailablePage /> },
           { path: '/settings', element: <SettingsPage /> },
           { path: '/admin/plans', element: <PlansPage /> },
           { path: '/admin/tenants', element: <TenantsPage /> },
